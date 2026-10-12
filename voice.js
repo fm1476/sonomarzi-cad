@@ -289,6 +289,7 @@ function ensureDispatcherIdentity(){
  return null;
 }
 document.addEventListener('click',e=>{if(e.target.closest('[data-act="note"]'))ensureDispatcherIdentity()},true);
+window.cadVoiceSetOrder=value=>{newestFirst=value!=='oldest';localStorage.setItem('smcad-voice-order-v17.3',newestFirst?'newest':'oldest')};
 window.voiceBindDetail=i=>{
  document.querySelectorAll('[data-voice-tab]').forEach(b=>b.onclick=()=>{activeTab=b.dataset.voiceTab;highlightId=null;renderDetail();});
  const order=document.getElementById('voiceEntryOrder');if(order)order.onchange=()=>{newestFirst=order.value==='newest';localStorage.setItem('smcad-voice-order-v17.3',newestFirst?'newest':'oldest');renderDetail();};
