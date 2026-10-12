@@ -34,8 +34,21 @@ function toggleImagery(){settings.satellite=!settings.satellite;persist();if(!ma
 async function geocode(address){const original=String(address||'').trim(),place=window.cadCommonPlaces?.resolve(original),query=place?.address||original,key=query.toLowerCase();if(place?.coordinates?.length===2)return place.coordinates;if(!query)return null;if(cache[key])return cache[key];try{const r=await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=us&q='+encodeURIComponent(query+', Petaluma, California'),{headers:{Accept:'application/json'}});if(r.ok){const rows=await r.json();if(rows.length){const pos=[Number(rows[0].lat),Number(rows[0].lon)];cache[key]=pos;localStorage.setItem(cacheKey,JSON.stringify(cache));return pos}}}catch(e){console.warn('Map location not found',e)}return null}
 async function updateUnitCoords(id,address){
  const u=(state.units||[]).find(x=>x.id===id);if(!u||u.location!==address)return;
- const coords=await geocode(address);if(!coords){u.mapLocationPending=true;setResult(`Location saved for ${id}, but ${address} could not be geocoded. Map still uses its approximate point.`);return;}
- if(u.location!==address)return;u.mapCoords=coords;u.mapLocationPending=false;localStorage.setItem(KEY,JSON.stringify(state));void draw();
+ const coords=await geocode(address);
+ if(u.location!==address)return;
+ if(!coords){
+  u.mapLocationPending=true;
+  delete u.mapCoords;
+  localStorage.setItem(KEY,JSON.stringify(state));
+  void draw();
+  const message=`WARNING: ${id} location saved as ${address}, but the address could not be mapped. Map marker is an approximate simulated position, NOT the reported address.`;
+  setResult(message);
+  window.cadLocationMapWarning=message;
+  return;
+ }
+ u.mapCoords=coords;u.mapLocationPending=false;localStorage.setItem(KEY,JSON.stringify(state));void draw();
+ if(window.cadLocationMapWarning?.includes(id+' location saved'))window.cadLocationMapWarning='';
+ setResult(`${id} mapped to ${address}. Position is geocoded, not live AVL.`);
 }
 window.cadResolveUnitAddress=(id,address)=>{void updateUnitCoords(id,address)};
 const meters=(a,b)=>{const r=Math.PI/180,dlat=(b[0]-a[0])*r,dlon=(b[1]-a[1])*r,la1=a[0]*r,la2=b[0]*r;return 6371000*2*Math.asin(Math.sqrt(Math.sin(dlat/2)**2+Math.cos(la1)*Math.cos(la2)*Math.sin(dlon/2)**2))};
