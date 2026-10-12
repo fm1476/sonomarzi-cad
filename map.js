@@ -46,7 +46,11 @@ async function updateUnitCoords(id,address){
   window.cadLocationMapWarning=message;
   return;
  }
- u.mapCoords=coords;u.mapLocationPending=false;localStorage.setItem(KEY,JSON.stringify(state));void draw();
+ u.mapCoords=coords;u.mapLocationPending=false;localStorage.setItem(KEY,JSON.stringify(state));
+ // Move the existing Leaflet marker immediately, independently of asynchronous incident redraws.
+ const marker=markerByUnit.get(String(id).toUpperCase());
+ if(marker){marker.setLatLng(offsetPoint(coords,u.id));marker.setIcon(unitIcon(u));}
+ void draw();
  if(window.cadLocationMapWarning?.includes(id+' location saved'))window.cadLocationMapWarning='';
  setResult(`${id} mapped to ${address}. Position is geocoded, not live AVL.`);
 }
