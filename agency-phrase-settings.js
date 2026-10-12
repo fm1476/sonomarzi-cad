@@ -46,7 +46,7 @@
   catch(e){output.textContent='Not added: '+e.message;}
  });
  testButton.addEventListener('click',()=>{
-  try{const dictionary=validate(entries);const result=dictionary.resolve(test.value);output.textContent=result.status==='matched'?'Recognized intent: '+result.intent+' (preview only)':result.status==='ambiguous'?'Ambiguous phrase; no action':'No configured phrase matched. No action.';}
+  try{const dictionary=validate(entries);const result=window.CadCommandGate.evaluate(dictionary.resolve(test.value));output.textContent=result.status==='recognized'?'Recognized: '+result.intent+'. Preview only, no action executed.':result.status==='needs_context'?'Recognized '+result.intent+' but requires '+result.required.join(', ')+'. No action executed.':'Rejected: '+result.reason+'. No action executed.';}
   catch(e){output.textContent='Cannot test: '+e.message;}
  });
  applyJson.addEventListener('click',()=>{
