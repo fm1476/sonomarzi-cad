@@ -1,6 +1,6 @@
 const assert=require('node:assert/strict');
 const {inspect}=require('../core/radio-incomplete.js');
-assert.match(inspect('three out of 12 is',true).reason,/Please repeat the status/);
+assert.match(inspect('three out of 12 is',true).reason,/Please repeat the (?:complete )?status/);
 assert.match(inspect('3 adam 12 is',true).reason,/Incomplete/);
 assert.match(inspect('3 Adam 12',true).reason,/Incomplete/);
 assert.match(inspect('3A12',true).reason,/Incomplete/);
