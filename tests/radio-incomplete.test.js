@@ -4,6 +4,7 @@ assert.match(inspect('three out of 12 is',true).reason,/Please repeat the status
 assert.match(inspect('3 adam 12 is',true).reason,/Incomplete/);
 assert.match(inspect('3 Adam 12',true).reason,/Incomplete/);
 assert.match(inspect('3A12',true).reason,/Incomplete/);
+assert.match(inspect('three out of 12 show me on',true).reason,/Incomplete/);
 assert.match(inspect('three out of 12',true).reason,/Incomplete/);
 assert.match(inspect('3A12 show me',true).reason,/Incomplete/);
 assert.equal(inspect('three out of 12 is',false),null);
