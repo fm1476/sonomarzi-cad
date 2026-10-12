@@ -15,9 +15,11 @@ Run on the draft branch in an isolated local browser profile using fictional dat
 - Test an unknown phrase; confirm it does not resolve.
 - Attempt to assign the same phrase to two different intents; confirm a conflict warning and no save.
 - Save, refresh the browser and confirm the phrases remain.
-- Load invalid JSON, duplicate intent groups and empty phrase arrays; confirm validation blocks them.
+- Load invalid JSON, duplicate intent groups, normalized duplicate phrases and empty phrase arrays; confirm validation blocks them.
+- Switch the action selector during editing; confirm replacement mode clears.
+- Simulate malformed saved configuration; confirm safe defaults are displayed with a warning and the saved value is not silently overwritten.
 - Remove a phrase group, save, refresh and confirm it stays removed.
-- Reset the entire demo and verify the voice phrase preview is cleared as expected (currently requires separate confirmation and implementation).
+- Reset the entire demo and verify the voice phrase preview is cleared as expected (implemented in the refactor branch).
 
 ## Regression
 - Run `npm run check`.
