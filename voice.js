@@ -264,15 +264,22 @@ refreshRadioIncidents();
 window.voiceDetailHtml=i=>{
  ensure();
  const notes=i.voiceNotes||[],trans=i.radioTranscripts||[];
- const original=(i.narrative||[]).filter(x=>!x.includes('[Radio summary]'));
- // Stored data stays chronological. Display order is purely a browser preference.
- const orderedNotes=newestFirst?[...notes].reverse():[...notes];
- const orderedTrans=newestFirst?[...trans].reverse():[...trans];
- const narrativeItems=[...original.map(t=>({type:'original',text:t})),...orderedNotes.map(n=>({type:'summary',note:n}))];
- if(newestFirst)narrativeItems.splice(0,narrativeItems.length,...orderedNotes.map(n=>({type:'summary',note:n})),...original.slice().reverse().map(t=>({type:'original',text:t})));
- const narrativeHtml=narrativeItems.map(item=>item.type==='original'?`<div class="narr">${safe(item.text)}</div>`:`<div class="voice-entry"><div class="meta">${safe(item.note.time)} | ${safe(item.note.source)} | ${item.note.method==='ai'?'AI summary':'Local summary'}</div>${safe(item.note.summary)}${item.note.uncertainties?.length?` <span class="meta">[Check: ${safe(item.note.uncertainties.join('; '))}]</span>`:''} <button data-transcript-ref="${safe(item.note.id)}">Source transcript ↗</button></div>`).join('')||'<div class="narr muted">No narrative yet.</div>';
+ const legacy=(i.narrative||[]).filter(x=>!x.includes('[Radio summary]'));
+ const manual=i.manualNarrativeEntries||[];
+ const unmatched=[...manual];
+ const legacyItems=legacy.filter(text=>{const ix=unmatched.findIndex(n=>n.text===text);if(ix<0)return true;unmatched.splice(ix,1);return false});
+ const clockTime=clock=>{const m=String(clock||'').match(/(\d{1,2}):(\d{2}):(\d{2})/);if(!m)return null;const d=new Date();d.setHours(+m[1],+m[2],+m[3],0);return d.getTime()};
+ const stampTime=x=>{const t=Date.parse(x||'');return Number.isFinite(t)?t:null};
+ const items=[...legacyItems.map((text,index)=>({kind:'legacy',text,index,time:null})),...notes.map((note,index)=>({kind:'summary',note,index,time:stampTime(note.timestamp)??clockTime(note.time)})),...manual.map((note,index)=>({kind:'manual',note,index,time:stampTime(note.timestamp)}))];
+ items.sort((a,b)=>{if(a.time!==null&&b.time!==null)return newestFirst?b.time-a.time:a.time-b.time;if(a.time===null&&b.time!==null)return newestFirst?1:-1;if(b.time===null&&a.time!==null)return newestFirst?-1:1;return newestFirst?b.index-a.index:a.index-b.index});
+ const formatDate=x=>{const d=new Date(x);return Number.isFinite(d.getTime())?d.toLocaleString('en-US',{year:'numeric',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'}):'Timestamp unavailable'};
+ const narrativeHtml=items.map(item=>{
+  if(item.kind==='legacy')return '<div class="voice-entry cad-narrative-manual"><div class="meta">Manual narrative | Legacy entry, timestamp unavailable</div>'+safe(item.text)+'</div>';
+  if(item.kind==='manual')return '<div class="voice-entry cad-narrative-manual"><div class="meta">'+safe(formatDate(item.note.timestamp))+' | Dispatcher note</div>'+safe(item.note.text)+'</div>';
+  const n=item.note;return '<div class="voice-entry"><div class="meta">'+safe(n.timestamp?formatDate(n.timestamp):String(n.time||'Time unavailable')+' | Date not recorded')+' | '+safe(n.source)+' | '+(n.method==='ai'?'AI summary':'Local summary')+'</div>'+safe(n.summary)+(n.uncertainties?.length?' <span class="meta">[Check: '+safe(n.uncertainties.join('; '))+']</span>':'')+' <button data-transcript-ref="'+safe(n.id)+'">Source transcript ↗</button></div>';
+ }).join('')||'<div class="narr muted">No narrative yet.</div>';
  const transcriptHtml=orderedTrans.map(r=>`<div class="voice-entry ${highlightId===r.id?'highlight':''}" data-transcript-id="${safe(r.id)}"><div class="meta">${safe(r.time)} | ${r.source==='FIELD'?'Incoming':'Outgoing'} | ${safe((r.units||[]).join(', ')||'Unidentified')}</div>${safe(r.text)}</div>`).join('')||'<div class="narr muted">No radio transmissions linked to this event.</div>';
- return `<div class="voice-log-count">Radio records linked to this event: <strong>${trans.length}</strong> | Summaries: <strong>${notes.length}</strong></div><div class="voice-tabs"><button data-voice-tab="narrative" class="${activeTab==='narrative'?'active':''}">Event Narrative (${notes.length} radio summaries)</button><button data-voice-tab="transcript" class="${activeTab==='transcript'?'active':''}">Radio Transcript (${trans.length})</button><label class="voice-order-label" title="Choose whether the most recent entries appear first or last">Order: <select id="voiceEntryOrder"><option value="newest" ${newestFirst?'selected':''}>Newest on top</option><option value="oldest" ${!newestFirst?'selected':''}>Newest on bottom</option></select></label></div><div class="voice-detail-content" tabindex="0" role="region" aria-label="${activeTab==='narrative'?'Event narrative':'Radio transcript'}">${activeTab==='narrative'?narrativeHtml:transcriptHtml}</div>`;
+ return `<div class="voice-log-count">Radio records linked to this event: <strong>${trans.length}</strong> | Summaries: <strong>${notes.length}</strong></div><div class="voice-tabs"><button data-voice-tab="narrative" class="${activeTab==='narrative'?'active':''}">Event Narrative (${items.length} entries)</button><button data-voice-tab="transcript" class="${activeTab==='transcript'?'active':''}">Radio Transcript (${trans.length})</button><label class="voice-order-label" title="Choose whether the most recent entries appear first or last">Order: <select id="voiceEntryOrder"><option value="newest" ${newestFirst?'selected':''}>Newest on top</option><option value="oldest" ${!newestFirst?'selected':''}>Newest on bottom</option></select></label></div><div class="voice-detail-content" tabindex="0" role="region" aria-label="${activeTab==='narrative'?'Event narrative':'Radio transcript'}">${activeTab==='narrative'?narrativeHtml:transcriptHtml}</div>`;
 };
 window.voiceBindDetail=i=>{
  document.querySelectorAll('[data-voice-tab]').forEach(b=>b.onclick=()=>{activeTab=b.dataset.voiceTab;highlightId=null;renderDetail();});
