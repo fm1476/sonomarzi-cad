@@ -370,3 +370,7 @@ header nav.cad-header-tabs button{white-space:nowrap;padding:6px 9px;font-size:1
 .cad-safety-footer button{flex:1;font-size:11px}
 .cad-safety-disclaimer{margin:0;color:#789ab5;font-size:10px}
 @media(max-width:480px){.cad-safety-shell{padding:15px}.cad-safety-custom{grid-template-columns:1fr 75px}.cad-safety-custom label{grid-column:1/-1}}
+
+/* Unified incident narrative: distinguish dispatcher entries without splitting timeline */
+.voice-detail-content .cad-narrative-manual{border-left:3px solid #49b8dd;background:linear-gradient(90deg,#13394a88,transparent);padding-left:10px}
+.voice-detail-content .cad-narrative-manual .meta{color:#9bdaf2;font-weight:700}
