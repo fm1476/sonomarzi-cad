@@ -9,16 +9,21 @@ try{data=M.read(localStorage);}catch(e){message.textContent='Saved master data c
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const opts=(items,value)=>items.map(x=>'<option value="'+esc(x.id)+'"'+(x.id===value?' selected':'')+'>'+esc(x.name)+'</option>').join('');
 function renderStaff(){
+ const unitSelect=el('cadStaffUnit'),crewSelect=el('cadStaffCrew'),status=el('cadStaffCurrent');
  const active=window.cadMasterActiveUnits?.()||[];
- const unitSelect=el('cadStaffUnit'),selected=unitSelect.value;
- unitSelect.innerHTML=opts(active.map(u=>({id:u.id,name:u.id+' · '+u.status+(u.staffing?.active?' · signed on':'')})));
- if(active.some(u=>u.id===selected))unitSelect.value=selected;
- const unit=active.find(u=>u.id===unitSelect.value),definition=data.units.find(u=>u.id===unit?.masterUnitId);
+ const previous=unitSelect.value;
+ unitSelect.innerHTML=active.length?opts(active.map(u=>({id:u.id,name:u.id+' · '+u.status+(u.staffing?.active?' · signed on':'')}))):'<option value="">No activated units</option>';
+ if(active.some(u=>u.id===previous))unitSelect.value=previous;
+ const unit=active.find(u=>u.id===unitSelect.value);
+ const definition=data.units.find(u=>u.id===unit?.masterUnitId);
  const eligible=data.personnel.filter(p=>p.agencyId===definition?.agencyId);
- el('cadStaffCrew').innerHTML=opts(eligible.map(p=>({id:p.id,name:p.name+' ('+p.id+')'})));
- for(const option of el('cadStaffCrew').options)option.selected=!!unit?.staffing?.active&&unit.staffing.personIds.includes(option.value);
- el('cadStaffCurrent').textContent=unit?.staffing?.active?'Signed on: '+unit.staffing.crew.map(p=>p.name).join(', '):'No crew signed on to selected unit.';
+ crewSelect.innerHTML=eligible.length?opts(eligible.map(p=>({id:p.id,name:p.name+' ('+p.id+')'}))):'<option value="">No personnel available for this agency</option>';
+ for(const option of crewSelect.options)option.selected=!!unit?.staffing?.active&&unit.staffing.personIds.includes(option.value);
+ status.textContent=!active.length?'No activated units found. Activate a unit in Configuration → Agencies & Units first.':!definition?'Unit definition missing. Re-activate the unit from Agency Configuration.':!eligible.length?'No personnel for this agency. Add personnel in Agency Configuration.':unit?.staffing?.active?'On duty: '+unit.staffing.crew.map(p=>p.name).join(', '):'No crew currently signed on.';
+ el('cadStaffSignOn').disabled=!unit||!definition||!eligible.length;
+ el('cadStaffSignOff').disabled=!unit?.staffing?.active;
 }
+
 function render(){
  list.innerHTML='<h4>Agencies ('+data.agencies.length+')</h4>'+(data.agencies.map(a=>'<div>'+esc(a.name)+' ('+esc(a.id)+') · '+esc(a.model)+'</div>').join('')||'<p>No configured agencies yet.</p>')+
  '<h4>Personnel ('+data.personnel.length+')</h4>'+(data.personnel.map(p=>'<div>'+esc(p.name)+' ('+esc(p.id)+') · '+esc(p.agencyId)+'</div>').join('')||'<p>No configured personnel yet.</p>')+
@@ -31,15 +36,17 @@ function render(){
 function commit(next,success){try{M.save(localStorage,next);data=next;render();message.textContent=success;}catch(e){message.textContent='Not saved: '+e.message;}}
 el('cadMasterAgencySelect').addEventListener('change',()=>{const agencyId=el('cadMasterAgencySelect').value;el('cadMasterPersonSelect').innerHTML='<option value="">None / assigned at sign-on</option>'+opts(data.personnel.filter(p=>p.agencyId===agencyId).map(p=>({id:p.id,name:p.name+' ('+p.id+')'})));});
 el('cadStaffUnit').addEventListener('change',renderStaff);
+window.addEventListener('focus',renderStaff);
+document.addEventListener('click',e=>{if(e.target?.closest?.('[data-unit-activate]'))setTimeout(renderStaff,0);});
 el('cadStaffSignOn').addEventListener('click',()=>{
  const unitId=el('cadStaffUnit').value,personIds=[...el('cadStaffCrew').selectedOptions].map(o=>o.value);
  const result=window.cadStaffMasterUnit?.(unitId,personIds);
- message.textContent=result?.ok?'Crew signed on.':'Sign-on rejected: '+(result?.error||'CAD integration unavailable');
+ el('cadStaffMessage').textContent=result?.ok?'Crew signed on.':'Sign-on rejected: '+(result?.error||'CAD integration unavailable');
  renderStaff();
 });
 el('cadStaffSignOff').addEventListener('click',()=>{
  const result=window.cadSignOffMasterUnit?.(el('cadStaffUnit').value);
- message.textContent=result?.ok?'Crew signed off.':'Sign-off rejected: '+(result?.error||'CAD integration unavailable');
+ el('cadStaffMessage').textContent=result?.ok?'Crew signed off.':'Sign-off rejected: '+(result?.error||'CAD integration unavailable');
  renderStaff();
 });
 el('cadMasterAddAgency').addEventListener('click',()=>{
