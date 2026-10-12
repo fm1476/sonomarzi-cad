@@ -395,3 +395,12 @@ header nav.cad-header-tabs button{white-space:nowrap;padding:6px 9px;font-size:1
 .cad-ct-narrative-header h3{margin:0;font-size:15px}
 #cadCTNarrative .voice-detail-content{max-height:380px;overflow-y:auto}
 @media(max-width:760px){.cad-ct-item{grid-template-columns:1fr 1fr}.cad-ct-place,.cad-ct-agency{grid-column:span 1}.cad-ct-fields{grid-template-columns:1fr}}
+
+/* Call-taker narrative composer and dispatcher update cues */
+.cad-ct-note-form{display:grid;gap:9px;padding:12px;background:#102c41;border:1px solid #315671;border-radius:10px;margin-bottom:14px}
+.cad-ct-note-form label{font-size:11px;color:#a8c9dd;font-weight:700;letter-spacing:.04em}
+.cad-ct-note-form textarea{width:100%;min-height:85px;resize:vertical;border-radius:8px;border:1px solid #456983;background:#081b2d;color:#eff9ff;padding:11px;font:inherit}
+.cad-ct-note-form button{justify-self:start}
+.cad-dispatch-new-info{display:inline-flex;align-items:center;margin:4px 5px;padding:3px 7px;border-radius:5px;border:1px solid #4db4db;background:#123c54;color:#a9edff;font-size:10px;font-weight:800;letter-spacing:.05em;white-space:nowrap}
+.cad-dispatch-info-audio{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:500;color:#b0cbdc;margin-left:12px;letter-spacing:normal}
+.cad-dispatch-info-audio input{accent-color:#4baee0}
