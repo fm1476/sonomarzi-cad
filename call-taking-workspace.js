@@ -12,6 +12,13 @@ function refresh(){
  const shown=incidents.filter(i=>filter==='ALL'||i.status===filter);
  $('cadCTCount').textContent='('+incidents.length+')';
  $('cadCTQueue').innerHTML=shown.map(i=>'<button type="button" class="cad-ct-item '+(selected===i.id?'selected':'')+'" data-ct-id="'+safe(i.id)+'"><span class="cad-ct-id">'+safe(i.id)+'</span><span class="cad-ct-type">'+safe(i.type)+'</span><span class="cad-ct-place">'+safe(i.location)+'</span><span class="cad-ct-agency">'+safe(i.agency)+'</span><span class="cad-ct-status '+safe(i.status.toLowerCase())+'">'+safe(i.status)+'</span></button>').join('')||'<p class="cad-ct-empty">No matching open calls.</p>';
+ if(!incidents.length){
+ const health=window.cadDemoDataHealth?.()||{};
+ const message=document.createElement('div');message.className='cad-ct-recovery';
+ message.innerHTML='<p>'+((health.incidentCount||0)>0?'There are incident records, but none are currently Pending or Active.':'No incidents are stored in this browser profile.')+'</p><button type="button" id="cadCTRestoreDemo">Restore missing sample calls (keep existing data)</button>';
+ $('cadCTQueue').append(message);
+ message.querySelector('button').onclick=()=>{const count=window.cadRestoreMissingDemoCalls?.()||0;refresh();alert(count?count+' missing sample calls restored. Existing records preserved.':'All original sample call IDs are already present. No records changed.')};
+}
  $('cadCTQueue').querySelectorAll('[data-ct-id]').forEach(b=>b.onclick=()=>{selected=b.dataset.ctId;refresh()});
  const i=incidents.find(x=>x.id===selected),editor=$('cadCTEditor');if(!i){editor.hidden=true;$('cadCTEmpty').hidden=false;return}
  editor.hidden=false;$('cadCTEmpty').hidden=true;
