@@ -37,8 +37,9 @@
  add.addEventListener('click',()=>{
   const phrases=[...new Set(aliases.value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean))];
   if(!phrases.length){output.textContent='Enter at least one spoken phrase.';return;}
-  const next=entries.filter(x=>x.intent!==intent.value).concat([{intent:intent.value,phrases}]);
-  try{validate(next);entries=next;sync();output.textContent='Phrases updated in preview. Save when ready.';}
+  const existing=entries.find(x=>x.intent===intent.value);
+  const next=entries.filter(x=>x.intent!==intent.value).concat([{intent:intent.value,phrases:[...new Set([...(existing?.phrases||[]),...phrases])]}]);
+  try{validate(next);entries=next;sync();output.textContent='Phrases added to preview. Existing phrases preserved. Save when ready.';}
   catch(e){output.textContent='Not added: '+e.message;}
  });
  testButton.addEventListener('click',()=>{
