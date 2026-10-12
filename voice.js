@@ -281,6 +281,14 @@ window.voiceDetailHtml=i=>{
  const transcriptHtml=orderedTrans.map(r=>`<div class="voice-entry ${highlightId===r.id?'highlight':''}" data-transcript-id="${safe(r.id)}"><div class="meta">${safe(r.time)} | ${r.source==='FIELD'?'Incoming':'Outgoing'} | ${safe((r.units||[]).join(', ')||'Unidentified')}</div>${safe(r.text)}</div>`).join('')||'<div class="narr muted">No radio transmissions linked to this event.</div>';
  return `<div class="voice-log-count">Radio records linked to this event: <strong>${trans.length}</strong> | Summaries: <strong>${notes.length}</strong></div><div class="voice-tabs"><button data-voice-tab="narrative" class="${activeTab==='narrative'?'active':''}">Event Narrative (${items.length} entries)</button><button data-voice-tab="transcript" class="${activeTab==='transcript'?'active':''}">Radio Transcript (${trans.length})</button><label class="voice-order-label" title="Choose whether the most recent entries appear first or last">Order: <select id="voiceEntryOrder"><option value="newest" ${newestFirst?'selected':''}>Newest on top</option><option value="oldest" ${!newestFirst?'selected':''}>Newest on bottom</option></select></label></div><div class="voice-detail-content" tabindex="0" role="region" aria-label="${activeTab==='narrative'?'Event narrative':'Radio transcript'}">${activeTab==='narrative'?narrativeHtml:transcriptHtml}</div>`;
 };
+function ensureDispatcherIdentity(){
+ let id=(localStorage.getItem('smcad-dispatcher-identity-v1')||'').trim();
+ if(id)return id;
+ const entered=prompt('Dispatcher ID or initials for narrative attribution (saved on this browser):','');
+ if(entered?.trim()){id=entered.trim().slice(0,24);localStorage.setItem('smcad-dispatcher-identity-v1',id);return id}
+ return null;
+}
+document.addEventListener('click',e=>{if(e.target.closest('[data-act="note"]'))ensureDispatcherIdentity()},true);
 window.voiceBindDetail=i=>{
  document.querySelectorAll('[data-voice-tab]').forEach(b=>b.onclick=()=>{activeTab=b.dataset.voiceTab;highlightId=null;renderDetail();});
  const order=document.getElementById('voiceEntryOrder');if(order)order.onchange=()=>{newestFirst=order.value==='newest';localStorage.setItem('smcad-voice-order-v17.3',newestFirst?'newest':'oldest');renderDetail();};
