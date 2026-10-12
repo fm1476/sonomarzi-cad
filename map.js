@@ -33,9 +33,31 @@ function init(){if(map||!window.L)return;host.innerHTML='';map=L.map(host,{zoomC
 function toggleImagery(){settings.satellite=!settings.satellite;persist();if(!map)return;map.removeLayer(settings.satellite?osm:satellite);(settings.satellite?satellite:osm).addTo(map);(settings.satellite?satellite:osm).bringToBack();setResult(settings.satellite?'Satellite imagery enabled.':'Street map enabled.')}
 async function geocode(address){const original=String(address||'').trim(),place=window.cadCommonPlaces?.resolve(original),query=place?.address||original,key=query.toLowerCase();if(place?.coordinates?.length===2)return place.coordinates;if(!query)return null;if(cache[key])return cache[key];try{const r=await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=us&q='+encodeURIComponent(query+', Petaluma, California'),{headers:{Accept:'application/json'}});if(r.ok){const rows=await r.json();if(rows.length){const pos=[Number(rows[0].lat),Number(rows[0].lon)];cache[key]=pos;localStorage.setItem(cacheKey,JSON.stringify(cache));return pos}}}catch(e){console.warn('Map location not found',e)}return null}
 async function updateUnitCoords(id,address){
- const u=(state.units||[]).find(x=>x.id===id);if(!u||u.location!==address)return;
- const coords=await geocode(address);if(!coords){u.mapLocationPending=true;setResult(`Location saved for ${id}, but ${address} could not be geocoded. Map still uses its approximate point.`);return;}
- if(u.location!==address)return;u.mapCoords=coords;u.mapLocationPending=false;localStorage.setItem(KEY,JSON.stringify(state));void draw();
+ // CL saves and rehydrates CAD state while geocoding is in flight.
+ // Never mutate a unit object captured before an await: it may be stale.
+ const current=()=> (state.units||[]).find(u=>u.id===id&&u.location===address);
+ if(!current())return;
+ const coords=await geocode(address);
+ const u=current();
+ if(!u)return; // A newer CL superseded this request.
+ if(!coords){
+  u.mapLocationPending=true;
+  delete u.mapCoords;
+  localStorage.setItem(KEY,JSON.stringify(state));
+  void draw();
+  const message=`WARNING: ${id} location saved as ${address}, but the address could not be mapped. Marker is simulated, NOT the reported address.`;
+  setResult(message);
+  window.cadLocationMapWarning=message;
+  return;
+ }
+ u.mapCoords=coords;
+ u.mapLocationPending=false;
+ localStorage.setItem(KEY,JSON.stringify(state));
+ const marker=markerByUnit.get(String(id).toUpperCase());
+ if(marker){marker.setLatLng(offsetPoint(coords,u.id));marker.setIcon(unitIcon(u));}
+ void draw();
+ window.cadLocationMapWarning='';
+ setResult(`${id} mapped to ${address}. Position is geocoded, not live AVL.`);
 }
 window.cadResolveUnitAddress=(id,address)=>{void updateUnitCoords(id,address)};
 const meters=(a,b)=>{const r=Math.PI/180,dlat=(b[0]-a[0])*r,dlon=(b[1]-a[1])*r,la1=a[0]*r,la2=b[0]*r;return 6371000*2*Math.asin(Math.sqrt(Math.sin(dlat/2)**2+Math.cos(la1)*Math.cos(la2)*Math.sin(dlon/2)**2))};
@@ -107,7 +129,19 @@ async function ask(raw){
   if(!label){label=String(raw).replace(/^.*?\b(?:zoom (?:in )?(?:to|on)|go to|take me to|navigate to|center (?:on|at)|show me (?:the )?(?:location|address) (?:of|at)?|find (?:the )?(?:address|location) (?:of|at)?)\b/i,'').replace(/^\s*(?:the|at|of|on|to)\s+/i,'').replace(/^(?:show me|find|locate)\s+/i,'').replace(/[?.!,]+$/,'').trim()}
   if(!label){setResult('Tell me a street address, Common Place, or event number to locate.');return}
   if(!incident&&/^(?:event|incident|call|cfs)\b/i.test(label)){setResult('That event was not uniquely identified. Please use the complete event number.');return}
-  const coordinates=await geocode(label);
+  // Resolve unit designators before attempting street-address geocoding.
+   const spokenUnit=label.toLowerCase().replace(/\b(one|two|three|four|five|six|seven|eight|nine|zero|oh)\b/g,w=>({one:'1',two:'2',three:'3',four:'4',five:'5',six:'6',seven:'7',eight:'8',nine:'9',zero:'0',oh:'0'}[w])).replace(/\b(adam|alpha)\b/g,'a').replace(/[^a-z0-9]/g,'');
+   const requestedUnit=(state.units||[]).find(u=>u.id.toLowerCase().replace(/[^a-z0-9]/g,'')===spokenUnit);
+   if(requestedUnit){
+    if(!Array.isArray(requestedUnit.mapCoords)||requestedUnit.mapCoords.length!==2){
+     setResult(`Unit ${requestedUnit.id} has no verified map coordinates for ${requestedUnit.location||'its reported location'}. Use CL with a mappable address.`);
+     return;
+    }
+    await setQueryView([requestedUnit],[],requestedUnit.id);
+    setResult(`Located unit ${requestedUnit.id} at ${requestedUnit.location}. Geocoded position, not live AVL.`);
+    return;
+   }
+   const coordinates=await geocode(label);
   if(!coordinates){setResult(`Could not geocode ${label}. No map movement made.`);return}
   init();focused=true;map.setView(coordinates,17);setResult(`Centered map on ${incident?incident.id+' — ':''}${label}. Position from GIS geocoding; verify before operational use.`);return;
  }
