@@ -23,6 +23,7 @@ const defaultState=()=>({seq:4525,selected:null,incidents:[
 {id:'M3',agency:'Petaluma Fire / EMS',discipline:'EMS',status:'TRANSPORTING',location:'Hospital',x:16,y:24}
 ]});
 let state=JSON.parse(localStorage.getItem(KEY)||'null')||defaultState();
+window.cadSafetyState=()=>state;
 // Add the expanded incident roster once when upgrading an untouched original 3-call demo.
 // Never overwrite or replace saved user-created incidents.
 const EIGHT_CALL_SEED_KEY='smcad-eight-call-seed-v15';
