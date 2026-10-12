@@ -7,7 +7,7 @@ let saved={},rules={};try{saved=JSON.parse(localStorage.getItem(KEY)||'{}')||{}}
 const persist=()=>localStorage.setItem(KEY,JSON.stringify(saved)),persistRules=()=>localStorage.setItem(RULES,JSON.stringify(rules));
 const norm=s=>String(s||'').trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
 const currentIncident=u=>(window.state?.incidents||[]).find(i=>i.status==='ACTIVE'&&i.units?.includes(u.id));
-const stateNow=()=>window.state||{};
+const stateNow=()=>window.cadSafetyState?.()||{};
 function getRule(u){const inc=currentIncident(u),type=inc?.type||'Default',status=norm(u.status),agency=u.agency||'Unknown';const a=rules[agency]||{};const agencyType=a[type]||a.Default||{},preset=defaultRules[type]||{};return {agency,type,status,minutes:Number(agencyType[status]??agencyType.Default??preset[status]??(status==='C4'?10:5))||5};}
 function sync(u){const rule=getRule(u),key=u.id+'|'+rule.agency,old=saved[key],signature=[rule.type,rule.status].join('|');if(!old){saved[key]={signature,minutes:rule.minutes,due:Date.now()+rule.minutes*60000,mode:'auto',ack:false};persist()}else if(old.signature!==signature){saved[key]={signature,minutes:rule.minutes,due:Date.now()+rule.minutes*60000,mode:'auto',ack:false};persist()}return {key,rule,t:saved[key]}}
 let audioEnabled=false,lastAudio=new Map();
