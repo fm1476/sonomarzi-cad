@@ -138,11 +138,12 @@ function render(){
  if(window.cadBoardRender){window.cadBoardRender('pending',pending);window.cadBoardRender('active',active);window.cadBoardRender('units',window.CadDiscipline.filterUnits(state.units,filter));}
  else {$('#pending').innerHTML=pending.map(row).join('')||'<div class="row muted">No pending incidents</div>';$('#activeCalls').innerHTML=active.map(row).join('')||'<div class="row muted">No active incidents</div>';$('#units').innerHTML=state.units.map(u=>`<div class="unit"><b>${u.id}</b><span>${u.agency}</span><span>${u.status}</span></div>`).join('');}
  $$('.row[data-id]').forEach(el=>el.onclick=()=>{state.selected=el.dataset.id;render()});
- renderDetail(); (window.renderMap||renderMap)();
+ renderDetail(); window.cadDispatchInfoRefresh?.(); (window.renderMap||renderMap)();
 }
 function row(i){return `<div class="row ${state.selected===i.id?'selected':''}" data-id="${escapeCad(i.id)}"><span class="prio ${String(i.priority).toLowerCase()}">${escapeCad(i.priority)}<br><span class="meta">${escapeCad(i.id)}</span></span><span><b>${escapeCad(i.type)}</b><div>${escapeCad(i.location)}</div><div class="meta">${escapeCad(i.agency)} • ${escapeCad(i.discipline)}</div></span><span>${escapeCad(i.units.join(', ')||'—')}<div class="meta">${i.caseNumber?'Case '+escapeCad(i.caseNumber):'No case number'}</div></span></div>`}
 function renderDetail(){
  const i=state.incidents.find(x=>x.id===state.selected); if(!i){$('#detail').innerHTML='<div class="detailwrap muted">Select an incident.</div>';return}
+ if(i.callTakeNewInfoAt)window.cadDispatchInfoRead?.(i.id,i.callTakeNewInfoAt);
  $('#detail').innerHTML=`<div class="detailwrap"><div class="detailhead"><div><b>${i.id} • ${i.type}</b><div>${escapeCad(window.cadCommonPlaces?.resolve(i.location)?.name||'')}${window.cadCommonPlaces?.resolve(i.location)?' · ':''}${escapeCad(i.location)}</div><div class="meta">${i.agency} • ${i.discipline} • ${i.priority} • Case: ${escapeCad(i.caseNumber||'Not assigned')}</div>${cadLinkedNavigation(i)}</div><b>${i.status}</b></div>
  <div class="actions">${i.status==='PENDING'?'<button data-act="activate">Activate</button>':''}<button data-act="assign">Recommend / Assign</button><button data-act="manage">Dispatch / Manage Units</button><button data-act="case">Set Case #</button><button data-act="note">Add Narrative</button>${i.status!=='CLOSED'?'<button data-act="close">Clear Event</button>':''}</div>
  <div><b>Units:</b> ${i.units.join(', ')||'None'}</div>${window.voiceDetailHtml ? window.voiceDetailHtml(i) : `<div class="narr">${i.narrative.join('<br>')}</div>`}<h3>Event History</h3><div class="timeline">${i.events.slice().reverse().map(e=>`<div>${e}</div>`).join('')||'<div>No events yet.</div>'}</div></div>`;
