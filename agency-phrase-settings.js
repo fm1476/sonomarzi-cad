@@ -46,7 +46,7 @@
   catch(e){output.textContent='Not added: '+e.message;}
  });
  testButton.addEventListener('click',()=>{
-  try{const dictionary=validate(entries);const result=window.CadCommandGate.evaluate(dictionary.resolve(test.value));output.textContent=result.status==='recognized'?'Recognized: '+result.intent+'. Preview only, no action executed.':result.status==='needs_context'?'Recognized '+result.intent+' but requires '+result.required.join(', ')+'. No action executed.':'Rejected: '+result.reason+'. No action executed.';}
+  try{const dictionary=validate(entries);const result=window.CadCommandGate.evaluate(dictionary.resolve(test.value));const action=window.CadActionPlan.plan(result,{},[]);output.textContent=result.status==='needs_context'?'Recognized '+result.intent+'; required context: '+result.required.join(', ')+'. No action executed.':result.status==='recognized'?'Recognized '+result.intent+'; action plan: '+action.status+'. No permissions granted in preview. No action executed.':'Rejected: '+result.reason+'. No action executed.';}
   catch(e){output.textContent='Cannot test: '+e.message;}
  });
  applyJson.addEventListener('click',()=>{
