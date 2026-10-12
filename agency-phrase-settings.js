@@ -11,6 +11,7 @@
  let entries;
  try{entries=JSON.parse(localStorage.getItem(KEY)||JSON.stringify(example));if(!Array.isArray(entries))entries=example;}catch(_){entries=example;}
  const known=new Set([...intent.options].map(o=>o.value));
+ let editingIntent=null;
  function validate(items){
   if(!Array.isArray(items)||items.length>100)throw new Error('Provide up to 100 phrase groups.');
   const seenIntents=new Set();
@@ -31,7 +32,7 @@
    const label=document.createElement('span');
    label.textContent=item.intent+': '+item.phrases.join(' · ')+' ';
    const edit=document.createElement('button');edit.type='button';edit.textContent='Edit';
-   edit.addEventListener('click',()=>{intent.value=item.intent;aliases.value=item.phrases.join('\n');});
+   edit.addEventListener('click',()=>{intent.value=item.intent;aliases.value=item.phrases.join('\n');editingIntent=item.intent;add.textContent='Replace Phrases';});
    const remove=document.createElement('button');remove.type='button';remove.textContent='Remove';
    remove.addEventListener('click',()=>{entries=entries.filter(x=>x!==item);sync();output.textContent='Unsaved changes. Validate and save when ready.';});
    row.append(label,edit,remove);list.append(row);
@@ -41,8 +42,9 @@
   const phrases=[...new Set(aliases.value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean))];
   if(!phrases.length){output.textContent='Enter at least one spoken phrase.';return;}
   const existing=entries.find(x=>x.intent===intent.value);
-  const next=entries.filter(x=>x.intent!==intent.value).concat([{intent:intent.value,phrases:[...new Set([...(existing?.phrases||[]),...phrases])]}]);
-  try{validate(next);entries=next;sync();output.textContent='Phrases added to preview. Existing phrases preserved. Save when ready.';}
+  const replacement=editingIntent===intent.value;
+  const next=entries.filter(x=>x.intent!==intent.value).concat([{intent:intent.value,phrases:replacement?phrases:[...new Set([...(existing?.phrases||[]),...phrases])]}]);
+  try{validate(next);entries=next;sync();editingIntent=null;add.textContent='Add or Update Phrases';aliases.value='';output.textContent=replacement?'Phrase group replaced. Save when ready.':'Phrases added to preview. Existing phrases preserved. Save when ready.';}
   catch(e){output.textContent='Not added: '+e.message;}
  });
  testButton.addEventListener('click',()=>{
