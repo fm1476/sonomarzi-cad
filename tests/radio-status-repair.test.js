@@ -1,0 +1,12 @@
+const assert=require('node:assert/strict');
+const {repair}=require('../core/radio-status-repair.js');
+assert.equal(repair('three out of 14 unseen',true),'three out of 14 on scene');
+assert.equal(repair('3 adam 14 unseen',true),'3 adam 14 on scene');
+assert.equal(repair('3A14 unseen',true),'3A14 on scene');
+assert.equal(repair('3A14 show me unseen',true),'3A14 show me on scene');
+assert.equal(repair('3A14 unseen',false),'3A14 unseen');
+assert.equal(repair('suspect unseen',true),'suspect unseen');
+assert.equal(repair('3A14 not unseen',true),'3A14 not unseen');
+assert.equal(repair('3A14 unseen at the rear entrance',true),'3A14 unseen at the rear entrance');
+assert.equal(repair('3A14 on scene',true),'3A14 on scene');
+console.log('Contextual radio status ASR repair tests passed.');
