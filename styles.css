@@ -332,3 +332,41 @@ header nav.cad-header-tabs button{white-space:nowrap;padding:6px 9px;font-size:1
 .cad-safety-dialog form{display:grid;gap:12px}.cad-safety-dialog label{display:grid;gap:5px}.cad-safety-dialog input,.cad-safety-dialog select{padding:8px;background:#071e30;color:white;border:1px solid #64839b;border-radius:5px}
 .cad-safety-dialog button{padding:8px;background:#1b4d72;color:white;border:1px solid #5c88a8;border-radius:5px;cursor:pointer}
 .cad-safety-actions{display:flex;flex-wrap:wrap;gap:5px}
+
+/* Modern high-density officer safety controls */
+.cad-safety-modern{width:min(480px,calc(100vw - 28px));max-width:480px;padding:0;border:1px solid #42627c;border-radius:16px;background:#0b1b2c;color:#e8f4ff;box-shadow:0 24px 75px #000c;overflow:hidden}
+.cad-safety-modern::backdrop{background:#010913bb;backdrop-filter:blur(4px)}
+.cad-safety-shell{padding:22px;display:grid;gap:15px}
+.cad-safety-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.cad-safety-eyebrow{color:#8eb4d1;letter-spacing:.12em;font-weight:750;font-size:10px}
+.cad-safety-top h3{margin:5px 0 0;font-size:25px;line-height:1.1;letter-spacing:-.04em}
+.cad-safety-status-dot{display:inline-block;width:8px;height:8px;background:#3cc68e;border-radius:50%;vertical-align:middle}
+.cad-safety-modern button{cursor:pointer;border:1px solid #365773;background:#18324b;color:#e8f4ff;border-radius:8px;padding:10px;font-weight:650;transition:background .15s,border-color .15s}
+.cad-safety-modern button:hover{background:#244765;border-color:#5c94b8}
+.cad-safety-modern .cad-safety-close{border:0;background:transparent;font-size:17px;padding:2px 6px;color:#b4c9dc}
+.cad-safety-context{display:flex;flex-wrap:wrap;gap:6px}
+.cad-safety-context span{background:#152e44;border:1px solid #294b66;border-radius:20px;padding:4px 9px;font-size:11px;color:#c0d9eb}
+.cad-safety-readout{display:grid;grid-template-columns:1.1fr 1fr;gap:12px;padding:16px;background:linear-gradient(135deg,#153b53,#10283d);border:1px solid #315772;border-radius:12px}
+.cad-safety-readout>div{display:grid;align-content:center;gap:4px}
+.cad-safety-readout small,.cad-safety-rule small{font-size:10px;letter-spacing:.08em;color:#9cbed6;font-weight:700}
+.cad-safety-readout strong{font-size:30px;letter-spacing:-.05em;font-variant-numeric:tabular-nums}
+.cad-safety-rule strong{font-size:20px}.cad-safety-rule span{font-size:11px;color:#9fbbd1}
+.cad-safety-section-title{font-size:11px;letter-spacing:.09em;text-transform:uppercase;font-weight:800;color:#9cbdd4}
+.cad-safety-action-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.cad-safety-action-grid button{min-height:65px;display:grid;place-content:center;gap:4px;font-size:17px}
+.cad-safety-action-grid button span{font-size:11px}
+.cad-safety-presets{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}
+.cad-safety-modern .cad-safety-presets .is-selected{background:#145a75;border-color:#3fb4dd}
+.cad-safety-custom{display:grid;grid-template-columns:1fr 85px 78px;align-items:center;gap:8px}
+.cad-safety-custom label{font-size:12px;color:#c4d7e6}
+.cad-safety-modern input{min-width:0;width:100%;padding:10px;background:#071828;color:#fff;border:1px solid #41637d;border-radius:8px}
+.cad-safety-modern .cad-safety-primary{background:#1676b6;border-color:#2795da}
+.cad-safety-reason{padding:12px;background:#382528;border:1px solid #975659;border-radius:9px;display:grid;gap:9px}
+.cad-safety-reason[hidden]{display:none}
+.cad-safety-reason label{font-size:12px}.cad-safety-reason label span{color:#e3a7a9}
+.cad-safety-reason-buttons{display:flex;gap:7px}
+.cad-safety-modern .cad-safety-danger{background:#92393d;border-color:#b95259}
+.cad-safety-footer{border-top:1px solid #29445c;padding-top:13px;display:flex;gap:9px;flex-wrap:wrap}
+.cad-safety-footer button{flex:1;font-size:11px}
+.cad-safety-disclaimer{margin:0;color:#789ab5;font-size:10px}
+@media(max-width:480px){.cad-safety-shell{padding:15px}.cad-safety-custom{grid-template-columns:1fr 75px}.cad-safety-custom label{grid-column:1/-1}}
