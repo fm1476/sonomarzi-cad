@@ -12,12 +12,15 @@
  try{entries=JSON.parse(localStorage.getItem(KEY)||JSON.stringify(example));if(!Array.isArray(entries))entries=example;}catch(_){entries=example;}
  const known=new Set([...intent.options].map(o=>o.value));
  let editingIntent=null;
+ function resetEdit(){editingIntent=null;add.textContent='Add or Update Phrases';aliases.value='';}
  function validate(items){
   if(!Array.isArray(items)||items.length>100)throw new Error('Provide up to 100 phrase groups.');
   const seenIntents=new Set();
   for(const item of items){
    if(!item||!known.has(item.intent)||!Array.isArray(item.phrases)||!item.phrases.length||item.phrases.length>100||item.phrases.some(p=>typeof p!=='string'||!p.trim()||p.length>160))throw new Error('Use a listed CAD action and 1 to 100 nonempty phrases, up to 160 characters each.');
    if(seenIntents.has(item.intent))throw new Error('Each CAD action may appear only once.');
+   const normalized=item.phrases.map(window.CadAgencyPhrases.normalize);
+   if(normalized.some(p=>!p)||new Set(normalized).size!==normalized.length)throw new Error('Duplicate or invalid spoken phrases within an action.');
    seenIntents.add(item.intent);
   }
   const dictionary=window.CadAgencyPhrases.compile(items);
@@ -34,17 +37,17 @@
    const edit=document.createElement('button');edit.type='button';edit.textContent='Edit';
    edit.addEventListener('click',()=>{intent.value=item.intent;aliases.value=item.phrases.join('\n');editingIntent=item.intent;add.textContent='Replace Phrases';});
    const remove=document.createElement('button');remove.type='button';remove.textContent='Remove';
-   remove.addEventListener('click',()=>{entries=entries.filter(x=>x!==item);sync();output.textContent='Unsaved changes. Validate and save when ready.';});
+   remove.addEventListener('click',()=>{entries=entries.filter(x=>x!==item);if(editingIntent===item.intent)resetEdit();sync();output.textContent='Unsaved changes. Validate and save when ready.';});
    row.append(label,edit,remove);list.append(row);
   }
  }
  add.addEventListener('click',()=>{
-  const phrases=[...new Set(aliases.value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean))];
+  const phrases=[...new Map(aliases.value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean).map(x=>[window.CadAgencyPhrases.normalize(x),x])).values()];
   if(!phrases.length){output.textContent='Enter at least one spoken phrase.';return;}
   const existing=entries.find(x=>x.intent===intent.value);
   const replacement=editingIntent===intent.value;
-  const next=entries.filter(x=>x.intent!==intent.value).concat([{intent:intent.value,phrases:replacement?phrases:[...new Set([...(existing?.phrases||[]),...phrases])]}]);
-  try{validate(next);entries=next;sync();editingIntent=null;add.textContent='Add or Update Phrases';aliases.value='';output.textContent=replacement?'Phrase group replaced. Save when ready.':'Phrases added to preview. Existing phrases preserved. Save when ready.';}
+  const next=entries.filter(x=>x.intent!==intent.value).concat([{intent:intent.value,phrases:replacement?phrases:[...new Map([...(existing?.phrases||[]),...phrases].map(x=>[window.CadAgencyPhrases.normalize(x),x])).values()]}]);
+  try{validate(next);entries=next;sync();resetEdit();output.textContent=replacement?'Phrase group replaced. Save when ready.':'Phrases added to preview. Existing phrases preserved. Save when ready.';}
   catch(e){output.textContent='Not added: '+e.message;}
  });
  testButton.addEventListener('click',()=>{
@@ -52,9 +55,10 @@
   catch(e){output.textContent='Cannot test: '+e.message;}
  });
  applyJson.addEventListener('click',()=>{
-  try{const next=JSON.parse(field.value);validate(next);entries=next;sync();output.textContent='JSON loaded into editor. Save when ready.';}
+  try{const next=JSON.parse(field.value);validate(next);entries=next;resetEdit();sync();output.textContent='JSON loaded into editor. Save when ready.';}
   catch(e){output.textContent='Not loaded: '+e.message;}
  });
+ intent.addEventListener('change',()=>{if(editingIntent&&editingIntent!==intent.value)resetEdit();});
  save.addEventListener('click',()=>{
   try{validate(entries);localStorage.setItem(KEY,JSON.stringify(entries));sync();output.textContent='Saved in this browser. No operational CAD actions are connected.';}
   catch(e){output.textContent='Not saved: '+e.message;}
