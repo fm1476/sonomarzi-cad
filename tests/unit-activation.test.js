@@ -1,0 +1,10 @@
+const assert=require('node:assert/strict');
+const {activate}=require('../core/unit-activation.js');
+const master={agencies:[{id:'SO',name:'Sheriff',model:'HYBRID'}],personnel:[],units:[{id:'master-1476',designator:'1476',agencyId:'SO',discipline:'LAW',model:'PERSONNEL'}]};
+const original={units:[{id:'3A12',agency:'Police',discipline:'LAW',status:'ONSCENE'}],incidents:[{id:'call1'}]};
+const next=activate(master,original,'master-1476');
+assert.equal(next.units.length,2);assert.equal(next.units[1].id,'1476');assert.equal(next.units[1].agency,'Sheriff');assert.equal(next.units[1].masterUnitId,'master-1476');
+assert.equal(original.units.length,1,'does not mutate original state');assert.equal(next.incidents,original.incidents,'preserves existing incident data');
+assert.throws(()=>activate(master,next,'master-1476'),/already active/);
+assert.throws(()=>activate(master,original,'bad'),/Unknown master unit/);
+console.log('Unit activation integrity tests passed.');
