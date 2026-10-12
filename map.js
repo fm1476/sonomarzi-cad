@@ -33,25 +33,30 @@ function init(){if(map||!window.L)return;host.innerHTML='';map=L.map(host,{zoomC
 function toggleImagery(){settings.satellite=!settings.satellite;persist();if(!map)return;map.removeLayer(settings.satellite?osm:satellite);(settings.satellite?satellite:osm).addTo(map);(settings.satellite?satellite:osm).bringToBack();setResult(settings.satellite?'Satellite imagery enabled.':'Street map enabled.')}
 async function geocode(address){const original=String(address||'').trim(),place=window.cadCommonPlaces?.resolve(original),query=place?.address||original,key=query.toLowerCase();if(place?.coordinates?.length===2)return place.coordinates;if(!query)return null;if(cache[key])return cache[key];try{const r=await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=us&q='+encodeURIComponent(query+', Petaluma, California'),{headers:{Accept:'application/json'}});if(r.ok){const rows=await r.json();if(rows.length){const pos=[Number(rows[0].lat),Number(rows[0].lon)];cache[key]=pos;localStorage.setItem(cacheKey,JSON.stringify(cache));return pos}}}catch(e){console.warn('Map location not found',e)}return null}
 async function updateUnitCoords(id,address){
- const u=(state.units||[]).find(x=>x.id===id);if(!u||u.location!==address)return;
+ // CL saves and rehydrates CAD state while geocoding is in flight.
+ // Never mutate a unit object captured before an await: it may be stale.
+ const current=()=> (state.units||[]).find(u=>u.id===id&&u.location===address);
+ if(!current())return;
  const coords=await geocode(address);
- if(u.location!==address)return;
+ const u=current();
+ if(!u)return; // A newer CL superseded this request.
  if(!coords){
   u.mapLocationPending=true;
   delete u.mapCoords;
   localStorage.setItem(KEY,JSON.stringify(state));
   void draw();
-  const message=`WARNING: ${id} location saved as ${address}, but the address could not be mapped. Map marker is an approximate simulated position, NOT the reported address.`;
+  const message=`WARNING: ${id} location saved as ${address}, but the address could not be mapped. Marker is simulated, NOT the reported address.`;
   setResult(message);
   window.cadLocationMapWarning=message;
   return;
  }
- u.mapCoords=coords;u.mapLocationPending=false;localStorage.setItem(KEY,JSON.stringify(state));
- // Move the existing Leaflet marker immediately, independently of asynchronous incident redraws.
+ u.mapCoords=coords;
+ u.mapLocationPending=false;
+ localStorage.setItem(KEY,JSON.stringify(state));
  const marker=markerByUnit.get(String(id).toUpperCase());
  if(marker){marker.setLatLng(offsetPoint(coords,u.id));marker.setIcon(unitIcon(u));}
  void draw();
- if(window.cadLocationMapWarning?.includes(id+' location saved'))window.cadLocationMapWarning='';
+ window.cadLocationMapWarning='';
  setResult(`${id} mapped to ${address}. Position is geocoded, not live AVL.`);
 }
 window.cadResolveUnitAddress=(id,address)=>{void updateUnitCoords(id,address)};
