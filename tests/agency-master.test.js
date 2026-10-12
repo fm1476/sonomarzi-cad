@@ -1,0 +1,12 @@
+const assert=require('node:assert/strict');
+const M=require('../core/agency-master.js');
+const storage={items:new Map(),getItem(k){return this.items.get(k)||null;},setItem(k,v){this.items.set(k,v);},removeItem(k){this.items.delete(k);}};
+const base={version:1,agencies:[{id:'SO',name:'Sheriff',model:'HYBRID'},{id:'FD',name:'Fire',model:'APPARATUS'}],personnel:[{id:'1476',name:'Deputy Smith',agencyId:'SO'}],units:[{id:'u1',designator:'1476',agencyId:'SO',discipline:'LAW',model:'PERSONNEL',personId:'1476'},{id:'u2',designator:'E1',agencyId:'FD',discipline:'FIRE',model:'APPARATUS',personId:''}]};
+assert.equal(M.validate(base),true);M.save(storage,base);assert.deepEqual(M.read(storage),base);
+storage.setItem('smcad-poc-v1','demo');storage.removeItem('smcad-poc-v1');assert.deepEqual(M.read(storage),base,'demo reset does not touch master data');
+assert.throws(()=>M.validate({...base,units:[...base.units,{...base.units[0],id:'u3'}]}),/Duplicate designator/);
+assert.throws(()=>M.validate({...base,units:[{...base.units[0],agencyId:'FD'}]}),/another agency/);
+assert.throws(()=>M.validate({...base,units:[{...base.units[0],discipline:'UNKNOWN'}]}),/Unit requires/);
+assert.throws(()=>M.validate({...base,personnel:[{...base.personnel[0],agencyId:'BAD'}]}),/valid agency/);
+assert.throws(()=>M.parse('{bad'),SyntaxError);
+console.log('Agency master persistence and integrity tests passed.');

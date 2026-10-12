@@ -34,6 +34,19 @@
       <div class="filters"><button data-discipline="ALL" class="active">All</button><button data-discipline="LAW">Law</button><button data-discipline="FIRE">Fire</button><button data-discipline="EMS">EMS</button></div>
       <div class="board-controls" data-board="units"><select data-setting="agency"><option value="ALL">All agencies</option></select><select data-setting="status"><option value="ALL">All statuses</option></select><select data-setting="sort"><option value="id">Unit ID</option><option value="status">Status</option><option value="agency">Agency</option><option value="discipline">Discipline</option></select><select data-setting="group"><option value="none">No grouping</option><option value="agency">Group by agency</option><option value="discipline">Group by discipline</option></select></div><div class="board-columns" data-columns="units"></div>
       <div id="units"></div>
+      <details class="cad-unit-staffing">
+        <summary>Crew Staffing <span class="muted">· Sign On / Sign Off</span></summary>
+        <div class="cad-staff-body">
+          <p class="muted">Select an activated unit and its crew. Personnel must belong to the unit's agency.</p>
+          <div class="cad-staff-fields">
+            <label>Active unit<select id="cadStaffUnit"></select></label>
+            <label>Personnel <span class="muted">(Cmd-click for multiple)</span><select id="cadStaffCrew" multiple size="4"></select></label>
+          </div>
+          <div id="cadStaffCurrent" class="cad-staff-current" aria-live="polite"></div>
+          <div id="cadStaffMessage" role="status" aria-live="polite"></div>
+          <div class="cad-staff-actions"><button type="button" class="primary" id="cadStaffSignOn">Sign On Crew</button><button type="button" id="cadStaffSignOff">Sign Off Crew</button></div>
+        </div>
+      </details>
     </article>
     <article class="panel wide" data-panel="detail">
       <h2>Incident Detail</h2>
@@ -94,7 +107,34 @@
   <section class="panel config">
     <h2>Agency Configuration</h2>
     <p>Changes below affect this browser immediately and persist locally.</p>
-    <label>Configuration section<select id="cadConfigSection" aria-label="Choose configuration section"><option value="cfs">Calls for Service</option><option value="self">Self-Initiated CFS</option><option value="places">Common Places</option><option value="phrases">Voice Phrases</option><option value="general">General &amp; Other Settings</option></select></label>
+    <label>Configuration section<select id="cadConfigSection" aria-label="Choose configuration section"><option value="master">Agencies &amp; Units</option><option value="cfs">Calls for Service</option><option value="self">Self-Initiated CFS</option><option value="places">Common Places</option><option value="phrases">Voice Phrases</option><option value="general">General &amp; Other Settings</option></select></label>
+    <div data-config-panel="master" hidden>
+      <h3>Agency Master Configuration</h3>
+      <p>Permanent browser-local definitions, separate from resettable demonstration incidents and live unit statuses. Select Activate in CAD on a unit definition to add it to the live demo roster without replacing existing units.</p>
+      <h4>Add Agency</h4>
+      <label>Agency ID<input id="cadMasterAgencyId" placeholder="PETPD"></label>
+      <label>Agency name<input id="cadMasterAgencyName" placeholder="Petaluma Police"></label>
+      <label>Default unit identification model<select id="cadMasterAgencyModel"><option value="HYBRID">Hybrid</option><option value="FIXED">Fixed beat</option><option value="PERSONNEL">Personnel ID</option><option value="APPARATUS">Apparatus</option></select></label>
+      <button type="button" id="cadMasterAddAgency">Add Agency</button>
+      <h4>Add Personnel</h4>
+      <label>Personnel ID<input id="cadMasterPersonId" placeholder="1476"></label>
+      <label>Display name<input id="cadMasterPersonName" placeholder="Deputy Smith"></label>
+      <label>Home agency<select id="cadMasterPersonnelAgency"></select></label>
+      <button type="button" id="cadMasterAddPerson">Add Personnel</button>
+      <h4>Add Unit Definition</h4>
+      <label>Internal unit ID<input id="cadMasterUnitId" placeholder="petpd-3a12"></label>
+      <label>Radio designator<input id="cadMasterDesignator" placeholder="3A12"></label>
+      <label>Owning agency<select id="cadMasterAgencySelect"></select></label>
+      <label>Discipline<select id="cadMasterDiscipline"><option>LAW</option><option>FIRE</option><option>EMS</option></select></label>
+      <label>Identification model<select id="cadMasterUnitModel"><option value="FIXED">Fixed beat</option><option value="PERSONNEL">Personnel ID</option><option value="APPARATUS">Apparatus</option><option value="HYBRID">Hybrid</option></select></label>
+      <label>Associated person (optional)<select id="cadMasterPersonSelect"></select></label>
+      <button type="button" id="cadMasterAddUnit">Add Unit</button>
+      <div id="cadMasterMessage" role="status" aria-live="polite"></div>
+      <div id="cadMasterList"></div>
+      <h4>Configuration Backup</h4>
+      <button type="button" id="cadMasterExport">Export Agency Master JSON</button>
+      <label>Import Agency Master JSON<input type="file" id="cadMasterImport" accept=".json,application/json"></label>
+    </div>
     <div data-config-panel="general" hidden>
     <label>Agencies<textarea id="cfgAgencies"></textarea></label>
     </div>
@@ -160,6 +200,10 @@
 <script src="core/command-gate.js?v=1"></script>
 <script src="core/action-plan.js?v=1"></script>
 <script src="agency-phrase-settings.js?v=1"></script>
+<script src="core/agency-master.js?v=1"></script>
+<script src="core/unit-activation.js?v=1"></script>
+<script src="core/unit-staffing.js?v=1"></script>
+<script src="agency-master-settings.js?v=3"></script>
 <script src="board-layout.js?v=20.1"></script>
 <script src="incident-intelligence.js?v=18.3"></script>
 <script src="core/voice-text.js?v=1"></script>
