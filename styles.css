@@ -404,3 +404,7 @@ header nav.cad-header-tabs button{white-space:nowrap;padding:6px 9px;font-size:1
 .cad-dispatch-new-info{display:inline-flex;align-items:center;margin:4px 5px;padding:3px 7px;border-radius:5px;border:1px solid #4db4db;background:#123c54;color:#a9edff;font-size:10px;font-weight:800;letter-spacing:.05em;white-space:nowrap}
 .cad-dispatch-info-audio{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:500;color:#b0cbdc;margin-left:12px;letter-spacing:normal}
 .cad-dispatch-info-audio input{accent-color:#4baee0}
+
+/* Unread incident updates: highlight the entire event pill without masking priority */
+#pending .row.cad-dispatch-updated,#activeCalls .row.cad-dispatch-updated{background:linear-gradient(90deg,#15507855,#123349);border:1px solid #4ba8d6;box-shadow:inset 3px 0 #61c5f4,0 0 0 1px #2b749344;transition:background .18s,border-color .18s}
+#pending .row.cad-dispatch-updated:hover,#activeCalls .row.cad-dispatch-updated:hover{background:#1b4a68}
