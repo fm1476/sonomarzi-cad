@@ -2,21 +2,32 @@
 (function(){
 const KEY='smcad-board-layout-v15.5';
 const fields={pending:['event','call','units'],active:['event','call','units'],units:['id','agency','location','status']};
+const UNIT_WIDTHS={id:82,agency:130,location:135,status:132};const WIDTH_KEY='smcad-unit-column-widths-v1';let widths={...UNIT_WIDTHS};try{widths={...widths,...JSON.parse(localStorage.getItem(WIDTH_KEY)||'{}')}}catch(e){};
 const labels={event:'Priority / Event',call:'Call / Location',units:'Assigned Units',id:'Unit',agency:'Agency',location:'Location',status:'Status'};
 const defaults={pending:{agency:'ALL',discipline:'ALL',sort:'priority',group:false,columns:[...fields.pending]},active:{agency:'ALL',discipline:'ALL',sort:'priority',group:false,columns:[...fields.active]},units:{agency:'ALL',status:'ALL',sort:'id',group:'none',columns:[...fields.units]}};
 let saved={};try{saved=JSON.parse(localStorage.getItem(KEY)||'{}')||{}}catch(e){}
 const opts={};for(const type of Object.keys(defaults)){
  const v=saved[type]||{};opts[type]={...defaults[type],...v};
- if(!Array.isArray(opts[type].columns)||fields[type].some(f=>!opts[type].columns.includes(f)))opts[type].columns=[...fields[type]];
+ if(!Array.isArray(opts[type].columns))opts[type].columns=[...fields[type]];else opts[type].columns=[...new Set(opts[type].columns.filter(f=>fields[type].includes(f)))];
 }
 function persist(){localStorage.setItem(KEY,JSON.stringify(opts))}
 const alpha=(a,b)=>String(a).localeCompare(String(b),undefined,{numeric:true,sensitivity:'base'});
+function unitGrid(){return opts.units.columns.map(f=>Math.max(55,Math.min(600,Number(widths[f])||UNIT_WIDTHS[f]))+'px').join(' ')}
 function buildColumns(type){const el=document.querySelector(`[data-columns="${type}"]`);if(!el)return;
- el.innerHTML=opts[type].columns.map(f=>`<span draggable="true" class="col-drag" data-field="${f}" title="Drag to rearrange columns">⠿ ${labels[f]}</span>`).join('');
- el.querySelectorAll('[draggable]').forEach(node=>{
- node.addEventListener('dragstart',e=>{e.dataTransfer.setData('text/plain',type+'|'+node.dataset.field);e.dataTransfer.effectAllowed='move'});
+ const unit=type==='units';
+ el.innerHTML=(unit?'<button type="button" class="cad-column-menu-button" title="Show or hide columns" aria-label="Show or hide columns">☷ Columns</button><div class="cad-column-menu" hidden></div>':'')+'<div class="cad-column-headings">'+opts[type].columns.map(f=>`<span draggable="true" class="col-drag" data-field="${f}" title="Drag to rearrange columns">⠿ ${labels[f]}${unit?'<i class="cad-col-resizer" title="Drag to resize column" aria-hidden="true"></i>':''}</span>`).join('')+'</div>';
+ const headings=el.querySelector('.cad-column-headings');
+ if(unit){headings.style.gridTemplateColumns=unitGrid();const button=el.querySelector('.cad-column-menu-button'),menu=el.querySelector('.cad-column-menu');
+ button.onclick=()=>{menu.hidden=!menu.hidden};
+ menu.innerHTML=fields.units.map(f=>`<label><input type="checkbox" data-toggle-field="${f}" ${opts.units.columns.includes(f)?'checked':''}> ${labels[f]}</label>`).join('')+'<button type="button" data-reset-columns>Restore default layout</button>';
+ menu.querySelectorAll('[data-toggle-field]').forEach(input=>input.onchange=()=>{const f=input.dataset.toggleField;if(input.checked){if(!opts.units.columns.includes(f))opts.units.columns.push(f)}else{if(opts.units.columns.length===1){input.checked=true;return}opts.units.columns=opts.units.columns.filter(x=>x!==f)}persist();window.render()});
+ menu.querySelector('[data-reset-columns]').onclick=()=>{opts.units.columns=[...fields.units];widths={...UNIT_WIDTHS};localStorage.setItem(WIDTH_KEY,JSON.stringify(widths));persist();window.render()};
+ }
+ headings.querySelectorAll('[draggable]').forEach(node=>{
+ node.addEventListener('dragstart',e=>{if(e.target.closest('.cad-col-resizer')){e.preventDefault();return}e.dataTransfer.setData('text/plain',type+'|'+node.dataset.field);e.dataTransfer.effectAllowed='move'});
  node.addEventListener('dragover',e=>e.preventDefault());
- node.addEventListener('drop',e=>{e.preventDefault();const [origin,field]=(e.dataTransfer.getData('text/plain')||'').split('|');if(origin!==type||!opts[type].columns.includes(field))return;const cols=opts[type].columns;cols.splice(cols.indexOf(field),1);cols.splice(cols.indexOf(node.dataset.field),0,field);persist();window.render()});
+ node.addEventListener('drop',e=>{e.preventDefault();const [origin,field]=(e.dataTransfer.getData('text/plain')||'').split('|');if(origin!==type||!opts[type].columns.includes(field)||field===node.dataset.field)return;const cols=opts[type].columns;cols.splice(cols.indexOf(field),1);cols.splice(cols.indexOf(node.dataset.field),0,field);persist();window.render()});
+ if(unit){const grip=node.querySelector('.cad-col-resizer');grip.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();const field=node.dataset.field,initial=Number(widths[field])||UNIT_WIDTHS[field],x=e.clientX;node.draggable=false;const move=ev=>{widths[field]=Math.max(55,Math.min(600,initial+ev.clientX-x));headings.style.gridTemplateColumns=unitGrid();document.querySelectorAll('#units .board-flex').forEach(row=>row.style.gridTemplateColumns=unitGrid())};const done=()=>{window.removeEventListener('pointermove',move);window.removeEventListener('pointerup',done);node.draggable=true;localStorage.setItem(WIDTH_KEY,JSON.stringify(widths))};window.addEventListener('pointermove',move);window.addEventListener('pointerup',done)})}
  });
 }
 function initialize(){document.querySelectorAll('.board-controls').forEach(bar=>{
@@ -39,7 +50,7 @@ const itemHTML=(type,item)=>{
  }
  const unitStatusClass=`status-${String(item.status).toLowerCase().replace(/[^a-z0-9]+/g,'-')}`;
  const components={id:`<span class="cad-unit-chip board-unit-pill ${unitStatusClass}" draggable="false" title="${escapeCad(item.id)} • ${escapeCad(String(item.status).replace(/_/g,' '))}">${escapeCad(item.id)}</span>`,agency:`<span>${escapeCad(item.agency)}<div class="meta">${escapeCad(item.discipline)}</div></span>`,location:`<span class="cad-board-location" title="${escapeCad(item.location||'Not reported')}">${escapeCad(item.location||'Not reported')}</span>`,status:`<span class="status ${unitStatusClass}">${escapeCad(String(item.status).replace(/_/g,' '))}</span>`};
- return `<div class="unit board-flex" draggable="true" data-drag-unit="${escapeCad(item.id)}" title="Drag to Pending/Active incident to dispatch, or Units board to make available">${opts.units.columns.map(f=>components[f]).join('')}</div>`;
+ return `<div class="unit board-flex cad-unit-grid" style="grid-template-columns:${unitGrid()}" draggable="true" data-drag-unit="${escapeCad(item.id)}" title="Drag to Pending/Active incident to dispatch, or Units board to make available">${opts.units.columns.map(f=>components[f]).join('')}</div>`;
 };
 function groupHTML(type,items,by){const groups=new Map();for(const item of items){const key=item[by]||'Unassigned';if(!groups.has(key))groups.set(key,[]);groups.get(key).push(item)}return [...groups].sort((a,b)=>alpha(a[0],b[0])).map(([name,rows])=>`<div class="board-group">${escapeCad(name)} <span>(${rows.length})</span></div>`+rows.map(i=>itemHTML(type,i)).join('')).join('')}
 window.cadBoardRender=function(type,list){
