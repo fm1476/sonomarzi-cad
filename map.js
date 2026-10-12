@@ -129,7 +129,19 @@ async function ask(raw){
   if(!label){label=String(raw).replace(/^.*?\b(?:zoom (?:in )?(?:to|on)|go to|take me to|navigate to|center (?:on|at)|show me (?:the )?(?:location|address) (?:of|at)?|find (?:the )?(?:address|location) (?:of|at)?)\b/i,'').replace(/^\s*(?:the|at|of|on|to)\s+/i,'').replace(/^(?:show me|find|locate)\s+/i,'').replace(/[?.!,]+$/,'').trim()}
   if(!label){setResult('Tell me a street address, Common Place, or event number to locate.');return}
   if(!incident&&/^(?:event|incident|call|cfs)\b/i.test(label)){setResult('That event was not uniquely identified. Please use the complete event number.');return}
-  const coordinates=await geocode(label);
+  // Resolve unit designators before attempting street-address geocoding.
+   const spokenUnit=label.toLowerCase().replace(/\b(one|two|three|four|five|six|seven|eight|nine|zero|oh)\b/g,w=>({one:'1',two:'2',three:'3',four:'4',five:'5',six:'6',seven:'7',eight:'8',nine:'9',zero:'0',oh:'0'}[w])).replace(/\b(adam|alpha)\b/g,'a').replace(/[^a-z0-9]/g,'');
+   const requestedUnit=(state.units||[]).find(u=>u.id.toLowerCase().replace(/[^a-z0-9]/g,'')===spokenUnit);
+   if(requestedUnit){
+    if(!Array.isArray(requestedUnit.mapCoords)||requestedUnit.mapCoords.length!==2){
+     setResult(`Unit ${requestedUnit.id} has no verified map coordinates for ${requestedUnit.location||'its reported location'}. Use CL with a mappable address.`);
+     return;
+    }
+    await setQueryView([requestedUnit],[],requestedUnit.id);
+    setResult(`Located unit ${requestedUnit.id} at ${requestedUnit.location}. Geocoded position, not live AVL.`);
+    return;
+   }
+   const coordinates=await geocode(label);
   if(!coordinates){setResult(`Could not geocode ${label}. No map movement made.`);return}
   init();focused=true;map.setView(coordinates,17);setResult(`Centered map on ${incident?incident.id+' — ':''}${label}. Position from GIS geocoding; verify before operational use.`);return;
  }
