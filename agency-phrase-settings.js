@@ -69,7 +69,7 @@
  intent.addEventListener('change',()=>{if(editingIntent&&editingIntent!==intent.value)resetEdit();});
  window.addEventListener?.('beforeunload',event=>{if(!dirty)return;event.preventDefault();event.returnValue='';});
  save.addEventListener('click',()=>{
-  try{validate(entries);const previous=localStorage.getItem(KEY);if(previous!==null&&previous!==lastSaved){output.textContent='Saved phrases changed in another tab. Reload before saving to avoid overwriting them.';return;}localStorage.setItem(KEY,JSON.stringify(entries));lastSaved=localStorage.getItem(KEY);dirty=false;sync();output.textContent='Saved in this browser. No operational CAD actions are connected.';}
+  try{validate(entries);const previous=localStorage.getItem(KEY);if(previous!==lastSaved){output.textContent='Saved phrases changed in another tab. Reload before saving to avoid overwriting them.';return;}localStorage.setItem(KEY,JSON.stringify(entries));lastSaved=localStorage.getItem(KEY);dirty=false;sync();output.textContent='Saved in this browser. No operational CAD actions are connected.';}
   catch(e){output.textContent='Not saved: '+e.message;}
  });
  sync();
