@@ -1,0 +1,50 @@
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const vm=require('node:vm');
+const phrases=require('../core/agency-phrases.js');
+const gate=require('../core/command-gate.js');
+const planner=require('../core/action-plan.js');
+const source=fs.readFileSync(require('node:path').join(__dirname,'../agency-phrase-settings.js'),'utf8');
+const values=new Map();
+const KEY='smcad-agency-phrase-preview-v1';
+function mount(){
+ const ids=['cadPhraseJson','cadPhraseResult','cadPhraseValidate','cadPhraseIntent','cadPhraseAliases','cadPhraseList','cadPhraseAdd','cadPhraseTest','cadPhraseTestButton','cadPhraseApplyJson'];
+ function element(){
+  return {value:'',textContent:'',children:[],handlers:{},options:[],addEventListener(type,fn){this.handlers[type]=fn;},click(){this.handlers.click?.();},replaceChildren(){this.children=[];},append(...nodes){this.children.push(...nodes);}};
+ }
+ const els=Object.fromEntries(ids.map(id=>[id,element()]));
+ els.cadPhraseIntent.options=['unit.available','unit.unavailable','incident.clear','map.hydrants','map.schools'].map(value=>({value}));
+ els.cadPhraseIntent.value='unit.available';
+ const document={getElementById:id=>els[id]||null,createElement:element};
+ const localStorage={getItem:key=>values.get(key)||null,setItem:(key,value)=>values.set(key,value)};
+ vm.runInNewContext(source,{document,localStorage,window:{CadAgencyPhrases:phrases,CadCommandGate:gate,CadActionPlan:planner},JSON,Set,Map,Error});
+ return els;
+}
+let e=mount();
+e.cadPhraseAliases.value='Who is available';
+e.cadPhraseAdd.click();
+e.cadPhraseValidate.click();
+let saved=JSON.parse(values.get(KEY));
+assert.deepEqual(saved[0].phrases,['show available units','list available units','Who is available']);
+e.cadPhraseTest.value='who is available';
+e.cadPhraseTestButton.click();
+assert.match(e.cadPhraseResult.textContent,/Recognized unit.available|Recognized: unit.available/);
+assert.match(e.cadPhraseResult.textContent,/No permissions granted/);
+e=mount();
+assert.match(e.cadPhraseJson.value,/Who is available/);
+e.cadPhraseIntent.value='unit.unavailable';
+e.cadPhraseAliases.value='who is available';
+e.cadPhraseAdd.click();
+assert.match(e.cadPhraseResult.textContent,/Conflicting phrases/);
+e.cadPhraseValidate.click();
+assert.equal(JSON.parse(values.get(KEY)).length,1);
+e.cadPhraseJson.value='not valid JSON';
+e.cadPhraseApplyJson.click();
+assert.match(e.cadPhraseResult.textContent,/Not loaded/);
+e.cadPhraseJson.value=JSON.stringify([{intent:'unit.available',phrases:[]}]);
+e.cadPhraseApplyJson.click();
+assert.match(e.cadPhraseResult.textContent,/Not loaded/);
+e.cadPhraseList.children[0].children[2].click();
+e.cadPhraseValidate.click();
+assert.deepEqual(JSON.parse(values.get(KEY)),[]);
+console.log('Browser-like agency phrase editor interaction tests passed.');
