@@ -16,6 +16,8 @@
  intent.value=window.CadIntentCatalog.ids[0];
  let editingIntent=null;
  let storageWarning='';
+ let dirty=false;
+ function markDirty(){dirty=true;output.textContent='Unsaved phrase changes. Select Validate & Save Phrase Preview to keep them.';}
  function resetEdit(){editingIntent=null;add.textContent='Add or Update Phrases';aliases.value='';}
  function validate(items){
   if(!Array.isArray(items)||items.length>100)throw new Error('Provide up to 100 phrase groups.');
@@ -42,7 +44,7 @@
    const edit=document.createElement('button');edit.type='button';edit.textContent='Edit';
    edit.addEventListener('click',()=>{intent.value=item.intent;aliases.value=item.phrases.join('\n');editingIntent=item.intent;add.textContent='Replace Phrases';});
    const remove=document.createElement('button');remove.type='button';remove.textContent='Remove';
-   remove.addEventListener('click',()=>{entries=entries.filter(x=>x!==item);if(editingIntent===item.intent)resetEdit();sync();output.textContent='Unsaved changes. Validate and save when ready.';});
+   remove.addEventListener('click',()=>{entries=entries.filter(x=>x!==item);if(editingIntent===item.intent)resetEdit();sync();markDirty();});
    row.append(label,edit,remove);list.append(row);
   }
  }
@@ -52,7 +54,7 @@
   const existing=entries.find(x=>x.intent===intent.value);
   const replacement=editingIntent===intent.value;
   const next=entries.filter(x=>x.intent!==intent.value).concat([{intent:intent.value,phrases:replacement?phrases:[...new Map([...(existing?.phrases||[]),...phrases].map(x=>[window.CadAgencyPhrases.normalize(x),x])).values()]}]);
-  try{validate(next);entries=next;sync();resetEdit();output.textContent=replacement?'Phrase group replaced. Save when ready.':'Phrases added to preview. Existing phrases preserved. Save when ready.';}
+  try{validate(next);entries=next;sync();resetEdit();markDirty();}
   catch(e){output.textContent='Not added: '+e.message;}
  });
  testButton.addEventListener('click',()=>{
@@ -60,12 +62,13 @@
   catch(e){output.textContent='Cannot test: '+e.message;}
  });
  applyJson.addEventListener('click',()=>{
-  try{const next=JSON.parse(field.value);validate(next);entries=next;resetEdit();sync();output.textContent='JSON loaded into editor. Save when ready.';}
+  try{const next=JSON.parse(field.value);validate(next);entries=next;resetEdit();sync();markDirty();}
   catch(e){output.textContent='Not loaded: '+e.message;}
  });
  intent.addEventListener('change',()=>{if(editingIntent&&editingIntent!==intent.value)resetEdit();});
+ window.addEventListener?.('beforeunload',event=>{if(!dirty)return;event.preventDefault();event.returnValue='';});
  save.addEventListener('click',()=>{
-  try{validate(entries);localStorage.setItem(KEY,JSON.stringify(entries));sync();output.textContent='Saved in this browser. No operational CAD actions are connected.';}
+  try{validate(entries);localStorage.setItem(KEY,JSON.stringify(entries));dirty=false;sync();output.textContent='Saved in this browser. No operational CAD actions are connected.';}
   catch(e){output.textContent='Not saved: '+e.message;}
  });
  sync();
