@@ -413,3 +413,16 @@ header nav.cad-header-tabs button{white-space:nowrap;padding:6px 9px;font-size:1
 header{z-index:100!important;isolation:isolate}
 header nav.cad-header-tabs{position:relative!important;z-index:101!important;pointer-events:auto!important}
 header nav.cad-header-tabs button{position:relative;z-index:102;pointer-events:auto;cursor:pointer}
+
+/* Split call-taking console: call intake/queue left, incident management right */
+#calltake .cad-ct-split{display:grid;grid-template-columns:minmax(0,var(--cad-ct-left-width,48%)) 10px minmax(0,1fr);align-items:stretch;gap:0;padding:10px;min-height:calc(100vh - 100px)}
+#calltake .cad-ct-left,#calltake .cad-ct-right{min-width:0;display:flex;flex-direction:column;gap:12px}
+#calltake .cad-ct-divider{cursor:col-resize;touch-action:none;background:#10263a;border:1px solid #254c66;border-radius:7px;margin:0 3px;transition:background .15s}
+#calltake .cad-ct-divider:hover,#calltake .cad-ct-divider:focus{background:#2775a2;outline:1px solid #7dd2ff}
+#calltake .cad-ct-right>.panel{flex:1}
+#calltake .cad-ct-empty-editor{padding:0 14px;color:#a6c1d5}
+#calltake .cad-ct-empty-editor p{margin:20px 0}
+#calltake .cad-ct-left .formgrid{grid-template-columns:repeat(2,minmax(0,1fr))}
+#calltake .cad-ct-left .panel{margin:0}
+#calltake .cad-ct-right .cad-ct-editor{margin:0}
+@media(max-width:850px){#calltake .cad-ct-split{display:flex;flex-direction:column;gap:12px}#calltake .cad-ct-divider{display:none}}
