@@ -10,7 +10,7 @@
  const example=[{intent:'unit.available',phrases:['show available units','list available units']}];
  let entries;
  try{entries=JSON.parse(localStorage.getItem(KEY)||JSON.stringify(example));if(!Array.isArray(entries))entries=example;}catch(_){entries=example;}
- const known=new Set([...intent.options].map(o=>o.value));
+ const known=new Set(window.CadIntentCatalog.ids);
  let editingIntent=null;
  let storageWarning='';
  function resetEdit(){editingIntent=null;add.textContent='Add or Update Phrases';aliases.value='';}
