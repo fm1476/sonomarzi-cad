@@ -1,0 +1,292 @@
+*{box-sizing:border-box}html,body{margin:0;background:#07101d;color:#e9f0f8;font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;height:100%}button,input,select,textarea{font:inherit}header{height:52px;background:#0d1b2c;border-bottom:1px solid #29405b;display:flex;align-items:center;justify-content:space-between;padding:0 14px;position:sticky;top:0;z-index:10}.badge{font-size:11px;margin-left:8px;padding:3px 6px;background:#28496b;border-radius:5px}#systemDot{color:#3bd671}header button,nav button,.filters button{background:#14263a;color:#dfeaf5;border:1px solid #304b68;border-radius:5px;padding:6px 9px}nav{display:flex;gap:7px;padding:8px 12px;background:#091625;border-bottom:1px solid #21364d;position:sticky;top:52px;z-index:9}nav button.active,.filters button.active,.primary{background:#1668c7!important;color:white!important;border-color:#3185e6!important}.view{display:none}.view.active{display:block}.grid{padding:10px;display:grid;grid-template-columns:1.05fr 1.4fr 1.05fr;grid-auto-rows:minmax(250px,auto);gap:10px}.panel{background:#0d1a29;border:1px solid #263b52;border-radius:8px;overflow:hidden;box-shadow:0 4px 18px #0004}.panel h2{font-size:14px;text-transform:uppercase;letter-spacing:.06em;margin:0;padding:10px 12px;background:#12243a;border-bottom:1px solid #263b52}.wide{grid-column:span 1}.row{padding:9px 10px;border-bottom:1px solid #1e3146;cursor:pointer;display:grid;grid-template-columns:65px 1fr auto;gap:7px;align-items:center}.row:hover,.row.selected{background:#16304a}.prio{font-weight:800}.p1{color:#ff6a6a}.p2{color:#ffbd59}.p3{color:#7cc5ff}.meta,.muted{color:#8fa6bc;font-size:12px}.unit{padding:7px 9px;border-bottom:1px solid #1e3146;display:grid;grid-template-columns:62px 1fr auto;gap:7px}.unit b{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}.status{font-size:11px;padding:3px 6px;border-radius:4px;background:#263d54}.filters{padding:7px;display:flex;gap:5px}.filters button{font-size:11px}.command{position:sticky;bottom:0;display:flex;gap:10px;align-items:center;background:#050b12;border-top:1px solid #2b455f;padding:10px 14px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}.command input{flex:1;background:#0d1824;color:#9fffbf;border:1px solid #31506b;padding:9px;border-radius:5px;font-family:inherit}.callform,.config{margin:14px;padding-bottom:15px}.formgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:14px}.formgrid label,.config label{display:flex;flex-direction:column;gap:5px;font-size:12px;color:#a9bdd0}.span2{grid-column:span 2}input,select,textarea{background:#09131f;color:#edf5ff;border:1px solid #2d4862;border-radius:5px;padding:9px}textarea{min-height:80px}.primary{margin-left:14px;border:1px solid;padding:9px 14px;border-radius:5px}.config{padding-bottom:20px}.config p,.config label{margin:12px}.config textarea{min-height:100px}.detailwrap{padding:12px}.detailhead{display:flex;justify-content:space-between;gap:12px}.actions{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}.actions button{background:#152a40;color:white;border:1px solid #34516d;border-radius:5px;padding:7px}.narr{background:#08131e;padding:9px;border-radius:5px;margin-top:7px}.timeline{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;max-height:115px;overflow:auto}.timeline div{padding:3px 0;color:#a9bdd0}#map{height:100%;min-height:260px;position:relative;background:linear-gradient(27deg,#10253b 12%,transparent 12%) 0 0/70px 70px,linear-gradient(117deg,#10253b 12%,transparent 12%) 0 0/70px 70px,#0a1825}.maplabel{position:absolute;left:10px;top:10px;color:#7392ac}.marker{position:absolute;width:10px;height:10px;border-radius:50%;background:#65c9ff;box-shadow:0 0 0 4px #65c9ff33}.marker.fire{background:#ff7b6e}.marker.ems{background:#7de4a1}#toast{position:fixed;right:16px;bottom:60px;background:#183653;border:1px solid #416786;padding:10px 14px;border-radius:6px;opacity:0;pointer-events:none;transition:.2s}#toast.show{opacity:1}@media(max-width:900px){.grid{grid-template-columns:1fr}.wide{grid-column:span 1}header{font-size:12px}.formgrid{grid-template-columns:1fr}.span2{grid-column:span 1}}
+/* Hackathon voice module */
+.voice-panel{margin:0 10px 10px;padding:12px}.voice-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}.voice-heading b{font-size:13px;letter-spacing:.06em}.voice-heading .muted{margin-top:6px}.voice-indicator{border:1px solid #3c6d8c;border-radius:5px;padding:6px 10px;font-size:11px;color:#91d5fb}.voice-indicator.recording{color:#fff;background:#bf3340;border-color:#ef5d6a;animation:pulse 1s infinite}@keyframes pulse{50%{opacity:.6}}.voice-controls,.voice-input{display:flex;align-items:end;gap:8px;flex-wrap:wrap;margin-top:10px}.voice-controls label,.voice-input label{font-size:12px;color:#9cb5ce;display:flex;flex-direction:column;gap:5px}.voice-controls button,.voice-input button{background:#163451;color:#f2f8ff;border:1px solid #426a89;padding:10px 13px;border-radius:6px;cursor:pointer}.voice-ptt{background:#145c9c!important;font-weight:700;touch-action:none;user-select:none;min-width:165px}.voice-ptt.recording{background:#b4293b!important}.voice-input input{flex:1;min-width:240px}.voice-output{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:11px 0}.voice-output>div{background:#081624;border:1px solid #28435d;border-radius:6px;padding:10px;font-size:12px;min-height:55px;line-height:1.6}.voice-activity{font-size:12px;max-height:125px;overflow:auto}.voice-activity>div{padding:5px 0;border-bottom:1px solid #1e3146}.voice-panel h3{font-size:12px;margin:11px 0 3px}.voice-tabs{display:flex;gap:5px;margin-top:12px}.voice-tabs button{padding:6px 9px;border:1px solid #31516c;color:#c7e0f6;background:#10283d;border-radius:5px;cursor:pointer}.voice-tabs button.active{background:#1760a5;color:#fff}.voice-entry{border-bottom:1px solid #203b53;padding:9px 3px;font-size:12px;line-height:1.6}.voice-entry .meta{margin-bottom:4px}.voice-entry button{font-size:11px;background:transparent;border:1px solid #3b5b78;border-radius:4px;color:#9ad3ff;cursor:pointer}.voice-entry.highlight{background:#194b6b}.voice-warning{color:#ffbd59}.voice-unlinked{color:#ffbd59}@media(max-width:900px){.voice-output{grid-template-columns:1fr}}
+
+.voice-log-count{padding:8px 10px;color:#acd0ee;background:#0a2032;border:1px solid #29435b;border-radius:6px;margin:8px 0;font-size:12px}.voice-entry{overflow-wrap:anywhere}.timeline{max-height:205px;overflow-y:auto;overflow-wrap:anywhere}
+
+/* v11 hackathon dispatch operations */
+.ops{margin:10px;padding-bottom:12px}.ops h2{margin-bottom:10px}.ops-grid{padding:0 12px;display:grid;grid-template-columns:repeat(4,minmax(150px,1fr));gap:10px}.ops-grid label{color:#b7ccdd;font-size:12px;display:flex;flex-direction:column;gap:5px}.ops-grid select,.ops-grid input{width:100%;min-width:0}.ops-buttons{padding:12px;display:flex;gap:8px;flex-wrap:wrap}.ops-buttons button{margin:0;background:#17334e;border:1px solid #416586;border-radius:6px;padding:9px 13px;color:white;cursor:pointer}#opsInfo{padding:0 12px 5px}@media(max-width:1000px){.ops-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:600px){.ops-grid{grid-template-columns:1fr}}
+
+.ops-extra{padding:12px 12px 0;display:flex;gap:8px;flex-wrap:wrap}.ops-extra input,.ops-extra select{min-width:130px;flex:1}.ops-extra button{background:#17334e;border:1px solid #416586;color:white;padding:8px 12px;border-radius:5px;cursor:pointer}
+
+/* v11.3: always-visible radio controls for single-console hackathon demonstrations */
+header{gap:12px;min-height:62px;height:auto;flex-wrap:wrap} .header-radio{display:flex;align-items:center;justify-content:center;gap:10px;flex:1;min-width:290px} .header-radio label{font-size:12px;color:#abc8e1;display:flex;align-items:center;gap:8px} #radioIncident{max-width:290px;min-width:150px;padding:7px;font-size:12px}.header-ptt{padding:10px 20px;font-size:15px;font-weight:750;white-space:nowrap}.header-radio-indicator{font-size:11px;color:#a6bdd1;min-width:78px}.header-radio-indicator.live{color:#ff8181;font-weight:750}nav{top:62px}@media(max-width:950px){header{justify-content:center}.header-radio{order:3;width:100%;flex-basis:100%;padding-bottom:8px}nav{top:105px;overflow-x:auto}}
+
+/* v11.4: low-priority reset action at bottom, never in radio controls */
+.demo-reset-footer{display:flex;justify-content:space-between;align-items:center;gap:16px;margin:22px 12px 14px;padding:16px 18px;border:1px solid #29415a;border-radius:8px;background:#0d1a29;color:#94aec5;font-size:12px;flex-wrap:wrap}.demo-reset-footer button{border:1px solid #97515c;background:#44212b;color:#ffd9dc;border-radius:6px;padding:9px 14px;cursor:pointer;font-weight:700}.demo-reset-footer button:hover{background:#64303c}
+
+/* Real OSM map and demo snapshot controls */
+#map{height:330px;min-height:300px;background:#14273a}.leaflet-container{background:#14273a;color:#15283b}.cad-map-note{background:rgba(6,20,34,.92);border-radius:4px;color:#f3d59d;font-size:11px;padding:6px 9px;box-shadow:0 2px 6px #0006}.demo-tools{margin:10px;padding-bottom:12px}.demo-tools p{margin:12px}.demo-actions{display:flex;flex-wrap:wrap;gap:9px;margin:12px}.demo-actions button,.import-label{border:1px solid #416586;background:#17334e;color:white;padding:9px 12px;border-radius:6px;cursor:pointer;font-size:13px}.demo-actions button:disabled{opacity:.4;cursor:default}.demo-tools #demoToolStatus{margin:10px 12px}.import-label{display:inline-flex;align-items:center}
+
+/* Operational unit status colors: preserve visible text and readable contrast in dark mode. */
+.unit .status {display:inline-flex;align-items:center;justify-content:center;min-width:64px;text-align:center;font-weight:750;letter-spacing:.02em;border:1px solid #476075;color:#e9f1fa;background:#263d54;line-height:1.35;white-space:normal}
+.unit .status-available{background:#123d2b;border-color:#2eaa70;color:#91f6be}
+.unit .status-dispatched{background:#39275d;border-color:#9475e9;color:#e0cbff}
+.unit .status-enroute{background:#153b64;border-color:#4aafff;color:#a8ddff}
+.unit .status-onscene,.unit .status-on-scene{background:#553819;border-color:#efa641;color:#ffda96}
+.unit .status-code4,.unit .status-code-4{background:#184348;border-color:#48bdc2;color:#adf5ef}
+.unit .status-available-on-scene{background:#23482e;border-color:#86cc65;color:#ccf5a5}
+.unit .status-clear{background:#334257;border-color:#8195af;color:#e1eaf5}
+.unit .status-transporting{background:#51284e;border-color:#d47dcb;color:#ffd3fa}
+.unit .status-at-hospital{background:#512b39;border-color:#e28ca5;color:#ffccd8}
+.unit .status-out-of-service{background:#55242a;border-color:#e36877;color:#ffb7bf}
+@media (prefers-reduced-motion: no-preference) {.unit .status{transition:background-color .2s,border-color .2s,color .2s}}
+
+/* v15.5 independent board controls, draggable field headers and board panels */
+.board-controls{padding:7px 9px;display:flex;flex-wrap:wrap;align-items:center;gap:6px;border-bottom:1px solid #263b52}
+.board-controls select{font-size:11px;padding:5px;max-width:160px;min-width:85px}.board-controls label{font-size:11px;color:#b5cce1;display:flex;align-items:center;gap:4px}.board-controls input[type=checkbox]{width:auto;margin:0}
+.board-columns{display:flex;gap:5px;padding:6px 9px;background:#0c1b2b;border-bottom:1px solid #263b52;color:#a4c1de;font-size:10px}
+.board-columns span{flex:1 1 0;min-width:0;cursor:grab;padding:5px 3px;border:1px dashed #37536d;border-radius:3px;text-align:center}
+.board-flex{display:flex!important;align-items:center!important;gap:7px!important}.board-flex>*{flex:1 1 0;min-width:0;overflow-wrap:anywhere}.board-flex>.status{min-width:0}
+.board-group{background:#1b3652;color:#f0f5ff;font-weight:700;font-size:12px;padding:8px 10px;border-top:1px solid #4e7192;letter-spacing:.025em}.board-group span{color:#99b9d6;font-weight:400}.board-empty{color:#8fa6bc;padding:12px}
+.panel-drag{cursor:grab;color:#8cb2d3;display:inline-block;margin-right:5px;user-select:none}
+
+/* v16 interactive command desk and board intelligence */
+.cad-smart-command{display:flex;align-items:center;gap:10px;position:relative;flex-wrap:wrap}
+.cad-smart-entry{flex:1;min-width:280px;position:relative}
+.cad-smart-entry input{width:100%;box-sizing:border-box}
+.cad-suggestions{position:absolute;bottom:calc(100% + 4px);left:0;right:0;max-height:295px;overflow:auto;z-index:100;background:#17243a;border:1px solid #6683a7;border-radius:8px;box-shadow:0 10px 28px #0009}
+.cad-suggestion{width:100%;display:flex;flex-direction:column;gap:3px;text-align:left;background:transparent;color:#f3f6ff;padding:10px 12px;border:0;border-bottom:1px solid #36445b;cursor:pointer}
+.cad-suggestion:hover,.cad-suggestion[aria-selected="true"]{background:#304768}
+.cad-suggestion small{color:#b1c5dc;font-size:12px}
+.cad-command-results,.cad-board-assistant{margin-top:9px;padding:14px!important}
+.cad-result-header,.cad-ask-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.cad-ask-row input{flex:1;min-width:230px}
+.cad-ask-examples{display:flex;gap:7px;flex-wrap:wrap;margin:10px 0}
+.cad-ask-examples button{font-size:12px;padding:6px 9px}
+.cad-result-line{padding:6px 8px;border-left:3px solid #64c7ad;margin-top:5px;background:#142536;color:#d9f9ec}
+.cad-result-line.error{border-color:#f5ad6e;background:#382b29;color:#ffdcc5}
+.cad-answer{padding:12px;background:#111d30;border-radius:7px;line-height:1.6;white-space:pre-wrap}
+
+/* v16.1 interactive unit movements */
+.unit[data-drag-unit]{cursor:grab;touch-action:auto}.unit[data-drag-unit]:active{cursor:grabbing}
+.cad-drop-target{outline:2px dashed #65c3ec!important;outline-offset:-3px;background:#193f54!important}
+#commandPlacement{max-width:165px;font-size:12px}
+.cad-smart-command{z-index:20}.cad-smart-command .cad-suggestions{bottom:auto;top:calc(100% + 4px)}
+.drag-hint{font-size:11px;color:#aac3d9;padding:5px 8px;background:#122638}
+
+.cad-unit-chip{display:inline-block;cursor:grab;padding:3px 6px;margin:2px;background:#213e59;border:1px solid #5c87a7;border-radius:4px;color:#f2f7ff;font-weight:650}.cad-unit-chip:active{cursor:grabbing}
+
+/* Operational map navigation */
+.cad-map-home{display:flex!important;align-items:center;justify-content:center;font-size:27px!important;font-weight:700!important;line-height:30px!important;text-decoration:none!important;color:#202e40!important;background:white!important;}
+.cad-map-home:hover{background:#ecf3fc!important;}
+.cad-map-unlocated{background:rgba(18,27,39,.92);color:white;padding:7px 10px;border-radius:5px;font-size:12px;max-width:210px;box-shadow:0 2px 10px #0005;}
+
+/* v16.3: command line is an explicit visible dock or a resizable floating window */
+.cad-smart-command{position:relative;bottom:auto;z-index:21;min-height:74px;margin:10px;padding:12px;border:1px solid #426787;border-radius:8px;background:#0b2033;box-shadow:0 8px 22px #0008;flex-wrap:wrap}
+.cad-smart-entry{flex:1 1 330px;min-width:200px}
+.cad-command-handle{display:flex;align-items:center;gap:7px;user-select:none;white-space:nowrap}
+.cad-command-draglabel{font:11px system-ui,sans-serif;color:#89a8c6;display:none}
+#resetCommandLocation,#findCommandLine{background:#193b58;color:#ebf6ff;border:1px solid #51799b;border-radius:5px;padding:7px 9px;cursor:pointer}
+.cad-result-header{justify-content:flex-start}.cad-result-header #findCommandLine{margin-left:auto}
+.cad-smart-command.cad-command-floating{position:fixed!important;bottom:auto!important;right:auto!important;left:24px;top:110px;width:min(820px,calc(100vw - 30px));height:110px;min-width:360px;min-height:95px;max-width:100vw;max-height:calc(100vh - 20px);resize:both;overflow:visible;align-content:start;z-index:1005}
+.cad-command-floating .cad-command-handle{cursor:move;touch-action:none;flex:1 1 100%}
+.cad-command-floating .cad-command-draglabel{display:inline}
+.cad-command-floating .cad-smart-entry{flex:1 1 220px}
+.cad-command-floating:after{content:'↘';position:absolute;right:5px;bottom:0;color:#b3d3f4;font-size:18px;pointer-events:none}
+@media(max-width:520px){.cad-smart-command.cad-command-floating{min-width:290px}.cad-command-handle{width:100%}}
+
+/* v16.5 workspace presets and adjustable dispatch board heights */
+.cad-workspace-toolbar{margin:10px 10px 0;padding:10px 12px;display:flex;align-items:center;flex-wrap:wrap;gap:7px;background:#0f263b;border:1px solid #486a86;border-radius:8px;color:#e5effa}
+.cad-workspace-toolbar strong{font-size:12px;letter-spacing:.06em;margin-right:6px}
+.cad-workspace-toolbar button{padding:7px 9px;background:#193a58;border:1px solid #537c9f;color:#eaf3ff;border-radius:5px;cursor:pointer}
+.cad-workspace-toolbar button:hover{background:#255579}
+.cad-workspace-toolbar select{max-width:220px;min-width:145px}
+#cadWorkspaceStatus{font-size:11px;color:#9dbbd4;flex-basis:100%}
+#dispatch .grid>[data-panel="pending"],#dispatch .grid>[data-panel="active"],#dispatch .grid>[data-panel="units"]{min-height:220px;overflow:hidden;display:flex;flex-direction:column}
+#pending,#activeCalls,#units{flex:1 1 auto;min-height:60px;overflow:auto}
+.cad-panel-height-grip{flex:0 0 11px;cursor:ns-resize;text-align:center;user-select:none;background:#19334c;border-top:1px solid #3b5c77;color:#9bbbd7;font-size:10px;line-height:10px;touch-action:none}
+.cad-panel-height-grip:hover{background:#28618c}
+.cad-command-floating{resize:none!important;height:auto!important;min-height:95px!important}
+.cad-command-width-grip{width:10px;min-width:10px;flex:0 0 10px;cursor:ew-resize;align-self:stretch;background:linear-gradient(90deg,transparent 3px,#6faad0 3px,#6faad0 5px,transparent 5px);touch-action:none;border-radius:4px}
+
+/* v16.6 multi-monitor detached panels */
+.cad-panel-pop{margin-left:auto;font-size:11px;padding:4px 8px;white-space:nowrap;color:#d8ebff;border:1px solid #42769b;border-radius:5px;background:#143653;cursor:pointer}
+.cad-panel-pop:hover{background:#225b85}
+body.cad-detached header,body.cad-detached nav,body.cad-detached footer,body.cad-detached .cad-workspace-toolbar,body.cad-detached .voice-panel,body.cad-detached .ops,body.cad-detached .demo-tools,body.cad-detached .cad-board-assistant,body.cad-detached .cad-command-results,body.cad-detached .cad-smart-command{display:none!important}
+body.cad-detached .view{display:none!important}
+body.cad-detached #dispatch{display:block!important;padding:8px!important;margin:0!important}
+body.cad-detached #dispatch>.grid{display:block!important;margin:0!important}
+body.cad-detached #dispatch>.grid>[data-panel]{display:none!important}
+body.cad-detached #dispatch>.grid>[data-panel].cad-detached-target{display:flex!important;width:100%!important;min-height:calc(100vh - 24px);max-height:none!important;box-sizing:border-box;margin:0!important}
+body.cad-detached.cad-detached-command #dispatch>.grid{display:none!important}
+body.cad-detached.cad-detached-command .cad-smart-command{display:block!important;position:static!important;width:100%!important;height:auto!important;max-width:none!important;margin:0!important;transform:none!important}
+body.cad-detached.cad-detached-command .cad-command-width-grip{display:none!important}
+body.cad-detached.cad-detached-voice .voice-panel,body.cad-detached.cad-detached-assistant .cad-board-assistant{display:block!important;margin:0!important;width:100%!important;box-sizing:border-box}
+body.cad-detached.cad-detached-voice #dispatch>.grid,body.cad-detached.cad-detached-assistant #dispatch>.grid{display:none!important}
+
+/* v16.7 Board Intelligence modern controls */
+.cad-board-assistant .cad-ask-row{gap:10px;flex-wrap:wrap;align-items:center}
+.cad-board-assistant .cad-ask-row input#cadAsk{min-height:43px;padding:10px 14px;border:1px solid #375879;border-radius:9px;background:#071b2b;color:#edf6ff;font-size:14px;outline:none}
+.cad-board-assistant .cad-ask-row input#cadAsk:focus{border-color:#53b9e5;box-shadow:0 0 0 3px rgba(57,164,220,.18)}
+.cad-board-assistant button.cad-ask-action,.cad-board-assistant button.cad-ask-ptt{border-radius:9px;border:1px solid #4d8fb3;background:linear-gradient(180deg,#205a7c,#17425e);color:#f3fbff;min-height:43px;padding:9px 15px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 3px 12px #0004;transition:background .15s,transform .15s,border-color .15s}
+.cad-board-assistant button.cad-ask-action:hover,.cad-board-assistant button.cad-ask-ptt:hover{background:#296b91;border-color:#76cbea}
+.cad-board-assistant button.cad-ask-ptt.cad-ask-recording{background:#9b2b41;border-color:#fb7983;animation:cad-ask-pulse 1.2s ease-in-out infinite}
+.cad-board-assistant button.cad-ask-ptt:disabled{opacity:.65;cursor:wait}
+.cad-board-assistant .cad-ask-examples{gap:8px;margin:13px 0}
+.cad-board-assistant .cad-ask-examples button{background:#142e47;color:#cde6f8;border:1px solid #375d7d;border-radius:999px;padding:9px 13px;font-weight:600;font-size:12px;cursor:pointer;transition:background .15s,border-color .15s}
+.cad-board-assistant .cad-ask-examples button:hover{background:#254967;border-color:#65a0c5;color:#fff}
+.cad-board-assistant .cad-voice-reply{display:flex;align-items:center;gap:7px;color:#b4d4e9;font-size:12px;white-space:nowrap;cursor:pointer}
+.cad-board-assistant .cad-voice-reply input{accent-color:#42b6e5}
+.cad-board-assistant .cad-ask-mic-status{font-size:12px;color:#9fbed4;padding:6px 2px}
+.cad-board-assistant .cad-ask-mic-status.cad-ask-error{color:#f5b1a4}
+@keyframes cad-ask-pulse{50%{box-shadow:0 0 0 6px rgba(230,71,95,.16)}}
+@media(max-width:680px){.cad-board-assistant .cad-ask-row input#cadAsk{flex-basis:100%}}
+
+/* v16.8: independent workspace columns, no shared row stretching */
+#dispatch>.grid.cad-lanes{display:grid!important;grid-template-columns:minmax(0,1.05fr) minmax(0,1.4fr) minmax(0,1.05fr);align-items:start;grid-auto-rows:auto;gap:10px}
+#dispatch>.grid.cad-lanes>.cad-lane{display:flex;flex-direction:column;align-items:stretch;gap:10px;min-width:0;min-height:0}
+#dispatch>.grid.cad-lanes>.cad-lane>.panel{width:100%;min-width:0;flex-shrink:0;align-self:stretch}
+#dispatch>.grid.cad-lanes>.cad-lane>.panel[data-panel="map"]{height:400px}
+#dispatch>.grid.cad-lanes>.cad-lane>.panel[data-panel="map"] #map{min-height:300px}
+.cad-lane.cad-lane-over{outline:2px dashed #6bb9ec;outline-offset:3px;border-radius:8px}
+.cad-pop-placeholder{padding:18px 12px;display:flex;flex-direction:column;gap:12px;align-items:start;background:#12273a;color:#bdd2e6}
+.cad-pop-placeholder button{background:#215b82;color:#fff;border:1px solid #5b9bc8;border-radius:6px;padding:8px 12px;cursor:pointer}
+#dispatch .cad-popped>.cad-pop-placeholder{display:flex}
+#dispatch .cad-popped> :not(h2):not(.cad-pop-placeholder){display:none!important}
+#dispatch .cad-popped{height:auto!important;min-height:0!important}
+body.cad-detached #dispatch>.grid.cad-lanes{display:block!important}
+body.cad-detached #dispatch>.grid.cad-lanes>.cad-lane{display:contents!important}
+body.cad-detached #dispatch>.grid.cad-lanes .panel{display:none!important}
+body.cad-detached #dispatch>.grid.cad-lanes .panel.cad-detached-target{display:flex!important;width:100%!important;height:calc(100vh - 24px)!important;max-height:none!important;min-height:0!important}
+body.cad-detached #dispatch>.grid.cad-lanes .panel.cad-detached-target>.cad-pop-placeholder{display:none!important}
+@media(max-width:950px){#dispatch>.grid.cad-lanes{grid-template-columns:minmax(0,1fr)!important}}
+/* v16.9 Freeform CAD desktop: panes are independently movable and resizable. */
+#dispatch .cad-freeform-actions{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin:10px 10px 0;padding:8px 11px;border:1px solid #294d68;border-radius:8px;background:#10243a;color:#9fc9e6;font-size:12px}
+#dispatch .cad-freeform-actions button{background:#183c58;border:1px solid #4a7598;border-radius:6px;color:#e5f4ff;padding:6px 11px;cursor:pointer}
+#dispatch>.grid.cad-freeform{display:block!important;position:relative!important;min-height:1400px;grid-template-columns:none!important;grid-auto-rows:auto!important;margin:0;padding:0 8px!important;overflow:visible;isolation:isolate}
+#dispatch .cad-freeform-window{position:absolute!important;bottom:auto!important;right:auto!important;max-width:none!important;max-height:none!important;min-width:0!important;margin:0!important;transform:none!important;box-sizing:border-box;overflow:hidden;display:flex;flex-direction:column;background:#0d1a29}
+#dispatch .cad-freeform-window.cad-workspace-toolbar{display:flex;align-content:start;align-items:start;flex-direction:row;flex-wrap:wrap;overflow:auto;padding-top:35px}
+#dispatch .cad-freeform-window.cad-smart-command{align-items:center;align-content:center;flex-direction:row;flex-wrap:wrap;overflow:visible;padding-top:26px}
+#dispatch .cad-freeform-window .cad-freeform-handle{cursor:grab;touch-action:none;user-select:none}
+#dispatch .cad-freeform-window .cad-freeform-handle:active{cursor:grabbing}
+#dispatch .cad-freeform-window>.cad-freeform-title{position:absolute;top:0;left:0;right:0;height:27px;display:flex;align-items:center;padding:4px 10px;background:#14324a;color:#bbdcf5;font-size:12px;letter-spacing:.04em;font-weight:700;border-bottom:1px solid #42617c}
+#dispatch .cad-freeform-window .cad-freeform-resizer{position:absolute!important;right:0;bottom:0;width:20px;height:20px;z-index:100;cursor:nwse-resize;touch-action:none;background:linear-gradient(135deg,transparent 50%,#5a96bf 51%,#5a96bf 59%,transparent 60%,transparent 68%,#85b9d8 69%);border-radius:0 0 6px 0}
+#dispatch .cad-freeform-window .cad-panel-height-grip,#dispatch .cad-freeform-window .cad-command-width-grip{display:none!important}
+#dispatch .cad-freeform-window[data-panel="pending"]> #pending,#dispatch .cad-freeform-window[data-panel="active"]>#activeCalls,#dispatch .cad-freeform-window[data-panel="units"]>#units{overflow-y:auto;min-height:0;flex:1}
+#dispatch .cad-freeform-window[data-panel="map"] #map{min-height:0!important;height:100%!important;flex:1}
+#dispatch .cad-freeform-window[data-panel="detail"] .detailwrap{overflow:auto;flex:1;min-height:0}
+#dispatch .cad-freeform-window.cad-board-assistant{overflow:auto}
+#dispatch .cad-freeform-window.cad-command-results{overflow:auto}
+#dispatch .cad-freeform-window.voice-panel{overflow:auto}
+body.cad-detached #dispatch>.grid.cad-freeform{display:block!important;min-height:0!important}
+body.cad-detached #dispatch .cad-freeform-window{display:none!important}
+body.cad-detached #dispatch .cad-freeform-window.cad-detached-target{display:flex!important;position:static!important;width:100%!important;height:calc(100vh - 30px)!important}
+
+#dispatch>.grid.cad-freeform>.cad-lane{display:none!important}
+#dispatch .cad-freeform-window.cad-command-results{min-height:120px}
+
+/* v17: minimal command bar; legacy controls retained solely for compatibility. */
+#commandPlacement,#resetCommandLocation,#findCommandLine{display:none!important}
+#dispatch .cad-freeform-window.cad-smart-command{gap:8px;padding-top:28px;align-content:center}
+#dispatch .cad-freeform-window.cad-smart-command .cad-command-handle{flex:0 0 auto;min-width:max-content}
+#dispatch .cad-freeform-window.cad-smart-command .cad-smart-entry{flex:1 1 180px;min-width:90px}
+#dispatch .cad-freeform-window.cad-smart-command #executeCadCommand{flex:0 0 auto}
+.cad-panel-pop{display:none!important}
+.cad-external-launch{display:flex;align-items:center;gap:6px;color:#bed1e5;font-size:12px}
+.cad-external-launch select{max-width:170px}
+
+/* v17.1: the command surface itself can be grabbed wherever it is not a control. */
+#dispatch .cad-freeform-window.cad-command-grab-surface{cursor:grab;touch-action:none}
+#dispatch .cad-freeform-window.cad-command-grab-surface:active{cursor:grabbing}
+#dispatch .cad-freeform-window.cad-command-grab-surface :is(input,button,select,.cad-suggestions){cursor:auto;touch-action:auto}
+#dispatch .cad-freeform-window.cad-command-grab-surface .cad-command-handle{cursor:grab;user-select:none;padding:5px 10px;border:1px dashed #64829c;border-radius:6px;background:#17344b}
+/* v17.2: keep map resize control above Leaflet's internal overlay panes. */
+#dispatch .cad-freeform-window[data-panel="map"] { position:absolute!important; isolation:isolate; }
+#dispatch .cad-freeform-window[data-panel="map"] > .cad-freeform-resizer {
+  z-index:10000!important; pointer-events:auto!important;
+  width:32px!important; height:32px!important;
+  background:linear-gradient(135deg,transparent 39%,#8bd5ff 40%,#8bd5ff 46%,transparent 47%,transparent 56%,#8bd5ff 57%,#8bd5ff 63%,transparent 64%,transparent 73%,#8bd5ff 74%)!important;
+  background-color:#173c59!important; border:1px solid #87c1e4;
+  border-radius:7px 0 6px 0!important; box-shadow:0 0 0 2px #0d1a29;
+}
+#dispatch .cad-freeform-window[data-panel="map"] > h2 { flex:0 0 auto; }
+#dispatch .cad-freeform-window[data-panel="map"] > #map { flex:1 1 0!important; min-height:0!important; height:auto!important; width:100%!important; }
+
+/* v17.3: Scrollable narrative and transcripts in independently sized incident pane */
+#dispatch [data-panel="detail"]{min-height:0;}
+#dispatch [data-panel="detail"] #detail{display:flex;flex-direction:column;flex:1 1 auto;min-height:0;overflow:hidden;}
+#dispatch [data-panel="detail"] .detailwrap{display:flex;flex-direction:column;flex:1 1 auto;min-height:0;overflow-y:auto;}
+#dispatch [data-panel="detail"] .voice-detail-content{flex:1 1 auto;min-height:85px;overflow-y:auto;overscroll-behavior:contain;scrollbar-gutter:stable;padding-bottom:8px;}
+#dispatch [data-panel="detail"] .voice-tabs{display:flex;align-items:center;gap:6px;flex-wrap:wrap;flex:0 0 auto;}
+.voice-order-label{display:inline-flex;align-items:center;gap:5px;margin-left:auto;color:#bad4e8;font-size:11px;white-space:nowrap;}
+.voice-order-label select{font-size:11px;padding:5px 7px;max-width:160px;}
+/* Shared operational status palette for assignment chips across all incident boards. */
+.cad-unit-chip{font-weight:750;border-width:1px;border-style:solid;}
+.cad-unit-chip.status-available{background:#123d2b;border-color:#2eaa70;color:#91f6be}
+.cad-unit-chip.status-dispatched{background:#39275d;border-color:#9475e9;color:#e0cbff}
+.cad-unit-chip.status-enroute{background:#153b64;border-color:#4aafff;color:#a8ddff}
+.cad-unit-chip.status-onscene,.cad-unit-chip.status-on-scene{background:#553819;border-color:#efa641;color:#ffda96}
+.cad-unit-chip.status-code4,.cad-unit-chip.status-code-4{background:#184348;border-color:#48bdc2;color:#adf5ef}
+.cad-unit-chip.status-available-on-scene{background:#23482e;border-color:#86cc65;color:#ccf5a5}
+.cad-unit-chip.status-clear{background:#334257;border-color:#8195af;color:#e1eaf5}
+.cad-unit-chip.status-transporting{background:#51284e;border-color:#d47dcb;color:#ffd3fa}
+.cad-unit-chip.status-at-hospital{background:#512b39;border-color:#e28ca5;color:#ffccd8}
+.cad-unit-chip.status-out-of-service{background:#55242a;border-color:#e36877;color:#ffb7bf}
+
+
+/* v17.4 units board unit-ID pills */
+.board-unit-pill{display:inline-flex;align-items:center;justify-content:center;min-width:60px;padding:6px 10px;border-radius:999px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;line-height:1;font-weight:800;letter-spacing:.02em;white-space:nowrap;box-shadow:inset 0 0 0 1px rgba(255,255,255,.05)}
+.unit.board-flex>.board-unit-pill{flex:0 0 auto;max-width:max-content;overflow:visible}
+
+/* Linked multidisciplinary CAD events */
+.cad-linked-note{color:#87c7ff;margin-top:3px;font-size:11px}
+.cad-discipline{font-size:10px;border-radius:999px;padding:1px 6px;border:1px solid currentColor}
+.cad-discipline-law{color:#94c6ff}.cad-discipline-fire{color:#ffa784}.cad-discipline-ems{color:#89eab7}
+
+/* v18.2 linked incident navigation; high contrast, keyboard navigable. */
+.cad-linked-nav{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin:8px 0;padding:7px 0}.cad-linked-heading{font-size:10px;font-weight:800;letter-spacing:.06em;color:#8dbdda;margin-right:4px}.cad-linked-event{cursor:pointer;padding:5px 9px;border-radius:999px;background:#133b53;border:1px solid #4396c5;color:#d5f4ff;font-size:11px;font-weight:700}.cad-linked-event:hover:not(:disabled),.cad-linked-event:focus-visible{background:#1e5d7c;outline:2px solid #7fd2ff;outline-offset:1px}.cad-linked-event.is-current{cursor:default;opacity:.7;border-color:#64778a;background:#273b50}.cad-linked-board-label{display:inline-block;margin-top:4px;padding:2px 6px;border-radius:999px;color:#b7e7ff;border:1px solid #376b90;background:#133149;font-size:10px;font-weight:750}
+
+/* v19.3 tactical map symbols and voice navigation */
+.cad-map-toolbar{display:flex;align-items:center;gap:7px;flex-wrap:wrap;padding:8px 9px;background:#10243a;border-bottom:1px solid #365475;font-size:12px}.cad-map-toolbar label{display:flex;align-items:center;gap:5px}.cad-map-toolbar select,.cad-map-toolbar input{padding:6px 8px;font-size:12px}.cad-map-query{display:flex;gap:5px;flex:1;min-width:220px}.cad-map-query input{flex:1;min-width:100px}.cad-map-query button{padding:6px 9px;background:#194369;border:1px solid #407bac;border-radius:5px;color:#eff8ff;cursor:pointer;white-space:nowrap}.cad-map-toolbar #cadMapAnswer{flex:1 0 100%;color:#b5d1e9;font-size:11px;min-height:14px}.cad-map-unit-wrap,.cad-map-call-wrap{background:none;border:0}.cad-map-unit{display:flex;align-items:center;justify-content:center;gap:4px;width:max-content;min-width:50px;max-width:92px;height:31px;padding:3px 6px;border:2px solid var(--cad-status);border-radius:9px;background:#081b2ce8;color:#fff;box-shadow:0 2px 10px #000a;white-space:nowrap;font-size:12px;position:relative;left:50%;transform:translateX(-50%)}.cad-map-unit-symbol{font-size:15px;color:var(--cad-status);line-height:1}.cad-map-unit-id{font-size:12px;font-weight:850}.cad-map-sheriff{border-radius:18px}.cad-map-fire{border-radius:5px}.cad-map-ems{border-radius:18px}.cad-map-call{display:flex;align-items:center;gap:4px;border:2px solid #e9bc70;border-radius:5px;background:#452b18eb;color:#ffe5b2;padding:4px 6px;white-space:nowrap;position:relative;left:50%;transform:translateX(-50%);box-shadow:0 2px 10px #000a}.cad-map-call-fire{border-color:#ff8657}.cad-map-call-ems{border-color:#7ce5c1}.cad-map-call-p1{box-shadow:0 0 0 2px #ff6666,0 3px 12px #000b}.cad-map-call small{font-size:10px;font-weight:800}.cad-map-satellite{font-size:20px!important}#dispatch .cad-freeform-window[data-panel="map"] #cadMapToolbar{flex:0 0 auto}#dispatch .cad-freeform-window[data-panel="map"] #map{flex:1;min-height:120px}
+
+/* v19.5 map: compact call/unit iconography with exact point leader lines. */
+.cad-map-unit{min-width:40px;max-width:74px;height:25px;padding:2px 5px;font-size:10px;border-width:1.5px;border-radius:6px}
+.cad-map-unit-symbol{font-size:12px}.cad-map-unit-id{font-size:10px}
+.cad-map-call{padding:2px 4px;font-size:10px;border-width:1.5px;gap:2px}.cad-map-call small{font-size:9px}
+.cad-map-toolbar #cadMapHydrants{padding:6px 8px;background:#153e53;border:1px solid #3b7988;border-radius:5px;color:#b9f2ff;cursor:pointer}
+.cad-hydrant-wrap{border:none;background:none}.cad-hydrant-symbol{display:flex;width:18px;height:18px;align-items:center;justify-content:center;border:1.5px solid #e8fbff;background:#1168ad;color:#fff;border-radius:50%;font-size:10px;font-weight:900;box-shadow:0 1px 5px #000c}
+.cad-board-location{font-size:11px;color:#bbd9f1;overflow-wrap:anywhere}
+#cadGeoSuggestions{position:absolute;bottom:calc(100% + 3px);left:0;right:0;z-index:500;background:#0c263b;border:1px solid #4485b1;border-radius:7px;max-height:210px;overflow:auto;box-shadow:0 7px 20px #0009}
+#cadGeoSuggestions[hidden]{display:none!important}
+#cadGeoSuggestions button{display:block;width:100%;background:none;border:0;border-bottom:1px solid #24435b;color:#dcefff;text-align:left;cursor:pointer;font-size:12px;padding:9px}
+#cadGeoSuggestions button:hover,#cadGeoSuggestions button:focus{background:#1a5379}
+.cad-smart-entry{position:relative}
+/* Configurable self-initiated event editor */
+.self-rule-row{display:grid;grid-template-columns:minmax(175px,1fr) 130px 130px;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid #263b52}
+.self-rule-row label{display:flex;align-items:center;flex-direction:row;gap:9px;color:#d9e8f6}
+.self-rule-row input[type=checkbox]{width:16px;height:16px}
+.self-rule-row input:not([type=checkbox]),.self-rule-row select{width:100%}
+@media(max-width:700px){.self-rule-row{grid-template-columns:1fr 1fr}.self-rule-row label{grid-column:span 2}}
+
+/* v19.7 consolidated top navigation: no redundant secondary toolbar */
+header .cad-brand-and-tabs{display:flex;align-items:center;gap:14px;min-width:0}
+header .cad-brand{display:flex;align-items:center;white-space:nowrap}
+header nav.cad-header-tabs{display:flex;gap:5px;align-items:center;padding:0;margin:0;position:static;top:auto;z-index:auto;background:transparent;border:0}
+header nav.cad-header-tabs button{white-space:nowrap;padding:6px 9px;font-size:12px}
+@media(max-width:1100px){header{height:auto;min-height:52px;flex-wrap:wrap;gap:6px;padding:8px 12px}header .cad-brand-and-tabs{flex-wrap:wrap;gap:8px}header nav.cad-header-tabs{flex-wrap:wrap}}
+/* v19.8 event disposition dialog and configuration */
+.cad-clear-dialog{max-width:480px;width:calc(100% - 24px);background:#102338;color:#e9f0f8;border:1px solid #6486a8;border-radius:12px;padding:20px;box-shadow:0 20px 80px #000b}
+.cad-clear-dialog::backdrop{background:#020912b9}
+.cad-clear-dialog form,.cad-clear-config{display:flex;flex-direction:column;gap:12px}
+.cad-clear-dialog label,.cad-clear-config label{display:flex;flex-direction:column;gap:5px;font-size:13px}
+.cad-clear-dialog textarea,.cad-clear-dialog select,.cad-clear-config textarea{width:100%}
+.cad-clear-actions{display:flex;gap:10px;justify-content:flex-end}
+#cadClearConfirm,#cadSaveClearChoices{background:#1768c2;color:white;border:1px solid #3b8dec;border-radius:6px;padding:9px 13px;cursor:pointer}
+#cadClearError{color:#ff9b9b;min-height:16px;margin:0}
+.cad-clear-config{border-top:1px solid #37516d;margin-top:22px;padding-top:15px}
+#cadClearConfigFields{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
+
+/* v19.9 configuration section picker */
+#config [data-config-panel][hidden]{display:none!important}
+.cad-places-form{display:grid;gap:9px;max-width:790px;margin:12px 0}
+.cad-places-form label{display:flex;flex-direction:column;gap:5px;margin:0}
+.cad-place-result{display:block;width:100%;text-align:left;margin:5px 0;padding:9px;background:#173149;border:1px solid #345671;color:#e8f4ff;border-radius:6px;cursor:pointer}
+.cad-place-row{display:flex;align-items:center;flex-wrap:wrap;gap:8px;border-top:1px solid #35516a;padding:12px 0}
+.cad-place-row>div{flex:1 1 320px}
+.cad-place-row button,.cad-places-form button{padding:8px;border-radius:6px;background:#18334b;color:#e6f4ff;border:1px solid #406079;cursor:pointer}
+
+/* v20.1 common place visibility on incident cards */
+.cad-board-common-place{display:block;font-weight:750;color:#d9efff}.cad-board-street-address{display:block;color:#b8cce0;font-size:.91em}
+/* v20.8 compact map layer selector */
+#cadLayersMount{position:relative;z-index:440}.cad-gis-layers{position:relative;background:#10253b;border:1px solid #385a75;border-radius:6px;min-width:88px;color:#e9f4ff}.cad-gis-layers>summary{cursor:pointer;list-style:none;padding:7px 10px;font-size:12px;font-weight:800}.cad-gis-layers>summary::-webkit-details-marker{display:none}.cad-gis-options{position:absolute;left:0;top:100%;width:260px;max-height:330px;overflow:auto;border:1px solid #43617b;border-radius:8px;background:#0c2033;box-shadow:0 8px 28px #000a;padding:10px;z-index:1500}.cad-gis-options strong{display:block;padding:9px 3px 3px;color:#8bbce7;font-size:11px;text-transform:uppercase}.cad-gis-options label{display:flex;gap:7px;align-items:center;font-size:12px;padding:5px 3px;cursor:pointer}.cad-gis-options input{margin:0;flex:none}.cad-gis-options label:has(input:disabled){opacity:.5;cursor:not-allowed}

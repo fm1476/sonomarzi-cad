@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<meta name="theme-color" content="#0b1220"/>
+<title>SonoMarzi CAD POC</title>
+<link rel="stylesheet" href="styles.css?v=20.1"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+</head>
+<body>
+<header>
+  <div class="cad-brand-and-tabs"><div class="cad-brand"><b>SONOMARZI CAD</b><span class="badge">POC</span></div><nav class="cad-header-tabs" aria-label="Main navigation"><button data-view="dispatch" class="active">Dispatch</button><button data-view="calltake">Call Taking</button><button data-view="config">Configuration</button></nav></div>
+  <div class="header-radio"><label for="radioIncident">Radio event <select id="radioIncident" aria-label="Radio event"></select></label><button id="voicePTT" class="voice-ptt header-ptt" type="button">🎙 Hold to Talk</button><span class="header-radio-indicator" id="headerRadioIndicator">READY</span></div><div id="clock"></div>
+  <div><span id="systemDot">●</span> SYSTEM NORMAL <button id="simulateBtn">Run Simulation</button></div>
+</header>
+
+
+<main id="dispatch" class="view active">
+  <section class="cad-workspace-toolbar" aria-label="Saved CAD workspaces"><strong>WORKSPACE</strong><select id="cadWorkspaceSelect" aria-label="Choose a saved workspace"></select><button id="cadWorkspaceLoad" type="button">Load</button><button id="cadWorkspaceNew" type="button">Save New</button><button id="cadWorkspaceUpdate" type="button">Update</button><button id="cadWorkspaceRename" type="button">Rename</button><button id="cadWorkspaceDelete" type="button">Delete</button><button id="cadWorkspaceReset" type="button">Reset Layout</button><label class="cad-external-launch">Other monitor <select id="cadExternalPanel" aria-label="Select panel for a separate monitor"><option value="">Choose pane…</option></select></label><button id="cadExternalOpen" type="button" title="Open selected pane as separate browser window">Open Window ↗</button><button id="cadOpenSavedWindows" type="button" title="Reopen saved separate-monitor windows">Restore Windows</button><span id="cadWorkspaceStatus" role="status" aria-live="polite">Workspace layout stored on this browser.</span></section>
+  <section class="grid">
+    <article class="panel" data-panel="pending">
+      <h2><span class="panel-drag" draggable="true" title="Drag to move this panel" aria-label="Drag panel">⠿</span> Pending Calls <span id="pendingCount"></span></h2>
+      <div class="board-controls" data-board="pending"><select data-setting="agency"><option value="ALL">All agencies</option></select><select data-setting="discipline"><option value="ALL">All disciplines</option><option value="LAW">Law</option><option value="FIRE">Fire</option><option value="EMS">EMS</option></select><select data-setting="sort"><option value="priority">Priority</option><option value="event">Event number</option><option value="type">Call type</option><option value="location">Location</option><option value="agency">Agency</option></select><label><input type="checkbox" data-setting="group"> Group by agency</label></div><div class="board-columns" data-columns="pending"></div>
+      <div id="pending"></div>
+    </article>
+    <article class="panel wide" data-panel="active">
+      <h2><span class="panel-drag" draggable="true" title="Drag to move this panel" aria-label="Drag panel">⠿</span> Active Incidents <span id="activeCount"></span></h2>
+      <div class="board-controls" data-board="active"><select data-setting="agency"><option value="ALL">All agencies</option></select><select data-setting="discipline"><option value="ALL">All disciplines</option><option value="LAW">Law</option><option value="FIRE">Fire</option><option value="EMS">EMS</option></select><select data-setting="sort"><option value="priority">Priority</option><option value="event">Event number</option><option value="type">Call type</option><option value="location">Location</option><option value="agency">Agency</option></select><label><input type="checkbox" data-setting="group"> Group by agency</label></div><div class="board-columns" data-columns="active"></div>
+      <div id="activeCalls"></div>
+    </article>
+    <article class="panel" data-panel="units">
+      <h2><span class="panel-drag" draggable="true" title="Drag to move this panel" aria-label="Drag panel">⠿</span> Unit Status</h2>
+      <div class="filters"><button data-discipline="ALL" class="active">All</button><button data-discipline="LAW">Law</button><button data-discipline="FIRE">Fire</button><button data-discipline="EMS">EMS</button></div>
+      <div class="board-controls" data-board="units"><select data-setting="agency"><option value="ALL">All agencies</option></select><select data-setting="status"><option value="ALL">All statuses</option></select><select data-setting="sort"><option value="id">Unit ID</option><option value="status">Status</option><option value="agency">Agency</option><option value="discipline">Discipline</option></select><select data-setting="group"><option value="none">No grouping</option><option value="agency">Group by agency</option><option value="discipline">Group by discipline</option></select></div><div class="board-columns" data-columns="units"></div>
+      <div id="units"></div>
+    </article>
+    <article class="panel wide" data-panel="detail">
+      <h2>Incident Detail</h2>
+      <div id="detail" class="muted">Select an incident.</div>
+    </article>
+    <article class="panel" data-panel="map">
+      <h2>Operational Map</h2>
+      <div id="map"><div class="maplabel">Loading live OpenStreetMap tiles…</div></div>
+    </article>
+  </section>
+  <section class="voice-panel panel" aria-label="CAD Voice Intelligence">
+    <div class="voice-heading"><div><b>CAD VOICE INTELLIGENCE</b><span class="badge">HACKATHON POC</span><div class="muted">Press and hold to simulate a radio transmission. Radio traffic is never sent to an actual radio.</div></div><span id="voiceIndicator" class="voice-indicator">READY</span></div>
+    <div class="voice-controls">
+      <label>Source <select id="voiceSource"><option value="DISPATCH">Dispatcher (outgoing)</option><option value="FIELD">Field unit (incoming)</option></select></label>
+      <span class="muted">Use the top-center radio button. Choose the incident there before transmitting.</span>
+      <button id="voiceDemo" type="button">▶ Run Voice Demo</button>
+      <button id="voiceReset" type="button">Clear Voice History</button>
+    </div>
+    <div class="voice-input"><label for="voiceManual">Demo fallback / type radio traffic</label><input id="voiceManual" placeholder="e.g. Three Adam Twenty One, show me enroute"/><button id="voiceSubmit" type="button">Process Transmission</button></div>
+    <div class="voice-output"><div><b>Heard:</b> <span id="voiceHeard" aria-live="polite">Waiting for a transmission</span></div><div><b>CAD Interpretation:</b> <span id="voiceInterpretation" aria-live="polite">No action yet</span></div></div>
+    <h3>Voice Automation Activity</h3><div id="voiceActivity" class="voice-activity"></div>
+  </section>
+  <section class="panel ops" id="operationsPanel">
+    <h2>Dispatch Operations | Hackathon Control Desk</h2>
+    <div class="ops-grid">
+      <label>Incident<select id="opsIncident"></select></label>
+      <label>Unit<select id="opsUnit"></select></label>
+      <label>New status<select id="opsStatus"><option value="DISPATCHED">Dispatched</option><option value="ENROUTE">Enroute</option><option value="ONSCENE">On Scene</option><option value="CODE4">Code 4</option><option value="AVAILABLE_ON_SCENE">Available on Scene</option><option value="CLEAR">Clear</option><option value="CLEAR_DISPOSITION">Clear with Disposition</option><option value="AVAILABLE">Available</option><option value="OUT_OF_SERVICE">Out of Service</option><option value="TRANSPORTING">Transporting</option><option value="AT_HOSPITAL">At Hospital</option></select></label>
+      <label>Disposition (when clearing)<input id="opsDisposition" placeholder="Report Taken, Arrest Made, Advice Given, or custom" list="cadDispoOptions" maxlength="100"></label>
+      <datalist id="cadDispoOptions"><option value="Report Taken"><option value="Arrest Made"><option value="Advice Given"></datalist>
+      <label>Case number<input id="opsCase" placeholder="Optional case/reference number" maxlength="80"></label>
+    </div>
+    <div class="ops-extra"><input id="opsNewUnitId" placeholder="New unit ID (e.g. 3A32)" maxlength="12"><select id="opsNewUnitAgency"><option value="Petaluma Police">Petaluma Police</option><option value="Sonoma County Sheriff">Sonoma County Sheriff</option><option value="Petaluma Fire / EMS">Petaluma Fire / EMS</option></select><select id="opsNewUnitType"><option value="LAW">Law</option><option value="FIRE">Fire</option><option value="EMS">EMS</option></select><button id="opsCreateUnit">Add Demo Unit</button></div><div class="ops-buttons"><button id="opsAssign" class="primary">Assign / Dispatch Unit</button><button id="opsApplyStatus">Change Unit Status</button><button id="opsRelease">Release Unit</button><button id="opsSaveCase">Save Case Number</button><button id="opsAutoCase">Generate Case #</button><button id="opsNewCall">Create Another Call</button></div>
+    <div class="muted" id="opsInfo">Choose an incident and unit. Actions are saved in incident history.</div>
+  </section>
+  <section class="panel demo-tools"><h2>Hackathon Scenario Controls</h2><p class="muted">Save or reload this browser's demo scenario. Export a backup file to keep across browsers. Undo reverses the most recent supported CAD action; voice corrections are reviewed before they change CAD.</p><div class="demo-actions"><button id="saveDemoPoint">Save Demo Restore Point</button><button id="restoreDemoPoint">Restore Demo Point</button><button id="exportDemoPoint">Export JSON</button><label class="import-label">Import JSON<input type="file" id="importDemoPoint" accept="application/json,.json" hidden></label><button id="undoCadAction" disabled>Undo Last CAD Action</button></div><div id="demoToolStatus" class="muted" aria-live="polite">Ready</div></section>
+  <section class="command cad-smart-command" aria-label="Intelligent CAD command line"><div id="cadCommandHandle" class="cad-command-handle" title="Drag to move command pane"><strong>COMMAND &gt;</strong></div><select hidden id="commandPlacement" aria-label="Command line position" title="Place command line"><option value="top">Top of dispatch</option><option value="after-boards">Below incident boards</option><option value="bottom">Bottom of dispatch</option><option value="floating">Floating / draggable</option></select><button hidden id="resetCommandLocation" type="button" title="Return command line to top">Reset position</button><div class="cad-smart-entry"><input id="command" autocomplete="off" spellcheck="false" aria-label="CAD command" aria-controls="cadSuggestions" placeholder="OS E2; C M2; D 3A12 #4518; RT #4518 Additional unit requested"/><div id="cadSuggestions" class="cad-suggestions" role="listbox" hidden></div></div><button id="executeCadCommand" type="button">Execute</button></section><section class="panel cad-command-results" id="cadCommandResultsPanel" aria-label="Command results"><div class="cad-result-header"><strong>Command Results</strong><span class="muted">Use semicolons to stack actions. Type # to find a CFS.</span><button hidden id="findCommandLine" type="button" title="Bring the command line to the top and focus it">Find Command Line ↑</button></div><div id="cadCommandResults" aria-live="polite" class="muted">Ready for commands. Type HELP for the full command list.</div></section><section class="panel cad-board-assistant" aria-label="Board intelligence"><h2>CAD Board Intelligence <span class="badge">LIVE STATE</span></h2><p class="muted">Ask about the current board. Answers are calculated from CAD records; questions never change unit status or assignments.</p><div class="cad-ask-row"><input id="cadAsk" placeholder="What's happening on my board?" aria-label="Ask CAD about the current board"/><button id="cadAskGo" class="cad-ask-action" type="button">Ask CAD <span aria-hidden="true">→</span></button><button id="cadAskPTT" class="cad-ask-ptt" type="button" aria-label="Press and hold to ask CAD a question">🎙 Hold to Ask</button><label class="cad-voice-reply"><input type="checkbox" id="cadSpeakReply"/> Speak answer</label></div><div id="cadAskMicStatus" class="cad-ask-mic-status" role="status" aria-live="polite">Ready for a question. Hold the mic button and speak.</div><div class="cad-ask-examples"><button type="button" data-cad-question="What's happening on my board?">Board rundown</button><button type="button" data-cad-question="Which units have been on scene over 20 minutes?">On scene over 20m</button><button type="button" data-cad-question="Show priority one incidents with no units">Unassigned P1 calls</button><button type="button" data-cad-question="What units are available?">Available units</button></div><div id="cadAnswer" class="cad-answer" aria-live="polite">Ready to answer questions about the active CAD board.</div></section>
+</main>
+
+<main id="calltake" class="view">
+  <section class="callform panel">
+    <h2>New Call for Service</h2>
+    <div class="formgrid">
+      <label>Agency<select id="agency"></select></label>
+      <label>Discipline<select id="discipline"><option>LAW</option><option>FIRE</option><option>EMS</option></select></label>
+      <label>Case Number (optional)<input id="newCaseNumber" placeholder="e.g. 26-000123"/></label><label>Priority<select id="priority"><option>P1</option><option selected>P2</option><option>P3</option><option>P4</option></select></label>
+      <label>Incident Type<select id="type"></select></label><label>Custom Incident Type<input id="customIncidentType" placeholder="e.g. Unwanted Subject (optional)"/></label>
+      <label class="span2">Location<input id="location" value="123 Main St"/></label>
+      <label>Caller<input id="caller" value="Jane Caller"/></label>
+      <label>Phone<input id="phone" value="707-555-0100"/></label>
+      <label class="span2">Narrative<textarea id="narrative">Caller reports a disturbance in progress.</textarea></label>
+    </div>
+    <button id="createCall" class="primary">Create Call</button>
+  </section>
+</main>
+
+<main id="config" class="view">
+  <section class="panel config">
+    <h2>Agency Configuration</h2>
+    <p>Changes below affect this browser immediately and persist locally.</p>
+    <label>Configuration section<select id="cadConfigSection" aria-label="Choose configuration section"><option value="cfs">Calls for Service</option><option value="self">Self-Initiated CFS</option><option value="places">Common Places</option><option value="general">General &amp; Other Settings</option></select></label>
+    <div data-config-panel="general" hidden>
+    <label>Agencies<textarea id="cfgAgencies"></textarea></label>
+    </div>
+    <div data-config-panel="cfs">
+    <label>LAW Incident Types<textarea id="cfgLaw"></textarea></label>
+    <label>FIRE Incident Types<textarea id="cfgFire"></textarea></label>
+    <label>EMS Incident Types<textarea id="cfgEms"></textarea></label>
+    </div>
+    <div data-config-panel="self" hidden>
+    <h3>Self-Initiated Calls for Service</h3>
+    <p>Choose a configured CFS, provide its optional command code and default unit status. Explicit spoken ENROUTE / ON SCENE status takes precedence.</p>
+    <div id="selfInitiatedSettings"></div>
+    </div>
+    <div data-config-panel="places" hidden>
+      <h3>Common Places &amp; Aliases</h3>
+      <p>Agency-approved locations. Validate a geocoded address before saving. All data is local to this browser.</p>
+      <div class="cad-places-form">
+        <label>Common name<input id="cadPlaceName" placeholder="Petaluma High School"></label>
+        <label>Aliases (one per line)<textarea id="cadPlaceAliases" rows="2" placeholder="PHS&#10;Petaluma High"></textarea></label>
+        <label>Physical address<input id="cadPlaceAddress" placeholder="201 Fair St, Petaluma, CA"></label>
+        <button type="button" id="cadPlaceValidate">Search / Validate Address</button>
+        <div id="cadPlaceResults" aria-live="polite"></div>
+        <div id="cadPlaceValidated" role="status" aria-live="polite"></div>
+        <button type="button" id="cadPlaceSave" disabled>Save Common Place</button>
+        <button type="button" id="cadPlaceCancel">Clear Form</button>
+      </div>
+      <div id="cadPlaceList"></div>
+    </div>
+    <button id="saveConfig" class="primary">Save Configuration</button>
+  </section>
+</main>
+
+<footer class="demo-reset-footer">
+  <span>Hackathon demo controls. Reset restores the original sample incidents and unit lineup.</span>
+  <button id="reset" type="button" aria-label="Reset all CAD demo data">↻ Reset Entire Demo</button>
+</footer>
+<div id="toast"></div>
+<script src="app.js?v=18"></script>
+<script src="board-layout.js?v=20.1"></script>
+<script src="incident-intelligence.js?v=18.3"></script>
+<script src="voice.js?v=20.0"></script>
+<script src="operations.js?v=18"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="map-layer-catalog.js?v=20.8"></script>
+<script src="map.js?v=20.8"></script>
+<script src="demo-tools.js?v=18"></script>
+<script src="extended-ops.js?v=18"></script>
+<script src="structured-command.js?v=19.6"></script>
+<script src="command-intelligence.js?v=20.3"></script>
+<script src="voice-incident-creation.js?v=19.0"></script>
+<script src="self-initiated.js?v=20.6"></script>
+<script src="event-clear.js?v=19.8"></script>
+<script src="common-places.js?v=20.0"></script>
+<script src="drag-dispatch.js?v=18"></script>
+<script src="workspaces.js?v=18"></script>
+
+<script src="pane-layout.js?v=18"></script>
+<script src="multi-monitor.js?v=18"></script>
+<script src="ask-cad-voice.js?v=18"></script>
+<script src="free-workspace.js?v=18"></script>
+</body>
+</html>

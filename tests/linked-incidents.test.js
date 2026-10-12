@@ -1,0 +1,10 @@
+const fs=require('fs'),vm=require('vm'),assert=require('assert');
+const s=fs.readFileSync(require('path').join(__dirname,'..','app.js'),'utf8');const code=s.slice(s.indexOf('function cadIncidentFamily('),s.indexOf('function toast(t)'));
+const state={seq:4518,incidents:[{id:'26-004518',discipline:'LAW',status:'ACTIVE',agency:'Petaluma Police',priority:'P1',type:'Domestic',location:'725 D St',caller:'RP',phone:'555',narrative:['Initial report'],units:['3A21'],events:[]}]};
+const ctx={state,event:(i,msg)=>i.events.push(msg),Date};vm.createContext(ctx);vm.runInContext(code,ctx);
+const police=state.incidents[0],fire={id:'E1',discipline:'FIRE',agency:'Petaluma Fire / EMS'}, fire2={...fire,id:'E2'},medic={id:'M2',discipline:'EMS',agency:'Petaluma Fire / EMS'};
+const a=ctx.cadDispatchTarget(police,fire);assert(a.created);assert.equal(a.incident.discipline,'FIRE');assert.equal(a.incident.linkedFrom,police.id);assert.equal(a.incident.location,police.location);assert.deepEqual(police.units,['3A21']);
+const b=ctx.cadDispatchTarget(police,fire2);assert(!b.created);assert.equal(b.incident.id,a.incident.id);
+const c=ctx.cadDispatchTarget(a.incident,medic);assert(c.created);assert.equal(c.incident.discipline,'EMS');assert.equal(c.incident.linkedRoot,police.id);
+const d=ctx.cadDispatchTarget(c.incident,fire);assert.equal(d.incident.id,a.incident.id);
+assert.equal(state.incidents.length,3);assert(ctx.cadLinkedLabel(police).includes('FIRE'));console.log('PASS: linked incident creation, reuse, chain-to-root, original preservation, linkage display');

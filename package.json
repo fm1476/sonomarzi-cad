@@ -1,0 +1,10 @@
+{
+  "name": "sonomarzi-cad",
+  "private": true,
+  "version": "20.8.0",
+  "description": "Experimental SonoMarzi CAD voice intelligence proof of concept",
+  "scripts": {
+    "test": "node tests/run-all.js",
+    "check": "node --check app.js && node --check voice.js && node --check map.js && npm test"
+  }
+}

@@ -1,0 +1,17 @@
+const assert=require('assert'),vm=require('vm'),fs=require('fs'),path=require('path');
+const root=path.resolve(__dirname,'..');const kv={ 'smcad-common-places-v19.9':JSON.stringify([{id:'p1',name:'Petaluma High School',aliases:['PHS','Petaluma High'],address:'Petaluma High School, 201, Fair Street, Petaluma, Sonoma County, California, 94952, United States',coordinates:[38.22,-122.64]}])};
+const fields={};const el=id=>fields[id]||(fields[id]={value:'',textContent:'',disabled:false,replaceChildren(){},addEventListener(){},dispatchEvent(){},append(){},querySelectorAll(){return []}});
+const document={getElementById:el,querySelectorAll(){return []},querySelector(){return null},createElement(){return {append(){},prepend(){},addEventListener(){},dataset:{},style:{},add(){}}}};
+const state={seq:4525,selected:null,units:[{id:'3A22',discipline:'LAW',agency:'Petaluma Police',status:'AVAILABLE',location:'Beat 1'}],incidents:[]};
+const config={types:{LAW:['Follow Up'],FIRE:[],EMS:[]},selfInitiated:{LAW:{'Follow Up':{enabled:true,code:'FU',status:'ENROUTE'}}}};
+const localStorage={getItem:k=>kv[k]||null,setItem:(k,v)=>kv[k]=v};const window={};
+const context=vm.createContext({window,document,localStorage,config,state,console,Date,RegExp,Event:class{},Option:class{},structuredClone,confirm:()=>false,save:()=>{},setTimeout,fetch:()=>{throw Error('unexpected fetch')}});
+const run=file=>vm.runInContext(fs.readFileSync(path.join(root,file),'utf8'),context,{filename:file});
+run('common-places.js');run('structured-command.js');run('self-initiated.js');
+assert.equal(window.cadCommonPlaces.resolve('PHS').address,'201 Fair Street, Petaluma, CA');
+const parsed=window.cadStructuredParse.parse('FU 3A22 @PHS@',['3A22']);assert.equal(parsed.address,'PHS');
+const typed=window.cadSelfInitiated.typed('FU 3A22 @PHS@');assert.equal(typed.ok,true,typed.message);assert.equal(state.incidents[0].location,'201 Fair Street, Petaluma, CA');assert.equal(state.units[0].status,'ENROUTE');
+state.units[0].status='AVAILABLE';state.incidents[0].status='CLOSED';state.incidents[0].units=[];
+const spoken=window.cadSelfInitiated.spoken("3A22, I'll be on a follow-up at Petaluma High School");assert.equal(spoken,true);assert.equal(state.incidents[1]?.location,'201 Fair Street, Petaluma, CA');
+assert.equal(state.incidents[1]?.type,'Follow Up');
+console.log('PASS: existing saved place + @PHS@ typed + voice self-init');

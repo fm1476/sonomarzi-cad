@@ -1,0 +1,15 @@
+const fs=require('fs'),vm=require('vm'),assert=require('assert');
+const calls=[];
+const state={incidents:[{id:'26-004519',type:'Alarm',discipline:'FIRE',status:'ACTIVE',location:'1000 Lakeville St',units:['E1'],events:[]},{id:'26-004518',type:'Domestic',discipline:'LAW',status:'ACTIVE',location:'725 D St',units:['3A21'],events:[]}]};
+const context={state,event:(i,e)=>calls.push([i.id,e]),window:{}};vm.createContext(context);vm.runInContext(fs.readFileSync(require('path').join(__dirname,'..','incident-intelligence.js'),'utf8'),context);
+const intelligence=context.window.cadIncidentIntelligence;
+let p=intelligence.classification('Copy E1 on scene, confirmed working structure fire');
+assert.equal(p.type,'Structure Fire');assert.equal(intelligence.resolveIncident('E1 reporting a working fire',['E1']).id,'26-004519');
+let changed=intelligence.apply(state.incidents[0],p,'Copy E1 on scene, confirmed working structure fire','FIELD RADIO');assert(changed.applied);
+assert.equal(state.incidents[0].type,'Structure Fire');assert.equal(state.incidents[0].classificationHistory[0].from,'Alarm');
+assert.equal(intelligence.classification('E1 possible structure fire').review,'Classification not confirmed');
+assert.equal(intelligence.classification('Start Engine 2 to the working structure fire').type,'Structure Fire');
+assert.equal(intelligence.apply(state.incidents[1],p,'working structure fire','FIELD').review.includes('belongs to FIRE'),true);
+assert.equal(intelligence.apply(state.incidents[0],p,'working structure fire','FIELD').note,'Classification already Structure Fire');
+assert.equal(state.incidents[1].type,'Domestic');assert.equal(calls.length,1);
+console.log('PASS: reclassification, preserving history, unit event matching, no duplicate type changes, uncertainty and discipline safeguards.');
