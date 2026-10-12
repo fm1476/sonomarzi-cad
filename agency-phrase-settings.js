@@ -11,6 +11,9 @@
  let entries;
  try{entries=JSON.parse(localStorage.getItem(KEY)||JSON.stringify(example));if(!Array.isArray(entries))entries=example;}catch(_){entries=example;}
  const known=new Set(window.CadIntentCatalog.ids);
+ intent.replaceChildren();
+ for(const id of window.CadIntentCatalog.ids){const option=document.createElement('option');option.value=id;option.textContent=window.CadIntentCatalog.catalog[id].label;intent.append(option);}
+ intent.value=window.CadIntentCatalog.ids[0];
  let editingIntent=null;
  let storageWarning='';
  function resetEdit(){editingIntent=null;add.textContent='Add or Update Phrases';aliases.value='';}
