@@ -33,8 +33,8 @@ window.CadMapLayerCatalog=(map,api)=>{
  function fieldText(p){return Object.entries(p||{}).filter(([k,v])=>v!=null&&typeof v!=='object'&&String(v).length<90&& !/^objectid|shape_|globalid/i.test(k)).slice(0,5).map(([k,v])=>`<b>${esc(k)}</b>: ${esc(v)}`).join('<br>')}
  async function load(item){if(!active.has(item.id)||!item.url)return;
   if(item.minZoom&&map.getZoom()<item.minZoom){layers.get(item.id)?.clearLayers();report(`${item.name}: zoom to level ${item.minZoom} or closer to display detailed features.`);return}
-  const b=map.getBounds(),sw=b.getSouthWest(),ne=b.getNorthEast();const controller=new AbortController();pending.get(item.id)?.abort();pending.set(item.id,controller);
-  const args=new URLSearchParams({where:'1=1',geometry:JSON.stringify({xmin:sw.lng,ymin:sw.lat,xmax:ne.lng,ymax:ne.lat,spatialReference:{wkid:4326}}),geometryType:'esriGeometryEnvelope',spatialRel:'esriSpatialRelIntersects',inSR:'4326',outSR:'4326',outFields:'*',returnGeometry:'true',resultRecordCount:'500',f:'geojson'});
+  const controller=new AbortController();pending.get(item.id)?.abort();pending.set(item.id,controller);
+  const args=window.CadGISQuery.params(map.getBounds());
   try{const res=await fetch(item.url+'/query?'+args,{signal:controller.signal});if(!res.ok)throw Error(`GIS HTTP ${res.status}`);const data=await res.json();if(!active.has(item.id)||pending.get(item.id)!==controller)return;if(data.error)throw Error(data.error.message||'GIS query error');
    let group=layers.get(item.id);if(!group){group=L.layerGroup().addTo(map);layers.set(item.id,group)}group.clearLayers();
    if(data.type!=='FeatureCollection')throw Error('GeoJSON response unavailable');
