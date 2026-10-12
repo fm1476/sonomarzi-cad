@@ -5,13 +5,7 @@
  if(root)root.CadActionPlan=api;
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
  'use strict';
- const catalog=Object.freeze({
-  'unit.available':Object.freeze({kind:'query',permission:'units.read',required:[],confirmation:false}),
-  'unit.unavailable':Object.freeze({kind:'query',permission:'units.read',required:[],confirmation:false}),
-  'map.hydrants':Object.freeze({kind:'map',permission:'map.read',required:[],confirmation:false}),
-  'map.schools':Object.freeze({kind:'map',permission:'map.read',required:[],confirmation:false}),
-  'incident.clear':Object.freeze({kind:'operational',permission:'incidents.clear',required:['incidentId'],confirmation:true})
- });
+ const catalog=(typeof require==='function'?require('./intent-catalog.js').catalog:globalThis.CadIntentCatalog.catalog);
  function plan(decision,context={},permissions=[]){
   if(!decision||!['recognized','needs_context'].includes(decision.status))return Object.freeze({status:'rejected',reason:'invalid_recognition'});
   const definition=catalog[decision.intent];
