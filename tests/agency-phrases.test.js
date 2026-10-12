@@ -11,4 +11,10 @@ assert.deepEqual(dictionary.resolve('close the call'),{status:'matched',intent:'
 assert.equal(dictionary.resolve('out of service').status,'ambiguous');
 assert.equal(dictionary.resolve('unrecognized command').status,'unknown');
 assert.deepEqual(compile([]).conflicts,[]);
+const duplicate=compile([{intent:'map.hydrants',phrases:['show hydrants','Show Hydrants!']}]);
+assert.equal(duplicate.resolve('SHOW HYDRANTS').intent,'map.hydrants');
+const collision=compile([{intent:'unit.available',phrases:['Ready for duty']},{intent:'unit.unavailable',phrases:['ready, for duty!']}]);
+assert.equal(collision.resolve('ready for duty').status,'ambiguous');
+assert.deepEqual(collision.conflicts,['ready for duty']);
+assert.equal(compile([{intent:'unit.available',phrases:['show available units']}]).resolve('show available units now').status,'unknown');
 console.log('Agency phrase dictionary and ambiguity safeguards passed.');
