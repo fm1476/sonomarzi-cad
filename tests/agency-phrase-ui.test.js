@@ -33,6 +33,7 @@ assert.match(e.cadPhraseResult.textContent,/Recognized unit.available|Recognized
 assert.match(e.cadPhraseResult.textContent,/No permissions granted/);
 e=mount();
 assert.match(e.cadPhraseJson.value,/Who is available/);
+assert.equal(e.cadPhraseIntent.children.length,catalog.ids.length);
 e.cadPhraseIntent.value='unit.unavailable';
 e.cadPhraseAliases.value='who is available';
 e.cadPhraseAdd.click();
