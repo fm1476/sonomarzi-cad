@@ -18,13 +18,18 @@ function mount(){
  els.cadPhraseIntent.value='unit.available';
  const document={getElementById:id=>els[id]||null,createElement:element};
  const localStorage={getItem:key=>values.get(key)||null,setItem:(key,value)=>values.set(key,value)};
- vm.runInNewContext(source,{document,localStorage,window:{CadAgencyPhrases:phrases,CadCommandGate:gate,CadActionPlan:planner,CadIntentCatalog:catalog},JSON,Set,Map,Error});
+ const events={};
+ const window={CadAgencyPhrases:phrases,CadCommandGate:gate,CadActionPlan:planner,CadIntentCatalog:catalog,addEventListener:(type,fn)=>{events[type]=fn;}};
+ vm.runInNewContext(source,{document,localStorage,window,JSON,Set,Map,Error});
+ els.fireBeforeUnload=()=>{const event={preventDefault(){this.prevented=true;},returnValue:undefined};events.beforeunload?.(event);return event;};
  return els;
 }
 let e=mount();
 e.cadPhraseAliases.value='Who is available';
 e.cadPhraseAdd.click();
+assert.equal(e.fireBeforeUnload().prevented,true);
 e.cadPhraseValidate.click();
+assert.notEqual(e.fireBeforeUnload().prevented,true);
 let saved=JSON.parse(values.get(KEY));
 assert.deepEqual(saved[0].phrases,['show available units','list available units','Who is available']);
 e.cadPhraseTest.value='who is available';
