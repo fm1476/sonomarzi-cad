@@ -195,7 +195,7 @@ function association(units,source,status){
  if(selected && assigned.length===0)return selected;
  return null;
 }
-function process(text,source=el('voiceSource').value){text=String(text||'').trim();if(!text){indicator('READY');return;}ensure();const match=contextUnits(text,unitMatches(text)),units=match.units,parsed=parseStatus(window.CadRadioStatusRepair.repair(text,match.resolution==='explicit'&&units.length===1));const selectedActive=state.incidents.find(i=>i.id===state.selected&&i.status==='ACTIVE');const inc=association(units,source,parsed.status)||(!units.length?selectedActive:null);const tid='r'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);const record={id:tid,time:stamp(),source,text,units:units.map(x=>x.id),status:parsed.status,incidentId:inc?.id||null};const actions=[];const blockers=[];const observed=units.map(u=>u.id).join(', ')||'NONE';
+function process(text,source=el('voiceSource').value){text=String(text||'').trim();if(!text){indicator('READY');return;}ensure();const match=contextUnits(text,unitMatches(text)),units=match.units,parsed=parseStatus(window.CadRadioStatusRepair.repair(text,match.resolution==='explicit'&&units.length===1));const selectedActive=state.incidents.find(i=>i.id===state.selected&&i.status==='ACTIVE');const inc=association(units,source,parsed.status)||(!units.length?selectedActive:null);const tid='r'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);const record={id:tid,time:stamp(),timestamp:new Date().toISOString(),source,text,units:units.map(x=>x.id),status:parsed.status,incidentId:inc?.id||null};const actions=[];const blockers=[];const observed=units.map(u=>u.id).join(', ')||'NONE';
 if(!units.length)blockers.push(match.resolution==='ambiguous'?'Multiple assigned units match spoken digits. Confirm unit.':'Unit not identified. No status update applied. Check recognized words against unit IDs.');if(units.length&&!inc)blockers.push('No unique associated active incident for '+observed);if(parsed.reason)blockers.push(parsed.reason);if(!parsed.status){const incomplete=window.CadRadioIncomplete.inspect(text,match.resolution==='explicit'&&units.length===1);if(incomplete)blockers.push(incomplete.reason);}
 if(inc){inc.radioTranscripts.push(record);event(inc,`RADIO_${source==='FIELD'?'RX':'TX'} ${units.map(u=>u.id).join(', ')||'UNIDENTIFIED'}: ${text} [transcript:${tid}]`);const descriptors=details(text);if(parsed.status&&units.length&&!parsed.dispositionRequired){for(const u of units){const already=inc.units.includes(u.id);if(!already && !(source==='DISPATCH'&&parsed.status==='DISPATCHED')){blockers.push(`${u.id} not assigned to event`);continue;}if(!already){inc.units.push(u.id);inc.status='ACTIVE';event(inc,`VOICE_UNIT_ASSIGNED ${u.id}`);}const prev=u.status;const allowed={AVAILABLE:['DISPATCHED','ONSCENE','ENROUTE','OUT_OF_SERVICE'],CLEAR:['DISPATCHED','ENROUTE','ONSCENE','AVAILABLE'],DISPATCHED:['ENROUTE','ONSCENE','AVAILABLE','CLEAR'],ENROUTE:['ONSCENE','AVAILABLE','CLEAR'],ONSCENE:['CODE4','AVAILABLE_ON_SCENE','CLEAR','AVAILABLE'],CODE4:['ONSCENE','AVAILABLE_ON_SCENE','CLEAR'],AVAILABLE_ON_SCENE:['ONSCENE','CODE4','CLEAR'],TRANSPORTING:['AVAILABLE','ONSCENE','CLEAR'],OUT_OF_SERVICE:['AVAILABLE']};if(prev!==parsed.status && !(allowed[prev]||[]).includes(parsed.status)){blockers.push(`${u.id} status transition ${prev} → ${parsed.status} requires manual review`);continue;}if(prev!==parsed.status){u.status=parsed.status;if(parsed.status==='AVAILABLE'||parsed.status==='CLEAR'){u.location='Available';if(parsed.status==='CLEAR')inc.units=inc.units.filter(id=>id!==u.id);}else u.location=inc.location;actions.push(`${u.id} ${prev} → ${u.status}`);event(inc,`VOICE_STATUS ${u.id} ${prev} -> ${u.status} transcript:${tid}`);}}}
 // Event narratives describe radio content, not backend status transitions. Those belong in Event History.
@@ -212,7 +212,7 @@ if(parsed.status && mentionedIds.length){
 summaryPieces.push(...operationalDescriptors);
 if(summaryPieces.length){
  const s=summaryPieces.map(x=>x.replace(/[.; ]+$/,'')).join('. ')+'.';
- const note={id:tid,time:record.time,summary:s,source:units.length===1?units[0].id:source,method:'rule-based'};
+ const note={id:tid,time:record.time,timestamp:record.timestamp,summary:s,source:units.length===1?units[0].id:source,method:'rule-based'};
  inc.voiceNotes.push(note);inc.narrative.push(`${record.time} [Radio summary] ${s}`);
  event(inc,`RADIO_SUMMARY transcript:${tid}`);
   requestAISummary(inc.id,tid,text,note.source,inc.type,inc.location);
@@ -237,7 +237,7 @@ async function requestAISummary(incidentId, transcriptId, originalText, speaker,
   const incident=state.incidents.find(i=>i.id===incidentId);if(!incident)return;
   let note=incident.voiceNotes?.find(n=>n.id===transcriptId);
   if(note){note.summary=data.summary;note.method='ai';note.uncertainties=data.uncertainties||[];}
-  else{note={id:transcriptId,time:record.time,summary:data.summary,source:speaker,method:'ai',uncertainties:data.uncertainties||[]};incident.voiceNotes.push(note);}
+  else{note={id:transcriptId,time:record.time,timestamp:record.timestamp,summary:data.summary,source:speaker,method:'ai',uncertainties:data.uncertainties||[]};incident.voiceNotes.push(note);}
   // voiceNotes holds the authoritative generated summary. Leave manual incident notes intact.
   event(incident,`AI_SUMMARY transcript:${transcriptId}`);
   save();if(state.selected===incidentId)renderDetail();
@@ -431,7 +431,7 @@ function processDispatch(text,source){
  if(preempt&&busy.some(u=>state.incidents.filter(i=>i.status==='ACTIVE'&&i.units.includes(u.id)&&!(family&&cadIncidentFamily(i).id===family&&i.discipline===u.discipline)).length!==1))
    blockers.push('PREEMPT held: unit has ambiguous existing assignments. Review manually.');
  const id='r'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
- const record={id,time:stamp(),source,text,units:units.map(u=>u.id),status:'DISPATCHED',incidentId:inc?.id||null};
+ const record={id,time:stamp(),timestamp:new Date().toISOString(),source,text,units:units.map(u=>u.id),status:'DISPATCHED',incidentId:inc?.id||null};
  ensure();
  if(inc){
   inc.radioTranscripts.push(record);
@@ -459,7 +459,7 @@ function processDispatch(text,source){
    if(target.id!==inc.id)target.radioTranscripts.push({...record,incidentId:target.id});
    event(target,`VOICE_UNIT_ASSIGNED ${u.id} ${prior} -> DISPATCHED [transcript:${id}]`);
    target.voiceNotes ||= [];
-   target.voiceNotes.push({id,time:record.time,source:'DISPATCH',summary:`${u.id} dispatched to ${target.type} at ${target.location}${resolved.linked?' (linked from '+inc.id+')':''}.`,method:'rule-based'});
+   target.voiceNotes.push({id,time:record.time,timestamp:record.timestamp,source:'DISPATCH',summary:`${u.id} dispatched to ${target.type} at ${target.location}${resolved.linked?' (linked from '+inc.id+')':''}.`,method:'rule-based'});
    destinations.push(target);
   }
   for(const target of [...new Set(destinations)]){
