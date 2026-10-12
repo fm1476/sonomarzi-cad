@@ -99,7 +99,7 @@ function normalizeRadioStatus(text){
   .replace(/\b(?:in|on)\s+route\b/g,'enroute')
   .replace(/\ben\s+route\b/g,'enroute')
   .replace(/\b(?:in|on)\s+root\b/g,'enroute')
-  .replace(/\bcode\s+four\b/g,'code 4')
+  .replace(/\bcode\s+(?:four|for)\b/g,'code 4')
   .replace(/\b(on|at)\s+the\s+scene\b/g,'on scene');
 }
 function parseStatus(text){const t=normalizeRadioStatus(text);if(/\b(not|never|don't|do not|cancel)\b/.test(t))return {status:null,reason:'Negated or cancelled instruction, review required'};
