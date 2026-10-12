@@ -127,7 +127,7 @@
       <h3>Agency Voice Phrases (Local Preview)</h3>
       <p>Configure alternative spoken phrases for known intents. This is a browser-local preview only. No phrase here can execute a CAD command.</p>
       <label for="cadPhraseIntent">CAD action</label>
-      <select id="cadPhraseIntent"><option value="unit.available">Show Available Units</option><option value="unit.unavailable">Show Unavailable Units</option><option value="incident.clear">Clear Incident</option><option value="map.hydrants">Show Hydrants</option><option value="map.schools">Show Schools</option></select>
+      <select id="cadPhraseIntent" aria-label="CAD action"></select>
       <label for="cadPhraseAliases">Alternative spoken phrases (one per line)</label>
       <textarea id="cadPhraseAliases" rows="4" placeholder="List available units&#10;Who is available"></textarea>
       <button id="cadPhraseAdd" type="button">Add or Update Phrases</button>
