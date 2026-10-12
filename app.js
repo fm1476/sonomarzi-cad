@@ -26,6 +26,17 @@ let state=JSON.parse(localStorage.getItem(KEY)||'null')||defaultState();
 window.cadSafetyState=()=>state;
 window.cadCallTakeSave=()=>save();
 window.cadCallTakeEvent=(inc,msg)=>event(inc,msg);
+window.cadRestoreMissingDemoCalls=()=>{
+ const existing=new Set((state.incidents||[]).map(i=>i.id));
+ const missing=defaultState().incidents.filter(i=>!existing.has(i.id));
+ if(!missing.length)return 0;
+ state.incidents.push(...missing);
+ state.seq=Math.max(Number(state.seq)||0,4525);
+ save();
+ return missing.length;
+};
+window.cadDemoDataHealth=()=>({incidentCount:state.incidents?.length||0,openCount:(state.incidents||[]).filter(i=>['PENDING','ACTIVE'].includes(i.status)).length,agencyCount:config?.agencies?.length||0});
+
 // Add the expanded incident roster once when upgrading an untouched original 3-call demo.
 // Never overwrite or replace saved user-created incidents.
 const EIGHT_CALL_SEED_KEY='smcad-eight-call-seed-v15';
