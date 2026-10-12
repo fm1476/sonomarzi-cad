@@ -12,6 +12,7 @@
  try{entries=JSON.parse(localStorage.getItem(KEY)||JSON.stringify(example));if(!Array.isArray(entries))entries=example;}catch(_){entries=example;}
  const known=new Set([...intent.options].map(o=>o.value));
  let editingIntent=null;
+ let storageWarning='';
  function resetEdit(){editingIntent=null;add.textContent='Add or Update Phrases';aliases.value='';}
  function validate(items){
   if(!Array.isArray(items)||items.length>100)throw new Error('Provide up to 100 phrase groups.');
@@ -27,6 +28,7 @@
   if(dictionary.conflicts.length)throw new Error('Conflicting phrases: '+dictionary.conflicts.join(', '));
   return dictionary;
  }
+ try{validate(entries);}catch(e){entries=example;storageWarning='Saved phrase configuration was invalid; showing defaults. Review and save to replace it. '+e.message;}
  function sync(){
   field.value=JSON.stringify(entries,null,2);
   list.replaceChildren();
@@ -64,4 +66,5 @@
   catch(e){output.textContent='Not saved: '+e.message;}
  });
  sync();
+ if(storageWarning)output.textContent=storageWarning;
 })();
