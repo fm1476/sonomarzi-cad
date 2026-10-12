@@ -335,7 +335,7 @@ async function start(){
   activeRecorder.onstop=()=>{if(id!==audioSession)return;releaseMicrophone();const blob=new Blob(chunks,{type:activeRecorder.mimeType||'audio/webm'});transcribeAudio(id,blob);};
   activeRecorder.onerror=()=>{captureFailed=true;};
   activeRecorder.start();chromeFallback(id);
-  if(releasing)stopRecorder(id);
+  if(releasing)setTimeout(()=>stopRecorder(id),350);
   setTimeout(()=>{if(id===audioSession&&holding)stop();},maxAudioMs);
  }catch(e){releaseMicrophone();captureFailed=true;holding=false;indicator('REVIEW');el('voiceInterpretation').textContent='Microphone capture failed: '+e.message+'. Use typed fallback.';}
  finally{captureStarting=false;}
@@ -350,7 +350,7 @@ function stop(){
  if(!holding)return;
  holding=false;releasing=true;indicator('PROCESSING');
  const id=audioSession;
- if(!captureStarting)stopRecorder(id);
+ if(!captureStarting)setTimeout(()=>stopRecorder(id),350);
 }
 const ptt=el('voicePTT');ptt.addEventListener('pointerdown',e=>{if(e.button!==0&&e.pointerType==='mouse')return;e.preventDefault();ptt.setPointerCapture?.(e.pointerId);start();});ptt.addEventListener('pointerup',e=>{e.preventDefault();stop();});ptt.addEventListener('pointercancel',stop);window.addEventListener('blur',stop);ptt.addEventListener('keydown',e=>{if((e.key===' '||e.key==='Enter')&&!e.repeat){e.preventDefault();start();}});ptt.addEventListener('keyup',e=>{if(e.key===' '||e.key==='Enter'){e.preventDefault();stop();}});
 el('voiceSubmit').onclick=()=>{process(el('voiceManual').value);el('voiceManual').value='';};el('voiceManual').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();el('voiceSubmit').click();}};
