@@ -34,16 +34,17 @@
       <div class="filters"><button data-discipline="ALL" class="active">All</button><button data-discipline="LAW">Law</button><button data-discipline="FIRE">Fire</button><button data-discipline="EMS">EMS</button></div>
       <div class="board-controls" data-board="units"><select data-setting="agency"><option value="ALL">All agencies</option></select><select data-setting="status"><option value="ALL">All statuses</option></select><select data-setting="sort"><option value="id">Unit ID</option><option value="status">Status</option><option value="agency">Agency</option><option value="discipline">Discipline</option></select><select data-setting="group"><option value="none">No grouping</option><option value="agency">Group by agency</option><option value="discipline">Group by discipline</option></select></div><div class="board-columns" data-columns="units"></div>
       <div id="units"></div>
-      <details class="cad-unit-staffing" style="margin-top:12px;border-top:1px solid var(--line,#405066);padding-top:10px">
-        <summary style="cursor:pointer;font-weight:700">Crew Staffing / Sign On &amp; Off</summary>
-        <div style="display:grid;gap:8px;margin-top:10px">
-          <p class="muted">Select an activated unit to sign personnel on or off. Multiple personnel may staff a unit. Active incident assignments prevent sign-off.</p>
-      <label>Active configured unit<select id="cadStaffUnit"></select></label>
-      <label>Crew members (use Ctrl/Cmd to select multiple)<select id="cadStaffCrew" multiple size="5"></select></label>
-      <button type="button" id="cadStaffSignOn">Sign On Crew</button>
-      <button type="button" id="cadStaffSignOff">Sign Off Crew</button>
-      <div id="cadStaffCurrent" aria-live="polite"></div>
-
+      <details class="cad-unit-staffing">
+        <summary>Crew Staffing <span class="muted">· Sign On / Sign Off</span></summary>
+        <div class="cad-staff-body">
+          <p class="muted">Select an activated unit and its crew. Personnel must belong to the unit's agency.</p>
+          <div class="cad-staff-fields">
+            <label>Active unit<select id="cadStaffUnit"></select></label>
+            <label>Personnel <span class="muted">(Cmd-click for multiple)</span><select id="cadStaffCrew" multiple size="4"></select></label>
+          </div>
+          <div id="cadStaffCurrent" class="cad-staff-current" aria-live="polite"></div>
+          <div id="cadStaffMessage" role="status" aria-live="polite"></div>
+          <div class="cad-staff-actions"><button type="button" class="primary" id="cadStaffSignOn">Sign On Crew</button><button type="button" id="cadStaffSignOff">Sign Off Crew</button></div>
         </div>
       </details>
     </article>
@@ -202,7 +203,7 @@
 <script src="core/agency-master.js?v=1"></script>
 <script src="core/unit-activation.js?v=1"></script>
 <script src="core/unit-staffing.js?v=1"></script>
-<script src="agency-master-settings.js?v=2"></script>
+<script src="agency-master-settings.js?v=3"></script>
 <script src="board-layout.js?v=20.1"></script>
 <script src="incident-intelligence.js?v=18.3"></script>
 <script src="core/voice-text.js?v=1"></script>
