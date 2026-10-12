@@ -3,8 +3,8 @@ const base=__dirname+'/../';
 const voice=fs.readFileSync(base+'voice.js','utf8');
 const extended=fs.readFileSync(base+'extended-ops.js','utf8');
 const units=['E1','E2','E3','B1','T1','3A21','3A22'].map(id=>({id}));
-const ctx={state:{units},console};vm.createContext(ctx);
-const voiceSubset=voice.slice(voice.indexOf('function normalize(s)'),voice.indexOf('function normalizeRadioStatus('));
+const ctx={state:{units},console,normalize:require('../core/voice-text.js').normalize};vm.createContext(ctx);
+const voiceSubset=voice.slice(voice.indexOf('function aliases(id)'),voice.indexOf('function normalizeRadioStatus('));
 vm.runInContext(voiceSubset+'\nthis.extract=unitMatches',ctx);
 function matches(t){return Array.from(ctx.extract(t),u=>u.id).sort()}
 assert.deepStrictEqual(matches('Engine 2 and Engine 3 respond to structure fire at 1000 Lakeville St'),['E2','E3']);
