@@ -4,6 +4,7 @@ const vm=require('node:vm');
 const phrases=require('../core/agency-phrases.js');
 const gate=require('../core/command-gate.js');
 const planner=require('../core/action-plan.js');
+const catalog=require('../core/intent-catalog.js');
 const source=fs.readFileSync(require('node:path').join(__dirname,'../agency-phrase-settings.js'),'utf8');
 const values=new Map();
 const KEY='smcad-agency-phrase-preview-v1';
@@ -17,7 +18,7 @@ function mount(){
  els.cadPhraseIntent.value='unit.available';
  const document={getElementById:id=>els[id]||null,createElement:element};
  const localStorage={getItem:key=>values.get(key)||null,setItem:(key,value)=>values.set(key,value)};
- vm.runInNewContext(source,{document,localStorage,window:{CadAgencyPhrases:phrases,CadCommandGate:gate,CadActionPlan:planner},JSON,Set,Map,Error});
+ vm.runInNewContext(source,{document,localStorage,window:{CadAgencyPhrases:phrases,CadCommandGate:gate,CadActionPlan:planner,CadIntentCatalog:catalog},JSON,Set,Map,Error});
  return els;
 }
 let e=mount();
