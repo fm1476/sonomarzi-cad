@@ -408,3 +408,8 @@ header nav.cad-header-tabs button{white-space:nowrap;padding:6px 9px;font-size:1
 /* Unread incident updates: highlight the entire event pill without masking priority */
 #pending .row.cad-dispatch-updated,#activeCalls .row.cad-dispatch-updated{background:linear-gradient(90deg,#15507855,#123349);border:1px solid #4ba8d6;box-shadow:inset 3px 0 #61c5f4,0 0 0 1px #2b749344;transition:background .18s,border-color .18s}
 #pending .row.cad-dispatch-updated:hover,#activeCalls .row.cad-dispatch-updated:hover{background:#1b4a68}
+
+/* Ensure top-level navigation remains clickable above draggable CAD panels */
+header{z-index:100!important;isolation:isolate}
+header nav.cad-header-tabs{position:relative!important;z-index:101!important;pointer-events:auto!important}
+header nav.cad-header-tabs button{position:relative;z-index:102;pointer-events:auto;cursor:pointer}
