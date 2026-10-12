@@ -197,6 +197,7 @@ $('#reset').onclick=()=>{
  if(!confirm('RESET ENTIRE DEMO?\n\nThis will erase all browser-saved incidents, cases, unit assignments/statuses, radio transcripts, AI summaries, activity history, and custom agency configuration. It will restore the original sample data.\n\nThis cannot be undone.'))return;
  localStorage.setItem(KEY,JSON.stringify(defaultState()));
  localStorage.removeItem(CFG);
+ localStorage.removeItem('smcad-agency-phrase-preview-v1');
  localStorage.setItem(SIX_UNIT_SEED_KEY,'1');
  // Reload cancels any pending summary requests and resets voice/operations UI.
  window.location.reload();
