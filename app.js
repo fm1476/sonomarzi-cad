@@ -201,6 +201,15 @@ window.cadActivateMasterUnit=function(masterUnitId){
   return {ok:true};
  }catch(e){toast('Unit not activated: '+e.message);return {ok:false,error:e.message};}
 };
+window.cadStaffMasterUnit=function(unitId,personIds){
+ try{state=window.CadUnitStaffing.assign(window.CadAgencyMaster.read(localStorage),state,unitId,personIds);save();toast('Crew signed on to '+unitId);return {ok:true};}
+ catch(e){toast('Sign-on rejected: '+e.message);return {ok:false,error:e.message};}
+};
+window.cadSignOffMasterUnit=function(unitId){
+ try{state=window.CadUnitStaffing.signOff(state,unitId);save();toast('Crew signed off '+unitId);return {ok:true};}
+ catch(e){toast('Sign-off rejected: '+e.message);return {ok:false,error:e.message};}
+};
+window.cadMasterActiveUnits=function(){return state.units.filter(u=>u.masterUnitId).map(u=>({id:u.id,masterUnitId:u.masterUnitId,status:u.status,staffing:u.staffing||null}));};
 $('#reset').onclick=()=>{
  if(!confirm('RESET ENTIRE DEMO?\n\nThis will erase all browser-saved incidents, cases, unit assignments/statuses, radio transcripts, AI summaries, activity history, and legacy demo settings. Permanent Agency Master records will NOT be erased. It will restore the original sample data.\n\nThis cannot be undone.'))return;
  localStorage.setItem(KEY,JSON.stringify(defaultState()));
