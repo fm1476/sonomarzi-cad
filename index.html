@@ -94,7 +94,7 @@
   <section class="panel config">
     <h2>Agency Configuration</h2>
     <p>Changes below affect this browser immediately and persist locally.</p>
-    <label>Configuration section<select id="cadConfigSection" aria-label="Choose configuration section"><option value="cfs">Calls for Service</option><option value="self">Self-Initiated CFS</option><option value="places">Common Places</option><option value="general">General &amp; Other Settings</option></select></label>
+    <label>Configuration section<select id="cadConfigSection" aria-label="Choose configuration section"><option value="cfs">Calls for Service</option><option value="self">Self-Initiated CFS</option><option value="places">Common Places</option><option value="phrases">Voice Phrases</option><option value="general">General &amp; Other Settings</option></select></label>
     <div data-config-panel="general" hidden>
     <label>Agencies<textarea id="cfgAgencies"></textarea></label>
     </div>
@@ -123,6 +123,14 @@
       </div>
       <div id="cadPlaceList"></div>
     </div>
+    <div data-config-panel="phrases" hidden>
+      <h3>Agency Voice Phrases (Local Preview)</h3>
+      <p>Enter JSON entries with an intent and an array of phrases. Preview checks conflicts only. It does not execute dispatch commands. Saved only in this browser.</p>
+      <label for="cadPhraseJson">Phrase dictionary JSON</label>
+      <textarea id="cadPhraseJson" rows="10" spellcheck="false" placeholder='[{"intent":"unit.available","phrases":["show available units"]}]'></textarea>
+      <button id="cadPhraseValidate" type="button">Validate &amp; Save Phrase Preview</button>
+      <div id="cadPhraseResult" role="status" aria-live="polite"></div>
+    </div>
     <button id="saveConfig" class="primary">Save Configuration</button>
   </section>
 </main>
@@ -134,6 +142,8 @@
 <div id="toast"></div>
 <script src="core/discipline.js?v=1"></script>
 <script src="app.js?v=18"></script>
+<script src="core/agency-phrases.js?v=1"></script>
+<script src="agency-phrase-settings.js?v=1"></script>
 <script src="board-layout.js?v=20.1"></script>
 <script src="incident-intelligence.js?v=18.3"></script>
 <script src="core/voice-text.js?v=1"></script>
