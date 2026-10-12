@@ -13,8 +13,11 @@
  const known=new Set([...intent.options].map(o=>o.value));
  function validate(items){
   if(!Array.isArray(items)||items.length>100)throw new Error('Provide up to 100 phrase groups.');
+  const seenIntents=new Set();
   for(const item of items){
-   if(!item||!known.has(item.intent)||!Array.isArray(item.phrases)||item.phrases.length>100||item.phrases.some(p=>typeof p!=='string'||!p.trim()||p.length>160))throw new Error('Use a listed CAD action and 1 to 100 nonempty phrases, up to 160 characters each.');
+   if(!item||!known.has(item.intent)||!Array.isArray(item.phrases)||!item.phrases.length||item.phrases.length>100||item.phrases.some(p=>typeof p!=='string'||!p.trim()||p.length>160))throw new Error('Use a listed CAD action and 1 to 100 nonempty phrases, up to 160 characters each.');
+   if(seenIntents.has(item.intent))throw new Error('Each CAD action may appear only once.');
+   seenIntents.add(item.intent);
   }
   const dictionary=window.CadAgencyPhrases.compile(items);
   if(dictionary.conflicts.length)throw new Error('Conflicting phrases: '+dictionary.conflicts.join(', '));
