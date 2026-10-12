@@ -173,7 +173,7 @@ function detailAction(i,a){
  if(a==='assign'){let u=state.units.find(u=>u.discipline===i.discipline&&u.status==='AVAILABLE');if(u){const resolved=cadDispatchTarget(i,u);const target=resolved.incident;u.status='DISPATCHED';u.location=target.location;if(!target.units.includes(u.id))target.units.push(u.id);target.status='ACTIVE';event(target,`UNIT_ASSIGNED ${u.id}`)}else toast('No available unit of '+i.discipline+' discipline')}
  if(a==='manage'){show('dispatch');document.getElementById('operationsPanel')?.scrollIntoView({block:'nearest'});window.cadOpsSelectIncident?.(i.id);return}
  if(a==='case'){const n=prompt('Case number (leave blank to remove)',i.caseNumber||'');if(n!==null){i.caseNumber=n.trim().slice(0,80);event(i,`CASE_NUMBER ${i.caseNumber||'REMOVED'}`)}}
- if(a==='note'){let n=prompt('Narrative entry');if(n?.trim()){const text=n.trim(),timestamp=new Date().toISOString();i.narrative.push(text);(i.manualNarrativeEntries ||= []).push({id:'manual-'+Date.now()+'-'+Math.random().toString(36).slice(2,7),text,timestamp});event(i,'NARRATIVE_ADDED '+timestamp)}}
+ if(a==='note'){let n=prompt('Narrative entry');if(n?.trim()){const text=n.trim(),timestamp=new Date().toISOString();const author=(localStorage.getItem('smcad-dispatcher-identity-v1')||'').trim()||'Unidentified';i.narrative.push(text);(i.manualNarrativeEntries ||= []).push({id:'manual-'+Date.now()+'-'+Math.random().toString(36).slice(2,7),text,timestamp,author});event(i,'NARRATIVE_ADDED '+timestamp+' BY '+author)}}
  if(a==='close'){window.cadShowClearEvent?.(i);return;}
  save();
 }
