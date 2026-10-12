@@ -34,6 +34,18 @@
       <div class="filters"><button data-discipline="ALL" class="active">All</button><button data-discipline="LAW">Law</button><button data-discipline="FIRE">Fire</button><button data-discipline="EMS">EMS</button></div>
       <div class="board-controls" data-board="units"><select data-setting="agency"><option value="ALL">All agencies</option></select><select data-setting="status"><option value="ALL">All statuses</option></select><select data-setting="sort"><option value="id">Unit ID</option><option value="status">Status</option><option value="agency">Agency</option><option value="discipline">Discipline</option></select><select data-setting="group"><option value="none">No grouping</option><option value="agency">Group by agency</option><option value="discipline">Group by discipline</option></select></div><div class="board-columns" data-columns="units"></div>
       <div id="units"></div>
+      <details class="cad-unit-staffing" style="margin-top:12px;border-top:1px solid var(--line,#405066);padding-top:10px">
+        <summary style="cursor:pointer;font-weight:700">Crew Staffing / Sign On &amp; Off</summary>
+        <div style="display:grid;gap:8px;margin-top:10px">
+          <p class="muted">Select an activated unit to sign personnel on or off. Multiple personnel may staff a unit. Active incident assignments prevent sign-off.</p>
+      <label>Active configured unit<select id="cadStaffUnit"></select></label>
+      <label>Crew members (use Ctrl/Cmd to select multiple)<select id="cadStaffCrew" multiple size="5"></select></label>
+      <button type="button" id="cadStaffSignOn">Sign On Crew</button>
+      <button type="button" id="cadStaffSignOff">Sign Off Crew</button>
+      <div id="cadStaffCurrent" aria-live="polite"></div>
+
+        </div>
+      </details>
     </article>
     <article class="panel wide" data-panel="detail">
       <h2>Incident Detail</h2>
@@ -116,13 +128,6 @@
       <label>Identification model<select id="cadMasterUnitModel"><option value="FIXED">Fixed beat</option><option value="PERSONNEL">Personnel ID</option><option value="APPARATUS">Apparatus</option><option value="HYBRID">Hybrid</option></select></label>
       <label>Associated person (optional)<select id="cadMasterPersonSelect"></select></label>
       <button type="button" id="cadMasterAddUnit">Add Unit</button>
-      <h4>Duty Sign-on / Staffing</h4>
-      <p>Activate a master unit first, then assign its current crew. Multiple personnel may staff an apparatus. Sign-off is blocked while assigned to an open incident.</p>
-      <label>Active configured unit<select id="cadStaffUnit"></select></label>
-      <label>Crew members (use Ctrl/Cmd to select multiple)<select id="cadStaffCrew" multiple size="5"></select></label>
-      <button type="button" id="cadStaffSignOn">Sign On Crew</button>
-      <button type="button" id="cadStaffSignOff">Sign Off Crew</button>
-      <div id="cadStaffCurrent" aria-live="polite"></div>
       <div id="cadMasterMessage" role="status" aria-live="polite"></div>
       <div id="cadMasterList"></div>
       <h4>Configuration Backup</h4>
