@@ -11,7 +11,7 @@ const opts=(items,value)=>items.map(x=>'<option value="'+esc(x.id)+'"'+(x.id===v
 function render(){
  list.innerHTML='<h4>Agencies ('+data.agencies.length+')</h4>'+(data.agencies.map(a=>'<div>'+esc(a.name)+' ('+esc(a.id)+') · '+esc(a.model)+'</div>').join('')||'<p>No configured agencies yet.</p>')+
  '<h4>Personnel ('+data.personnel.length+')</h4>'+(data.personnel.map(p=>'<div>'+esc(p.name)+' ('+esc(p.id)+') · '+esc(p.agencyId)+'</div>').join('')||'<p>No configured personnel yet.</p>')+
- '<h4>Units ('+data.units.length+')</h4>'+(data.units.map(u=>'<div><strong>'+esc(u.designator)+'</strong> · '+esc(u.agencyId)+' · '+esc(u.discipline)+' · '+esc(u.model)+(u.personId?' · '+esc(u.personId):'')+' <button type="button" data-unit-delete="'+esc(u.id)+'">Remove</button></div>').join('')||'<p>No configured units yet.</p>');
+ '<h4>Units ('+data.units.length+')</h4>'+(data.units.map(u=>'<div><strong>'+esc(u.designator)+'</strong> · '+esc(u.agencyId)+' · '+esc(u.discipline)+' · '+esc(u.model)+(u.personId?' · '+esc(u.personId):'')+' <button type="button" data-unit-activate="'+esc(u.id)+'">Activate in CAD</button> <button type="button" data-unit-delete="'+esc(u.id)+'">Remove</button></div>').join('')||'<p>No configured units yet.</p>');
  el('cadMasterAgencySelect').innerHTML=opts(data.agencies.map(a=>({id:a.id,name:a.name})));
  el('cadMasterPersonnelAgency').innerHTML=opts(data.agencies.map(a=>({id:a.id,name:a.name})));
  el('cadMasterPersonSelect').innerHTML='<option value="">None / assigned at sign-on</option>'+opts(data.personnel.map(p=>({id:p.id,name:p.name+' ('+p.id+')'})));
@@ -33,6 +33,7 @@ el('cadMasterAddUnit').addEventListener('click',()=>{
  commit({...data,units:[...data.units,{id,designator,agencyId,discipline,model,personId}]},'Unit saved. This is a master definition, not a live CAD assignment.');
 });
 list.addEventListener('click',e=>{
+ const activateId=e.target?.getAttribute('data-unit-activate');if(activateId){const result=window.cadActivateMasterUnit?.(activateId);message.textContent=result?.ok?'Unit activated in live CAD roster.':'Activation failed: '+(result?.error||'CAD integration unavailable');return;}
  const id=e.target?.getAttribute('data-unit-delete');if(!id)return;
  if(!confirm('Remove this unit master definition? This does not change active demo CAD units.'))return;
  commit({...data,units:data.units.filter(u=>u.id!==id)},'Unit definition removed.');
