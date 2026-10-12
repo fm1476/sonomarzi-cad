@@ -9,7 +9,7 @@ const speech=window.SpeechRecognition||window.webkitSpeechRecognition;
 function ensure(){state.voiceActivity ||= [];state.voiceUnlinked ||= [];for(const i of state.incidents){i.radioTranscripts ||= [];i.voiceNotes ||= [];}}
 function activity(msg){ensure();state.voiceActivity.unshift(`${stamp()} ${msg}`);state.voiceActivity=state.voiceActivity.slice(0,60);}
 function indicator(t,recording=false){el('headerRadioIndicator').textContent=t;el('headerRadioIndicator').classList.toggle('live',recording);el('voiceIndicator').textContent=t;el('voiceIndicator').classList.toggle('recording',recording);el('voicePTT').classList.toggle('recording',recording);el('voicePTT').textContent=recording?'🔴 Transmitting… release to stop':'🎙 Hold to Talk';}
-function normalize(s){return s.toLowerCase().replace(/\bbatallion\b/g,'battalion').replace(/[-_.,!?]/g,' ').replace(/\s+/g,' ').trim();}
+const normalize=window.CadVoiceText.normalize;
 const digitNames={zero:'0',one:'1',two:'2',three:'3',four:'4',five:'5',six:'6',seven:'7',eight:'8',nine:'9',ten:'10',eleven:'11',twelve:'12',thirteen:'13',fourteen:'14',fifteen:'15',sixteen:'16',seventeen:'17',eighteen:'18',nineteen:'19',twenty:'20',thirty:'30',forty:'40',fifty:'50'};
 function nums(s){return s.split(/\s+/).map(w=>digitNames[w]??w).join(' ').replace(/\b(20|30|40|50)\s+([1-9])\b/g,(_,t,u)=>String(Number(t)+Number(u)));}
 function aliases(id){let up=id.toUpperCase(), candidates=[up.toLowerCase()]; const m=up.match(/^(\d+)([A-Z]+)(\d+)$/); if(m){let alpha=m[2]==='A'?'adam':m[2]==='B'?'boy':m[2].toLowerCase(); candidates.push(`${m[1]} ${alpha} ${m[3]}`,`${m[1]} ${m[2].toLowerCase()} ${m[3]}`,`${m[1]}${alpha}${m[3]}`);}if(/^E\d+$/.test(up))candidates.push('engine '+up.slice(1),'engine'+up.slice(1));if(/^M\d+$/.test(up))candidates.push('medic '+up.slice(1),'medic'+up.slice(1));for(const [code,name] of [['T','truck'],['B','battalion'],['R','rescue']])if(new RegExp('^'+code+'[0-9]+$').test(up))candidates.push(name+' '+up.slice(1),name+up.slice(1));if(/^SO\d+$/.test(up))candidates.push('sheriff '+up.slice(2),'s o '+up.slice(2));return candidates.map(normalize);}
@@ -99,7 +99,7 @@ function normalizeRadioStatus(text){
   .replace(/\b(?:in|on)\s+route\b/g,'enroute')
   .replace(/\ben\s+route\b/g,'enroute')
   .replace(/\b(?:in|on)\s+root\b/g,'enroute')
-  .replace(/\bcode\s+four\b/g,'code 4')
+  .replace(/\bcode\s+(?:four|for)\b/g,'code 4')
   .replace(/\b(on|at)\s+the\s+scene\b/g,'on scene');
 }
 function parseStatus(text){const t=normalizeRadioStatus(text);if(/\b(not|never|don't|do not|cancel)\b/.test(t))return {status:null,reason:'Negated or cancelled instruction, review required'};
@@ -195,8 +195,8 @@ function association(units,source,status){
  if(selected && assigned.length===0)return selected;
  return null;
 }
-function process(text,source=el('voiceSource').value){text=String(text||'').trim();if(!text){indicator('READY');return;}ensure();const match=contextUnits(text,unitMatches(text)),units=match.units,parsed=parseStatus(text);const selectedActive=state.incidents.find(i=>i.id===state.selected&&i.status==='ACTIVE');const inc=association(units,source,parsed.status)||(!units.length?selectedActive:null);const tid='r'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);const record={id:tid,time:stamp(),source,text,units:units.map(x=>x.id),status:parsed.status,incidentId:inc?.id||null};const actions=[];const blockers=[];const observed=units.map(u=>u.id).join(', ')||'NONE';
-if(!units.length)blockers.push(match.resolution==='ambiguous'?'Multiple assigned units match spoken digits. Confirm unit.':'Unit not identified. No status update applied. Check recognized words against unit IDs.');if(units.length&&!inc)blockers.push('No unique associated active incident for '+observed);if(parsed.reason)blockers.push(parsed.reason);
+function process(text,source=el('voiceSource').value){text=String(text||'').trim();if(!text){indicator('READY');return;}ensure();const match=contextUnits(text,unitMatches(text)),units=match.units,parsed=parseStatus(window.CadRadioStatusRepair.repair(text,match.resolution==='explicit'&&units.length===1));const selectedActive=state.incidents.find(i=>i.id===state.selected&&i.status==='ACTIVE');const inc=association(units,source,parsed.status)||(!units.length?selectedActive:null);const tid='r'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);const record={id:tid,time:stamp(),source,text,units:units.map(x=>x.id),status:parsed.status,incidentId:inc?.id||null};const actions=[];const blockers=[];const observed=units.map(u=>u.id).join(', ')||'NONE';
+if(!units.length)blockers.push(match.resolution==='ambiguous'?'Multiple assigned units match spoken digits. Confirm unit.':'Unit not identified. No status update applied. Check recognized words against unit IDs.');if(units.length&&!inc)blockers.push('No unique associated active incident for '+observed);if(parsed.reason)blockers.push(parsed.reason);if(!parsed.status){const incomplete=window.CadRadioIncomplete.inspect(text,match.resolution==='explicit'&&units.length===1);if(incomplete)blockers.push(incomplete.reason);}
 if(inc){inc.radioTranscripts.push(record);event(inc,`RADIO_${source==='FIELD'?'RX':'TX'} ${units.map(u=>u.id).join(', ')||'UNIDENTIFIED'}: ${text} [transcript:${tid}]`);const descriptors=details(text);if(parsed.status&&units.length&&!parsed.dispositionRequired){for(const u of units){const already=inc.units.includes(u.id);if(!already && !(source==='DISPATCH'&&parsed.status==='DISPATCHED')){blockers.push(`${u.id} not assigned to event`);continue;}if(!already){inc.units.push(u.id);inc.status='ACTIVE';event(inc,`VOICE_UNIT_ASSIGNED ${u.id}`);}const prev=u.status;const allowed={AVAILABLE:['DISPATCHED','ONSCENE','ENROUTE','OUT_OF_SERVICE'],CLEAR:['DISPATCHED','ENROUTE','ONSCENE','AVAILABLE'],DISPATCHED:['ENROUTE','ONSCENE','AVAILABLE','CLEAR'],ENROUTE:['ONSCENE','AVAILABLE','CLEAR'],ONSCENE:['CODE4','AVAILABLE_ON_SCENE','CLEAR','AVAILABLE'],CODE4:['ONSCENE','AVAILABLE_ON_SCENE','CLEAR'],AVAILABLE_ON_SCENE:['ONSCENE','CODE4','CLEAR'],TRANSPORTING:['AVAILABLE','ONSCENE','CLEAR'],OUT_OF_SERVICE:['AVAILABLE']};if(prev!==parsed.status && !(allowed[prev]||[]).includes(parsed.status)){blockers.push(`${u.id} status transition ${prev} → ${parsed.status} requires manual review`);continue;}if(prev!==parsed.status){u.status=parsed.status;if(parsed.status==='AVAILABLE'||parsed.status==='CLEAR'){u.location='Available';if(parsed.status==='CLEAR')inc.units=inc.units.filter(id=>id!==u.id);}else u.location=inc.location;actions.push(`${u.id} ${prev} → ${u.status}`);event(inc,`VOICE_STATUS ${u.id} ${prev} -> ${u.status} transcript:${tid}`);}}}
 // Event narratives describe radio content, not backend status transitions. Those belong in Event History.
 const summaryPieces=[];
@@ -335,7 +335,7 @@ async function start(){
   activeRecorder.onstop=()=>{if(id!==audioSession)return;releaseMicrophone();const blob=new Blob(chunks,{type:activeRecorder.mimeType||'audio/webm'});transcribeAudio(id,blob);};
   activeRecorder.onerror=()=>{captureFailed=true;};
   activeRecorder.start();chromeFallback(id);
-  if(releasing)stopRecorder(id);
+  if(releasing)setTimeout(()=>stopRecorder(id),350);
   setTimeout(()=>{if(id===audioSession&&holding)stop();},maxAudioMs);
  }catch(e){releaseMicrophone();captureFailed=true;holding=false;indicator('REVIEW');el('voiceInterpretation').textContent='Microphone capture failed: '+e.message+'. Use typed fallback.';}
  finally{captureStarting=false;}
@@ -350,7 +350,7 @@ function stop(){
  if(!holding)return;
  holding=false;releasing=true;indicator('PROCESSING');
  const id=audioSession;
- if(!captureStarting)stopRecorder(id);
+ if(!captureStarting)setTimeout(()=>stopRecorder(id),350);
 }
 const ptt=el('voicePTT');ptt.addEventListener('pointerdown',e=>{if(e.button!==0&&e.pointerType==='mouse')return;e.preventDefault();ptt.setPointerCapture?.(e.pointerId);start();});ptt.addEventListener('pointerup',e=>{e.preventDefault();stop();});ptt.addEventListener('pointercancel',stop);window.addEventListener('blur',stop);ptt.addEventListener('keydown',e=>{if((e.key===' '||e.key==='Enter')&&!e.repeat){e.preventDefault();start();}});ptt.addEventListener('keyup',e=>{if(e.key===' '||e.key==='Enter'){e.preventDefault();stop();}});
 el('voiceSubmit').onclick=()=>{process(el('voiceManual').value);el('voiceManual').value='';};el('voiceManual').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();el('voiceSubmit').click();}};

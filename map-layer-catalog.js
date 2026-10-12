@@ -33,8 +33,8 @@ window.CadMapLayerCatalog=(map,api)=>{
  function fieldText(p){return Object.entries(p||{}).filter(([k,v])=>v!=null&&typeof v!=='object'&&String(v).length<90&& !/^objectid|shape_|globalid/i.test(k)).slice(0,5).map(([k,v])=>`<b>${esc(k)}</b>: ${esc(v)}`).join('<br>')}
  async function load(item){if(!active.has(item.id)||!item.url)return;
   if(item.minZoom&&map.getZoom()<item.minZoom){layers.get(item.id)?.clearLayers();report(`${item.name}: zoom to level ${item.minZoom} or closer to display detailed features.`);return}
-  const b=map.getBounds(),sw=b.getSouthWest(),ne=b.getNorthEast();const controller=new AbortController();pending.get(item.id)?.abort();pending.set(item.id,controller);
-  const args=new URLSearchParams({where:'1=1',geometry:JSON.stringify({xmin:sw.lng,ymin:sw.lat,xmax:ne.lng,ymax:ne.lat,spatialReference:{wkid:4326}}),geometryType:'esriGeometryEnvelope',spatialRel:'esriSpatialRelIntersects',inSR:'4326',outSR:'4326',outFields:'*',returnGeometry:'true',resultRecordCount:'500',f:'geojson'});
+  const controller=new AbortController();pending.get(item.id)?.abort();pending.set(item.id,controller);
+  const args=window.CadGISQuery.params(map.getBounds());
   try{const res=await fetch(item.url+'/query?'+args,{signal:controller.signal});if(!res.ok)throw Error(`GIS HTTP ${res.status}`);const data=await res.json();if(!active.has(item.id)||pending.get(item.id)!==controller)return;if(data.error)throw Error(data.error.message||'GIS query error');
    let group=layers.get(item.id);if(!group){group=L.layerGroup().addTo(map);layers.set(item.id,group)}group.clearLayers();
    if(data.type!=='FeatureCollection')throw Error('GeoJSON response unavailable');
@@ -48,18 +48,19 @@ window.CadMapLayerCatalog=(map,api)=>{
   let category='';const content=wrap.querySelector('.cad-gis-options');for(const item of LIST){if(item.category!==category){category=item.category;const h=document.createElement('strong');h.textContent=category;content.appendChild(h)}const label=document.createElement('label');const cb=document.createElement('input');cb.type='checkbox';cb.dataset.layer=item.id;cb.disabled=!!item.unavailable;cb.checked=active.has(item.id);cb.onchange=()=>set(item.id,cb.checked);label.append(cb,document.createTextNode(' '+item.name+(item.unavailable?' (feed unavailable)':'')));content.appendChild(label)}
   wrap.addEventListener('pointerdown',e=>e.stopPropagation());refresh();
  }
- async function voice(raw){const text=String(raw||'').toLowerCase().replace(/[.,?!]/g,' ').replace(/\s+/g,' ');
-  const isLayer=/\b(layer|layers|hydrants?|stations?|zones?|beats?|parcels?|buildings?|schools?|flood|fire hazard|wildland|evacuation|sheriff|road closures|traffic incidents|address points)\b/.test(text);
-  if(!isLayer)return false;
-  if(/\b(?:clear|reset|hide|remove|turn off)\s+(?:all\s+)?layers\b/.test(text)){for(const id of [...active])set(id,false,{quiet:true});report('All optional map layers hidden. Map center and zoom unchanged.');return true}
-  const matches=LIST.filter(x=>x.terms.some(w=>new RegExp('\\b'+w.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\b').test(text)));
-  if(!matches.length)return false;
-  const hide=/\b(hide|remove|turn off|disable|clear)\b/.test(text);
-  const only=/\b(only|just)\b/.test(text)&&!hide;
-  if(only)for(const id of [...active])if(!matches.some(x=>x.id===id))set(id,false,{quiet:true});
-  for(const match of matches)set(match.id,!hide,{quiet:true});
-  report(`${hide?'Hidden':'Selected'}: ${matches.map(x=>x.name).join(', ')}. Map zoom and center preserved.`);return true;
+ async function voice(raw){
+  const intent=window.CadLayerIntent.parse(raw,LIST);
+  if(!intent)return false;
+  if(intent.action==='clear'){
+   for(const id of [...active])set(id,false,{quiet:true});
+   report('All optional map layers hidden. Map center and zoom unchanged.');return true;
+  }
+  if(intent.only)for(const id of [...active])if(!intent.ids.includes(id))set(id,false,{quiet:true});
+  for(const id of intent.ids)set(id,intent.action==='show',{quiet:true});
+  const names=LIST.filter(x=>intent.ids.includes(x.id)).map(x=>x.name);
+  report((intent.action==='hide'?'Hidden':'Selected')+': '+names.join(', ')+'. Map zoom and center preserved.');return true;
  }
+
  return{mount,voice,set,refresh,items:LIST};
 };
 })();

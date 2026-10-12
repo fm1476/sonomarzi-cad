@@ -94,7 +94,7 @@
   <section class="panel config">
     <h2>Agency Configuration</h2>
     <p>Changes below affect this browser immediately and persist locally.</p>
-    <label>Configuration section<select id="cadConfigSection" aria-label="Choose configuration section"><option value="cfs">Calls for Service</option><option value="self">Self-Initiated CFS</option><option value="places">Common Places</option><option value="general">General &amp; Other Settings</option></select></label>
+    <label>Configuration section<select id="cadConfigSection" aria-label="Choose configuration section"><option value="cfs">Calls for Service</option><option value="self">Self-Initiated CFS</option><option value="places">Common Places</option><option value="phrases">Voice Phrases</option><option value="general">General &amp; Other Settings</option></select></label>
     <div data-config-panel="general" hidden>
     <label>Agencies<textarea id="cfgAgencies"></textarea></label>
     </div>
@@ -123,6 +123,27 @@
       </div>
       <div id="cadPlaceList"></div>
     </div>
+    <div data-config-panel="phrases" hidden>
+      <h3>Agency Voice Phrases (Local Preview)</h3>
+      <p>Configure alternative spoken phrases for known intents. This is a browser-local preview only. No phrase here can execute a CAD command.</p>
+      <label for="cadPhraseIntent">CAD action</label>
+      <select id="cadPhraseIntent" aria-label="CAD action"></select>
+      <label for="cadPhraseAliases">Alternative spoken phrases (one per line)</label>
+      <textarea id="cadPhraseAliases" rows="4" placeholder="List available units&#10;Who is available"></textarea>
+      <button id="cadPhraseAdd" type="button">Add or Update Phrases</button>
+      <h4>Configured phrase groups</h4>
+      <div id="cadPhraseList" aria-live="polite"></div>
+      <label for="cadPhraseTest">Test a spoken phrase</label>
+      <input id="cadPhraseTest" placeholder="Type what a dispatcher might say">
+      <button id="cadPhraseTestButton" type="button">Test Recognition</button>
+      <button id="cadPhraseValidate" type="button">Validate &amp; Save Phrase Preview</button>
+      <div id="cadPhraseResult" role="status" aria-live="polite"></div>
+      <details><summary>Advanced: JSON dictionary</summary>
+        <label for="cadPhraseJson">Dictionary JSON</label>
+        <textarea id="cadPhraseJson" rows="8" spellcheck="false"></textarea>
+        <button id="cadPhraseApplyJson" type="button">Load JSON Into Editor</button>
+      </details>
+    </div>
     <button id="saveConfig" class="primary">Save Configuration</button>
   </section>
 </main>
@@ -132,12 +153,23 @@
   <button id="reset" type="button" aria-label="Reset all CAD demo data">↻ Reset Entire Demo</button>
 </footer>
 <div id="toast"></div>
+<script src="core/discipline.js?v=1"></script>
 <script src="app.js?v=18"></script>
+<script src="core/agency-phrases.js?v=1"></script>
+<script src="core/intent-catalog.js?v=1"></script>
+<script src="core/command-gate.js?v=1"></script>
+<script src="core/action-plan.js?v=1"></script>
+<script src="agency-phrase-settings.js?v=1"></script>
 <script src="board-layout.js?v=20.1"></script>
 <script src="incident-intelligence.js?v=18.3"></script>
-<script src="voice.js?v=20.0"></script>
+<script src="core/voice-text.js?v=1"></script>
+<script src="core/radio-incomplete.js?v=1"></script>
+<script src="core/radio-status-repair.js?v=1"></script>
+<script src="voice.js?v=20.1"></script>
 <script src="operations.js?v=18"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="core/gis-query.js?v=1"></script>
+<script src="core/layer-intent.js?v=1"></script>
 <script src="map-layer-catalog.js?v=20.8"></script>
 <script src="map.js?v=20.8"></script>
 <script src="demo-tools.js?v=18"></script>

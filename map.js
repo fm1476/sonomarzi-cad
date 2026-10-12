@@ -75,7 +75,7 @@ function findMentionedIncident(q){const all=(state.incidents||[]).filter(i=>i.st
  const nq=normalized(q);const matching=all.filter(i=>{const addr=normalized(i.location);return addr.length>5&&nq.includes(addr)});return matching.length===1?matching[0]:null;
 }
 function eligibleIncidents(){return (state.incidents||[]).filter(i=>settings.incidents==='both'?['ACTIVE','PENDING'].includes(i.status):i.status===settings.incidents.toUpperCase())}
-function visibleUnits(){const discipline=window.cadUnitDisciplineFilter||'ALL';return (state.units||[]).filter(u=>(discipline==='ALL'||u.discipline===discipline)&&(!queryView||queryView.units.has(u.id.toUpperCase())))}
+function visibleUnits(){const discipline=window.cadUnitDisciplineFilter||'ALL';return window.CadDiscipline.filterUnits(state.units,discipline).filter(u=>!queryView||queryView.units.has(u.id.toUpperCase()))}
 function visibleIncidents(){return queryView?(state.incidents||[]).filter(i=>queryView.incidents.has(i.id)):eligibleIncidents()}
 function setQueryView(units,incidents,label){queryView={units:new Set(units.map(u=>u.id.toUpperCase())),incidents:new Set(incidents.map(i=>i.id)),label};focused=true;return draw().then(()=>{const markers=[...markerByUnit.values(),...markerByIncident.values()];if(markers.length){map.fitBounds(L.latLngBounds(markers.map(m=>m.getLatLng())).pad(.35),{maxZoom:16});if(markers.length===1)markers[0].openPopup()}setResult(`${incidents.length} call${incidents.length===1?'':'s'} and ${units.length} unit${units.length===1?'':'s'}: ${label}.`);updateReset()})}
 function updateReset(){const button=document.getElementById('cadMapResetQuery');if(button)button.hidden=!queryView}

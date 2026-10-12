@@ -1,0 +1,12 @@
+const assert = require('node:assert/strict');
+const { boundsEnvelope, params } = require('../core/gis-query.js');
+const bounds = { getSouthWest: () => ({ lat: 38.2, lng: -122.7 }), getNorthEast: () => ({ lat: 38.3, lng: -122.6 }) };
+assert.deepEqual(boundsEnvelope(bounds), { xmin: -122.7, ymin: 38.2, xmax: -122.6, ymax: 38.3, spatialReference: { wkid: 4326 } });
+const query = params(bounds);
+assert.equal(query.get('f'), 'geojson');
+assert.equal(query.get('resultRecordCount'), '500');
+assert.equal(query.get('geometryType'), 'esriGeometryEnvelope');
+assert.equal(JSON.parse(query.get('geometry')).xmin, -122.7);
+assert.equal(params(bounds, 9999).get('resultRecordCount'), '500');
+assert.equal(params(bounds, 0).get('resultRecordCount'), '500');
+console.log('Viewport-scoped GIS query tests passed.');

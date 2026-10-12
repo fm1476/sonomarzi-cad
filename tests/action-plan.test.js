@@ -1,0 +1,12 @@
+const assert=require('node:assert/strict');
+const {evaluate}=require('../core/command-gate.js');
+const {plan}=require('../core/action-plan.js');
+const recognized=intent=>evaluate({status:'matched',intent});
+assert.deepEqual(plan(recognized('unit.available'),{},['units.read']),{status:'planned',intent:'unit.available',kind:'query',permission:'units.read',parameters:{},executionAllowed:false});
+assert.deepEqual(plan(recognized('unit.available'),{},[]),{status:'denied',intent:'unit.available',reason:'missing_permission'});
+assert.deepEqual(plan(recognized('incident.clear'),{},['incidents.clear']),{status:'needs_context',intent:'incident.clear',required:['incidentId']});
+assert.deepEqual(plan(evaluate({status:'matched',intent:'incident.clear'},{incidentId:'INC-100'}),{incidentId:' INC-100 '},['incidents.clear']),{status:'needs_confirmation',intent:'incident.clear',kind:'operational',permission:'incidents.clear',parameters:{incidentId:'INC-100'},executionAllowed:false});
+assert.equal(plan(recognized('incident.clear'),{incidentId:'INC-100'},[]).status,'denied');
+assert.equal(plan(evaluate({status:'ambiguous'}),{},['units.read']).status,'rejected');
+assert.equal(plan(evaluate({status:'matched',intent:'admin.erase'}),{},['admin']).status,'rejected');
+console.log('CAD permission-aware action planning tests passed.');

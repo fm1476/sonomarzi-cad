@@ -1,0 +1,10 @@
+const assert=require('node:assert/strict');
+const {parse}=require('../core/layer-intent.js');
+const layers=[{id:'hydrants',terms:['hydrant','fire hydrant']},{id:'schools',terms:['schools','school locations']},{id:'parcels',terms:['parcels','property lines']}];
+assert.equal(parse('show available units',layers),null);
+assert.deepEqual(parse('show hydrants',layers),{action:'show',ids:['hydrants'],only:false});
+assert.deepEqual(parse('hide schools',layers),{action:'hide',ids:['schools'],only:false});
+assert.deepEqual(parse('show only parcels',layers),{action:'show',ids:['parcels'],only:true});
+assert.deepEqual(parse('clear all layers',layers),{action:'clear',ids:[]});
+assert.equal(parse('show fire hazard',layers),null);
+console.log('Map layer voice intent tests passed.');

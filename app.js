@@ -132,7 +132,7 @@ function toast(t){$('#toast').textContent=t;$('#toast').classList.add('show');se
 function render(){
  const pending=state.incidents.filter(i=>i.status==='PENDING'), active=state.incidents.filter(i=>i.status==='ACTIVE');
  $('#pendingCount').textContent=`(${pending.length})`; $('#activeCount').textContent=`(${active.length})`;
- if(window.cadBoardRender){window.cadBoardRender('pending',pending);window.cadBoardRender('active',active);window.cadBoardRender('units',state.units.filter(u=>filter==='ALL'||u.discipline===filter));}
+ if(window.cadBoardRender){window.cadBoardRender('pending',pending);window.cadBoardRender('active',active);window.cadBoardRender('units',window.CadDiscipline.filterUnits(state.units,filter));}
  else {$('#pending').innerHTML=pending.map(row).join('')||'<div class="row muted">No pending incidents</div>';$('#activeCalls').innerHTML=active.map(row).join('')||'<div class="row muted">No active incidents</div>';$('#units').innerHTML=state.units.map(u=>`<div class="unit"><b>${u.id}</b><span>${u.agency}</span><span>${u.status}</span></div>`).join('');}
  $$('.row[data-id]').forEach(el=>el.onclick=()=>{state.selected=el.dataset.id;render()});
  renderDetail(); renderMap();
@@ -190,13 +190,14 @@ $('#discipline').onchange=updateTypes;
 $('#createCall').onclick=()=>{let id=`${String(new Date().getFullYear()).slice(-2)}-${String(++state.seq).padStart(6,'0')}`,i={id,caseNumber:$('#newCaseNumber').value.trim().slice(0,80),agency:$('#agency').value,discipline:$('#discipline').value,priority:$('#priority').value,type:($('#customIncidentType').value.trim()||$('#type').value),location:(window.cadCommonPlaces?.resolve($('#location').value)?.address||$('#location').value),caller:$('#caller').value,phone:$('#phone').value,narrative:[$('#narrative').value],status:'PENDING',units:[],events:[]};event(i,'CALL_CREATED');state.incidents.push(i);state.selected=id;save();show('dispatch');toast(`Created ${id}`)}
 $$('nav [data-view]').forEach(b=>b.onclick=()=>show(b.dataset.view));
 function show(v){$$('.view').forEach(x=>x.classList.toggle('active',x.id===v));$$('nav [data-view]').forEach(x=>x.classList.toggle('active',x.dataset.view===v))}
-$$('.filters button').forEach(b=>b.onclick=()=>{filter=b.dataset.discipline;window.cadUnitDisciplineFilter=filter;$$('.filters button').forEach(x=>x.classList.toggle('active',x===b));render()});
+$$('.filters button').forEach(b=>b.onclick=()=>{filter=window.CadDiscipline.normalize(b.dataset.discipline);window.cadUnitDisciplineFilter=filter;$$('.filters button').forEach(x=>x.classList.toggle('active',x===b));render()});
 // The enhanced command desk installs its own keyboard handling from command-intelligence.js.
 $('#saveConfig').onclick=()=>{config={...config,agencies:$('#cfgAgencies').value.split('\n').filter(Boolean),types:{LAW:$('#cfgLaw').value.split('\n').filter(Boolean),FIRE:$('#cfgFire').value.split('\n').filter(Boolean),EMS:$('#cfgEms').value.split('\n').filter(Boolean)}};localStorage.setItem(CFG,JSON.stringify(config));populate();toast('Configuration saved')}
 $('#reset').onclick=()=>{
  if(!confirm('RESET ENTIRE DEMO?\n\nThis will erase all browser-saved incidents, cases, unit assignments/statuses, radio transcripts, AI summaries, activity history, and custom agency configuration. It will restore the original sample data.\n\nThis cannot be undone.'))return;
  localStorage.setItem(KEY,JSON.stringify(defaultState()));
  localStorage.removeItem(CFG);
+ localStorage.removeItem('smcad-agency-phrase-preview-v1');
  localStorage.setItem(SIX_UNIT_SEED_KEY,'1');
  // Reload cancels any pending summary requests and resets voice/operations UI.
  window.location.reload();
