@@ -23,7 +23,10 @@ function refresh(){
  $('cadCTForm').onsubmit=e=>{e.preventDefault();const f=new FormData(e.currentTarget);let changes=[];for(const key of ['location','caller','phone','priority','caseNumber']){const value=String(f.get(key)||'').trim();if(value!==String(i[key]||'')){i[key]=value;changes.push(key)}}if(changes.length){window.cadCallTakeEvent?.(i,'CALL_TAKER_UPDATED '+changes.join(','));window.cadCallTakeSave?.()}};
  $('cadCTAddNote').onclick=()=>{const note=prompt('Narrative entry');if(!note?.trim())return;const author=identity(),timestamp=new Date().toISOString(),text=note.trim();(i.narrative||=[]).push(text);(i.manualNarrativeEntries||=[]).push({id:'calltake-'+Date.now(),text,timestamp,author});window.cadCallTakeEvent?.(i,'NARRATIVE_ADDED '+timestamp+' BY '+author);window.cadCallTakeSave?.()};
  // Reuse the same transcript navigation and chronological sort controls as Dispatch.
- window.voiceBindDetail?.(i);
+ const narrative=$('cadCTNarrative');
+ narrative.querySelectorAll('[data-voice-tab]').forEach(b=>b.onclick=()=>{b.closest('.voice-tabs')?.querySelectorAll('[data-voice-tab]').forEach(x=>x.classList.toggle('active',x===b));const showNarrative=b.dataset.voiceTab==='narrative';narrative.querySelector('.voice-detail-content').innerHTML=showNarrative?window.cadCallTakeNarrativeHtml?.(i)||'Select Dispatch to view full narrative':(i.radioTranscripts||[]).map(r=>'<div class="voice-entry"><div class="meta">'+safe(r.time)+' | '+safe(r.source)+'</div>'+safe(r.text)+'</div>').join('')});
+ narrative.querySelector('#voiceEntryOrder')?.addEventListener('change',e=>{localStorage.setItem('smcad-voice-order-v17.3',e.target.value);refresh()});
+ narrative.querySelectorAll('[data-transcript-ref]').forEach(b=>b.onclick=()=>{const record=(i.radioTranscripts||[]).find(r=>r.id===b.dataset.transcriptRef);if(record){const body=narrative.querySelector('.voice-detail-content');body.innerHTML='<div class="voice-entry"><div class="meta">'+safe(record.time)+' | '+safe(record.source)+'</div>'+safe(record.text)+'</div>'}});
 }
 window.cadCallTakeRefresh=refresh;
 $('cadCTFilter')?.addEventListener('change',refresh);
