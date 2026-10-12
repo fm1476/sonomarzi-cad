@@ -1,0 +1,16 @@
+const assert=require('node:assert/strict');
+const S=require('../core/unit-staffing.js');
+const master={agencies:[{id:'SO',name:'Sheriff'},{id:'FD',name:'Fire'}],personnel:[{id:'1476',name:'Smith',agencyId:'SO'},{id:'1477',name:'Jones',agencyId:'SO'},{id:'900',name:'Firefighter',agencyId:'FD'}],units:[{id:'m1',agencyId:'SO',designator:'3A12'},{id:'m2',agencyId:'SO',designator:'3A14'}]};
+const original={units:[{id:'3A12',masterUnitId:'m1',status:'AVAILABLE'},{id:'3A14',masterUnitId:'m2',status:'AVAILABLE'}],incidents:[]};
+const signed=S.assign(master,original,'3A12',['1476','1477']);
+assert.equal(signed.units[0].staffing.active,true);assert.deepEqual(signed.units[0].staffing.personIds,['1476','1477']);
+assert.equal(original.units[0].staffing,undefined);
+assert.throws(()=>S.assign(master,signed,'3A14',['1476']),/already signed on/);
+assert.throws(()=>S.assign(master,original,'3A12',['900']),/different agency/);
+assert.throws(()=>S.assign(master,original,'3A12',['1476','1476']),/distinct personnel/);
+const dispatched={...signed,units:signed.units.map(u=>u.id==='3A12'?{...u,status:'DISPATCHED'}:u)};
+assert.throws(()=>S.signOff(dispatched,'3A12'),/available or out of service/);
+const assigned={...signed,incidents:[{id:'case',status:'ACTIVE',units:['3A12']}]};
+assert.throws(()=>S.signOff(assigned,'3A12'),/open incident/);
+const off=S.signOff(signed,'3A12');assert.equal(off.units[0].staffing.active,false);
+console.log('Crew sign-on and sign-off regression tests passed.');
