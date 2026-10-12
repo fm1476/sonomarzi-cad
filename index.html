@@ -125,11 +125,24 @@
     </div>
     <div data-config-panel="phrases" hidden>
       <h3>Agency Voice Phrases (Local Preview)</h3>
-      <p>Enter JSON entries with an intent and an array of phrases. Preview checks conflicts only. It does not execute dispatch commands. Saved only in this browser.</p>
-      <label for="cadPhraseJson">Phrase dictionary JSON</label>
-      <textarea id="cadPhraseJson" rows="10" spellcheck="false" placeholder='[{"intent":"unit.available","phrases":["show available units"]}]'></textarea>
+      <p>Configure alternative spoken phrases for known intents. This is a browser-local preview only. No phrase here can execute a CAD command.</p>
+      <label for="cadPhraseIntent">CAD action</label>
+      <select id="cadPhraseIntent"><option value="unit.available">Show Available Units</option><option value="unit.unavailable">Show Unavailable Units</option><option value="incident.clear">Clear Incident</option><option value="map.hydrants">Show Hydrants</option><option value="map.schools">Show Schools</option></select>
+      <label for="cadPhraseAliases">Alternative spoken phrases (one per line)</label>
+      <textarea id="cadPhraseAliases" rows="4" placeholder="List available units&#10;Who is available"></textarea>
+      <button id="cadPhraseAdd" type="button">Add or Update Phrases</button>
+      <h4>Configured phrase groups</h4>
+      <div id="cadPhraseList" aria-live="polite"></div>
+      <label for="cadPhraseTest">Test a spoken phrase</label>
+      <input id="cadPhraseTest" placeholder="Type what a dispatcher might say">
+      <button id="cadPhraseTestButton" type="button">Test Recognition</button>
       <button id="cadPhraseValidate" type="button">Validate &amp; Save Phrase Preview</button>
       <div id="cadPhraseResult" role="status" aria-live="polite"></div>
+      <details><summary>Advanced: JSON dictionary</summary>
+        <label for="cadPhraseJson">Dictionary JSON</label>
+        <textarea id="cadPhraseJson" rows="8" spellcheck="false"></textarea>
+        <button id="cadPhraseApplyJson" type="button">Load JSON Into Editor</button>
+      </details>
     </div>
     <button id="saveConfig" class="primary">Save Configuration</button>
   </section>
