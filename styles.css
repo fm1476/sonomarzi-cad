@@ -374,3 +374,24 @@ header nav.cad-header-tabs button{white-space:nowrap;padding:6px 9px;font-size:1
 /* Unified incident narrative: distinguish dispatcher entries without splitting timeline */
 .voice-detail-content .cad-narrative-manual{border-left:3px solid #49b8dd;background:linear-gradient(90deg,#13394a88,transparent);padding-left:10px}
 .voice-detail-content .cad-narrative-manual .meta{color:#9bdaf2;font-weight:700}
+
+/* Modern call-taker incident queue and shared editor */
+.cad-calltake-queue,.cad-ct-editor{margin-bottom:16px;padding:16px;border:1px solid #29465e;border-radius:12px;background:#0d2031}
+.cad-ct-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;flex-wrap:wrap}
+.cad-ct-heading h2{margin:0;font-size:16px}.cad-ct-heading p{margin:5px 0;color:#91afc7;font-size:12px}
+.cad-ct-heading label{display:flex;align-items:center;gap:8px;font-size:12px;color:#acc6d9}
+.cad-ct-heading select{background:#091827;color:#e4f1ff;border:1px solid #365975;border-radius:7px;padding:8px}
+.cad-ct-queue{display:grid;gap:6px;max-height:285px;overflow:auto}
+.cad-ct-item{display:grid;grid-template-columns:125px minmax(130px,1fr) minmax(180px,1.4fr) minmax(150px,1fr) 95px;gap:12px;align-items:center;text-align:left;border:1px solid #294860;border-radius:8px;background:#102a3e;color:#e7f3ff;padding:12px;cursor:pointer;font-size:12px}
+.cad-ct-item:hover,.cad-ct-item.selected{background:#19435e;border-color:#4197c5}
+.cad-ct-id{font-weight:800}.cad-ct-type{font-weight:700}.cad-ct-place,.cad-ct-agency{color:#a8c4d7}
+.cad-ct-status{justify-self:end;border-radius:6px;padding:5px 8px;font-size:10px;font-weight:800}
+.cad-ct-status.pending{background:#644417;color:#ffdc8e}.cad-ct-status.active{background:#14583f;color:#9bffce}
+.cad-ct-toolbar{display:flex;gap:8px}
+.cad-ct-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-bottom:14px}
+.cad-ct-fields label{display:grid;gap:5px;font-size:12px;color:#9fbdd3}
+.cad-ct-fields input{width:100%;padding:10px;background:#081827;color:#eaf5ff;border:1px solid #35556e;border-radius:7px}
+.cad-ct-narrative-header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:20px 0 12px}
+.cad-ct-narrative-header h3{margin:0;font-size:15px}
+#cadCTNarrative .voice-detail-content{max-height:380px;overflow-y:auto}
+@media(max-width:760px){.cad-ct-item{grid-template-columns:1fr 1fr}.cad-ct-place,.cad-ct-agency{grid-column:span 1}.cad-ct-fields{grid-template-columns:1fr}}
