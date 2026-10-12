@@ -13,8 +13,8 @@ function refresh(){
  $('cadCTCount').textContent='('+incidents.length+')';
  $('cadCTQueue').innerHTML=shown.map(i=>'<button type="button" class="cad-ct-item '+(selected===i.id?'selected':'')+'" data-ct-id="'+safe(i.id)+'"><span class="cad-ct-id">'+safe(i.id)+'</span><span class="cad-ct-type">'+safe(i.type)+'</span><span class="cad-ct-place">'+safe(i.location)+'</span><span class="cad-ct-agency">'+safe(i.agency)+'</span><span class="cad-ct-status '+safe(i.status.toLowerCase())+'">'+safe(i.status)+'</span></button>').join('')||'<p class="cad-ct-empty">No matching open calls.</p>';
  $('cadCTQueue').querySelectorAll('[data-ct-id]').forEach(b=>b.onclick=()=>{selected=b.dataset.ctId;refresh()});
- const i=incidents.find(x=>x.id===selected),editor=$('cadCTEditor');if(!i){editor.hidden=true;return}
- editor.hidden=false;
+ const i=incidents.find(x=>x.id===selected),editor=$('cadCTEditor');if(!i){editor.hidden=true;$('cadCTEmpty').hidden=false;return}
+ editor.hidden=false;$('cadCTEmpty').hidden=true;
  editor.innerHTML='<div class="cad-ct-heading"><div><h2>'+safe(i.id)+' · '+safe(i.type)+'</h2><p>'+safe(i.agency)+' · '+safe(i.status)+' · '+safe(i.discipline)+'</p></div><div class="cad-ct-toolbar">'+(i.status==='PENDING'?'<button type="button" id="cadCTActivate" class="primary">Activate Call</button>':'')+'<button type="button" id="cadCTClose">Close editor</button></div></div>'+
  '<form id="cadCTForm"><div class="cad-ct-fields">'+field('Location','location',i.location)+field('Caller','caller',i.caller)+field('Phone','phone',i.phone)+field('Priority','priority',i.priority)+field('Case number','caseNumber',i.caseNumber||'')+'</div><button type="submit" class="primary">Save call details</button></form>'+
  '<div class="cad-ct-narrative-header"><h3>Event Narrative</h3></div><form id="cadCTNoteForm" class="cad-ct-note-form"><label for="cadCTNoteInput">New narrative information</label><textarea id="cadCTNoteInput" rows="3" placeholder="Enter new caller information, observations, or updates..."></textarea><button type="submit" class="primary">Add to Event Narrative</button></form><div id="cadCTNarrative">'+(window.voiceDetailHtml?window.voiceDetailHtml(i):'<p>Narrative unavailable</p>')+'</div>';
@@ -30,5 +30,13 @@ function refresh(){
 }
 window.cadCallTakeRefresh=refresh;
 $('cadCTFilter')?.addEventListener('change',refresh);
+const split=$('cadCTSplit'),divider=$('cadCTDivider');let dragging=false;
+const applyWidth=percent=>{const width=Math.min(75,Math.max(25,percent));split.style.setProperty('--cad-ct-left-width',width+'%');localStorage.setItem('smcad-calltake-split-v1',String(width))};
+applyWidth(Number(localStorage.getItem('smcad-calltake-split-v1'))||48);
+divider?.addEventListener('pointerdown',e=>{if(e.button!==0||window.matchMedia('(max-width: 850px)').matches)return;dragging=true;divider.setPointerCapture(e.pointerId);e.preventDefault()});
+divider?.addEventListener('pointermove',e=>{if(!dragging)return;const rect=split.getBoundingClientRect();applyWidth((e.clientX-rect.left)/rect.width*100)});
+divider?.addEventListener('pointerup',()=>dragging=false);
+divider?.addEventListener('pointercancel',()=>dragging=false);
+divider?.addEventListener('keydown',e=>{if(e.key==='ArrowLeft'||e.key==='ArrowRight'){e.preventDefault();applyWidth((Number(localStorage.getItem('smcad-calltake-split-v1'))||48)+(e.key==='ArrowLeft'?-3:3))}});
 setTimeout(refresh,200);
 })();
