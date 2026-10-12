@@ -11,7 +11,7 @@
   const t=value.toLowerCase();
   if(/\b(?:not|never|don't|do not|cancel|disregard)\b/.test(t))return value;
   // Avoid repairing ordinary speech such as "the suspect was unseen".
-  const callSign=/^\s*(?:(?:dispatch|radio|unit)\s+)?(?:\d+[a-z]\d+|\d+\s+(?:adam|alpha|a|out of|outta|addam|boy|bravo|b)\s+\d+|\d{2,5})\s*[,.:]?\s+(?:(?:show(?:\s+me)?|mark|status|we(?:'re| are)|i(?:'m| am))\s+)?unseen\s*[.!]?\s*$/i;
+  const callSign=/^\s*(?:(?:dispatch|radio|unit)\s+)?(?:\d+[a-z]\d+|(?:\d+|one|two|three|four|five|six|seven|eight|nine)\s+(?:adam|alpha|a|out of|outta|addam|boy|bravo|b)\s+\d+|\d{2,5})\s*[,.:]?\s+(?:(?:show(?:\s+me)?|mark|status|we(?:'re| are)|i(?:'m| am))\s+)?unseen\s*[.!]?\s*$/i;
   return callSign.test(value)?value.replace(/\bunseen\b/i,'on scene'):value;
  }
  return Object.freeze({repair});
