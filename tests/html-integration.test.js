@@ -8,10 +8,12 @@ for(const id of requiredIds){
 }
 assert.match(html,/data-config-panel="phrases"/);
 const scripts=[...html.matchAll(/<script\s+src="([^"]+)"/g)].map(m=>m[1].split('?')[0]);
-for(const file of ['core/agency-phrases.js','core/command-gate.js','core/action-plan.js','agency-phrase-settings.js']){
+for(const file of ['core/agency-phrases.js','core/intent-catalog.js','core/command-gate.js','core/action-plan.js','agency-phrase-settings.js']){
  assert.ok(scripts.includes(file),'Missing script '+file);
 }
 assert.ok(scripts.indexOf('core/agency-phrases.js')<scripts.indexOf('agency-phrase-settings.js'));
+assert.ok(scripts.indexOf('core/intent-catalog.js')<scripts.indexOf('core/command-gate.js'));
+assert.ok(scripts.indexOf('core/intent-catalog.js')<scripts.indexOf('core/action-plan.js'));
 assert.ok(scripts.indexOf('core/command-gate.js')<scripts.indexOf('agency-phrase-settings.js'));
 assert.ok(scripts.indexOf('core/action-plan.js')<scripts.indexOf('agency-phrase-settings.js'));
 for(const file of scripts.filter(s=>!s.startsWith('https://')&&!s.startsWith('http://'))){
