@@ -14,4 +14,6 @@ assert.deepEqual(evaluate(dictionary.resolve('clear incident'),{incidentId:'INC-
 assert.deepEqual(evaluate(dictionary.resolve('erase all data')),{status:'rejected',reason:'unsupported_intent'});
 assert.deepEqual(evaluate(dictionary.resolve('same phrase')),{status:'rejected',reason:'ambiguous'});
 assert.deepEqual(evaluate(dictionary.resolve('unknown')),{status:'rejected',reason:'unknown'});
+assert.equal(evaluate(dictionary.resolve('clear incident'),{incidentId:'   '}).status,'needs_context');
+assert.equal(evaluate(dictionary.resolve('clear incident'),{incidentId:42}).status,'needs_context');
 console.log('Non-executing command gate tests passed.');
