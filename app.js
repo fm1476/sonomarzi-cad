@@ -192,7 +192,8 @@ function populate(){
 function updateTypes(){let d=$('#discipline').value;$('#type').innerHTML=config.types[d].map(t=>`<option>${t}</option>`).join('')}
 $('#discipline').onchange=updateTypes;
 $('#createCall').onclick=()=>{let id=`${String(new Date().getFullYear()).slice(-2)}-${String(++state.seq).padStart(6,'0')}`,i={id,caseNumber:$('#newCaseNumber').value.trim().slice(0,80),agency:$('#agency').value,discipline:$('#discipline').value,priority:$('#priority').value,type:($('#customIncidentType').value.trim()||$('#type').value),location:(window.cadCommonPlaces?.resolve($('#location').value)?.address||$('#location').value),caller:$('#caller').value,phone:$('#phone').value,narrative:[$('#narrative').value],status:'PENDING',units:[],events:[]};event(i,'CALL_CREATED');state.incidents.push(i);state.selected=id;save();show('dispatch');toast(`Created ${id}`)}
-$$('nav [data-view]').forEach(b=>b.onclick=()=>show(b.dataset.view));
+$('nav [data-view]').forEach(b=>b.onclick=()=>show(b.dataset.view));
+window.cadShowView=show;
 function show(v){$('.view').forEach(x=>x.classList.toggle('active',x.id===v));$('nav [data-view]').forEach(x=>x.classList.toggle('active',x.dataset.view===v));if(v==='calltake')window.cadCallTakeRefresh?.()}
 $$('.filters button').forEach(b=>b.onclick=()=>{filter=window.CadDiscipline.normalize(b.dataset.discipline);window.cadUnitDisciplineFilter=filter;$$('.filters button').forEach(x=>x.classList.toggle('active',x===b));render()});
 // The enhanced command desk installs its own keyboard handling from command-intelligence.js.
