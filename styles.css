@@ -320,3 +320,15 @@ header nav.cad-header-tabs button{white-space:nowrap;padding:6px 9px;font-size:1
 #units .cad-unit-grid{display:grid!important;align-items:center;justify-content:start;min-width:max-content;gap:0}
 #units .cad-unit-grid>span{min-width:0;margin:0 4px;overflow-wrap:anywhere}
 #units{overflow-x:auto}
+
+/* Officer safety proof-of-concept controls */
+.cad-safety-clock{display:inline-block;margin-left:5px;padding:2px 4px;font-size:11px;background:#164e37;border:1px solid #36a77a;color:#d4ffec;border-radius:5px;cursor:pointer;white-space:nowrap}
+.cad-safety-clock.cad-safety-due{background:#772d28;border-color:#f66;color:#fff;animation:cad-safety-pulse 1s infinite}
+.cad-safety-clock.cad-safety-stopped{background:#35465a;border-color:#8392a3;color:#ddd}
+@keyframes cad-safety-pulse{50%{box-shadow:0 0 0 3px #f5565655}}
+.cad-safety-enable{font-size:11px!important;padding:5px 8px!important}
+.cad-safety-dialog{background:#10283c;color:#ecf6ff;border:1px solid #6a8ba6;border-radius:12px;max-width:450px;width:calc(100% - 30px);padding:20px}
+.cad-safety-dialog::backdrop{background:#000b}
+.cad-safety-dialog form{display:grid;gap:12px}.cad-safety-dialog label{display:grid;gap:5px}.cad-safety-dialog input,.cad-safety-dialog select{padding:8px;background:#071e30;color:white;border:1px solid #64839b;border-radius:5px}
+.cad-safety-dialog button{padding:8px;background:#1b4d72;color:white;border:1px solid #5c88a8;border-radius:5px;cursor:pointer}
+.cad-safety-actions{display:flex;flex-wrap:wrap;gap:5px}
