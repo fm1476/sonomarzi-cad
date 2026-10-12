@@ -116,6 +116,13 @@
       <label>Identification model<select id="cadMasterUnitModel"><option value="FIXED">Fixed beat</option><option value="PERSONNEL">Personnel ID</option><option value="APPARATUS">Apparatus</option><option value="HYBRID">Hybrid</option></select></label>
       <label>Associated person (optional)<select id="cadMasterPersonSelect"></select></label>
       <button type="button" id="cadMasterAddUnit">Add Unit</button>
+      <h4>Duty Sign-on / Staffing</h4>
+      <p>Activate a master unit first, then assign its current crew. Multiple personnel may staff an apparatus. Sign-off is blocked while assigned to an open incident.</p>
+      <label>Active configured unit<select id="cadStaffUnit"></select></label>
+      <label>Crew members (use Ctrl/Cmd to select multiple)<select id="cadStaffCrew" multiple size="5"></select></label>
+      <button type="button" id="cadStaffSignOn">Sign On Crew</button>
+      <button type="button" id="cadStaffSignOff">Sign Off Crew</button>
+      <div id="cadStaffCurrent" aria-live="polite"></div>
       <div id="cadMasterMessage" role="status" aria-live="polite"></div>
       <div id="cadMasterList"></div>
       <h4>Configuration Backup</h4>
@@ -189,6 +196,7 @@
 <script src="agency-phrase-settings.js?v=1"></script>
 <script src="core/agency-master.js?v=1"></script>
 <script src="core/unit-activation.js?v=1"></script>
+<script src="core/unit-staffing.js?v=1"></script>
 <script src="agency-master-settings.js?v=2"></script>
 <script src="board-layout.js?v=20.1"></script>
 <script src="incident-intelligence.js?v=18.3"></script>
