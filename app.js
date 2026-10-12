@@ -193,8 +193,16 @@ function show(v){$$('.view').forEach(x=>x.classList.toggle('active',x.id===v));$
 $$('.filters button').forEach(b=>b.onclick=()=>{filter=window.CadDiscipline.normalize(b.dataset.discipline);window.cadUnitDisciplineFilter=filter;$$('.filters button').forEach(x=>x.classList.toggle('active',x===b));render()});
 // The enhanced command desk installs its own keyboard handling from command-intelligence.js.
 $('#saveConfig').onclick=()=>{config={...config,agencies:$('#cfgAgencies').value.split('\n').filter(Boolean),types:{LAW:$('#cfgLaw').value.split('\n').filter(Boolean),FIRE:$('#cfgFire').value.split('\n').filter(Boolean),EMS:$('#cfgEms').value.split('\n').filter(Boolean)}};localStorage.setItem(CFG,JSON.stringify(config));populate();toast('Configuration saved')}
+window.cadActivateMasterUnit=function(masterUnitId){
+ try{
+  const master=window.CadAgencyMaster.read(localStorage);
+  state=window.CadUnitActivation.activate(master,state,masterUnitId);
+  save();toast('Configured unit activated in CAD');
+  return {ok:true};
+ }catch(e){toast('Unit not activated: '+e.message);return {ok:false,error:e.message};}
+};
 $('#reset').onclick=()=>{
- if(!confirm('RESET ENTIRE DEMO?\n\nThis will erase all browser-saved incidents, cases, unit assignments/statuses, radio transcripts, AI summaries, activity history, and custom agency configuration. It will restore the original sample data.\n\nThis cannot be undone.'))return;
+ if(!confirm('RESET ENTIRE DEMO?\n\nThis will erase all browser-saved incidents, cases, unit assignments/statuses, radio transcripts, AI summaries, activity history, and legacy demo settings. Permanent Agency Master records will NOT be erased. It will restore the original sample data.\n\nThis cannot be undone.'))return;
  localStorage.setItem(KEY,JSON.stringify(defaultState()));
  localStorage.removeItem(CFG);
  localStorage.removeItem('smcad-agency-phrase-preview-v1');
