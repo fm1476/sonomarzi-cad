@@ -307,3 +307,16 @@ header nav.cad-header-tabs button{white-space:nowrap;padding:6px 9px;font-size:1
 .cad-staff-actions button{flex:1;width:auto;border-radius:6px;padding:9px 12px;font-size:13px}
 .cad-staff-actions button:disabled{opacity:.4;cursor:not-allowed}
 @media(max-width:620px){.cad-staff-fields{grid-template-columns:1fr}.cad-staff-actions{flex-wrap:wrap}}
+
+/* Configurable Unit Status columns */
+.board-columns[data-columns="units"]{position:relative;display:flex;align-items:stretch;gap:5px;overflow:visible}
+.board-columns[data-columns="units"] .cad-column-headings{display:grid;flex:1;min-width:max-content}
+.board-columns[data-columns="units"] .col-drag{position:relative;min-width:0;display:flex;align-items:center;overflow:visible;white-space:nowrap;user-select:none}
+.board-columns[data-columns="units"] .cad-col-resizer{position:absolute;right:-4px;top:0;bottom:0;width:9px;cursor:col-resize;z-index:3;border-right:2px solid transparent;touch-action:none}
+.board-columns[data-columns="units"] .cad-col-resizer:hover{border-color:#77c9ff}
+.cad-column-menu-button{flex:none;background:#16344b;border:1px solid #476c88;border-radius:4px;color:#d9ecfa;padding:5px 7px;cursor:pointer;font-size:11px}
+.cad-column-menu{position:absolute;top:100%;left:0;z-index:100;background:#10283d;border:1px solid #5b839e;border-radius:6px;padding:10px;box-shadow:0 8px 22px #0009;min-width:170px}
+.cad-column-menu[hidden]{display:none}.cad-column-menu label{display:block;padding:5px;white-space:nowrap;font-size:12px}.cad-column-menu button{margin-top:8px;padding:7px;cursor:pointer}
+#units .cad-unit-grid{display:grid!important;align-items:center;justify-content:start;min-width:max-content;gap:0}
+#units .cad-unit-grid>span{min-width:0;margin:0 4px;overflow-wrap:anywhere}
+#units{overflow-x:auto}
