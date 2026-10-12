@@ -24,6 +24,8 @@ const defaultState=()=>({seq:4525,selected:null,incidents:[
 ]});
 let state=JSON.parse(localStorage.getItem(KEY)||'null')||defaultState();
 window.cadSafetyState=()=>state;
+window.cadCallTakeSave=()=>save();
+window.cadCallTakeEvent=(inc,msg)=>event(inc,msg);
 // Add the expanded incident roster once when upgrading an untouched original 3-call demo.
 // Never overwrite or replace saved user-created incidents.
 const EIGHT_CALL_SEED_KEY='smcad-eight-call-seed-v15';
@@ -62,7 +64,7 @@ function save(){
   if(lastSavedStatuses.has(u.id)&&lastSavedStatuses.get(u.id)!==u.status){u.statusChangedAt=Date.now();}
   lastSavedStatuses.set(u.id,u.status);
  }
- localStorage.setItem(KEY,JSON.stringify(state));render();window.dispatchEvent(new Event('storage'));
+ localStorage.setItem(KEY,JSON.stringify(state));render();window.cadCallTakeRefresh?.();window.dispatchEvent(new Event('storage'));
 }
 function event(inc,msg){inc.events.push(`${now()} ${msg}`)}
 
@@ -190,7 +192,7 @@ function updateTypes(){let d=$('#discipline').value;$('#type').innerHTML=config.
 $('#discipline').onchange=updateTypes;
 $('#createCall').onclick=()=>{let id=`${String(new Date().getFullYear()).slice(-2)}-${String(++state.seq).padStart(6,'0')}`,i={id,caseNumber:$('#newCaseNumber').value.trim().slice(0,80),agency:$('#agency').value,discipline:$('#discipline').value,priority:$('#priority').value,type:($('#customIncidentType').value.trim()||$('#type').value),location:(window.cadCommonPlaces?.resolve($('#location').value)?.address||$('#location').value),caller:$('#caller').value,phone:$('#phone').value,narrative:[$('#narrative').value],status:'PENDING',units:[],events:[]};event(i,'CALL_CREATED');state.incidents.push(i);state.selected=id;save();show('dispatch');toast(`Created ${id}`)}
 $$('nav [data-view]').forEach(b=>b.onclick=()=>show(b.dataset.view));
-function show(v){$$('.view').forEach(x=>x.classList.toggle('active',x.id===v));$$('nav [data-view]').forEach(x=>x.classList.toggle('active',x.dataset.view===v))}
+function show(v){$('.view').forEach(x=>x.classList.toggle('active',x.id===v));$('nav [data-view]').forEach(x=>x.classList.toggle('active',x.dataset.view===v));if(v==='calltake')window.cadCallTakeRefresh?.()}
 $$('.filters button').forEach(b=>b.onclick=()=>{filter=window.CadDiscipline.normalize(b.dataset.discipline);window.cadUnitDisciplineFilter=filter;$$('.filters button').forEach(x=>x.classList.toggle('active',x===b));render()});
 // The enhanced command desk installs its own keyboard handling from command-intelligence.js.
 $('#saveConfig').onclick=()=>{config={...config,agencies:$('#cfgAgencies').value.split('\n').filter(Boolean),types:{LAW:$('#cfgLaw').value.split('\n').filter(Boolean),FIRE:$('#cfgFire').value.split('\n').filter(Boolean),EMS:$('#cfgEms').value.split('\n').filter(Boolean)}};localStorage.setItem(CFG,JSON.stringify(config));populate();toast('Configuration saved')}
