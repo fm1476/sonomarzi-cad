@@ -42,3 +42,16 @@ assert.equal(plan.status,'ACTIVE');
 assert.equal(plan.units.length,1);
 assert.equal(e4.status,'CLEAR');
 assert.equal(clear({incident:plan,unit:e4,event,now:()=> '12:01'}).ok,false);
+
+const setStatus=context.window.CadUnitCommands.setStatus;
+assert.equal(setStatus({state,unit:e5,status:'AVAILABLE',event}).ok,false);
+assert.equal(setStatus({state,unit:e5,status:'ENROUTE',incident:plan,event}).ok,true);
+assert.equal(e5.status,'ENROUTE');
+const closure=context.window.CadUnitCommands.closeEvent;
+assert.equal(closure({state,incident:plan,disposition:'',event,now:()=> '13:00'}).ok,false);
+assert.equal(plan.status,'ACTIVE');
+assert.equal(closure({state,incident:plan,disposition:'False alarm',event,now:()=> '13:01'}).ok,true);
+assert.equal(plan.status,'CLOSED');
+assert.equal(e5.status,'AVAILABLE');
+assert.equal(plan.units.length,0);
+assert.equal(closure({state,incident:plan,disposition:'Duplicate',event,now:()=> '13:02'}).ok,false);
