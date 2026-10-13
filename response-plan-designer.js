@@ -35,7 +35,7 @@ function initZoneMap(){
  const host=el('rpZoneMap');let lastWidth=0,lastHeight=0,initialSized=false;
  function fixSize(){if(!zoneMap||!host||!host.isConnected)return;const box=host.getBoundingClientRect();if(box.width<100||box.height<100)return;if(Math.abs(box.width-lastWidth)<2&&Math.abs(box.height-lastHeight)<2)return;lastWidth=box.width;lastHeight=box.height;requestAnimationFrame(()=>{if(zoneMap&&host.isConnected){zoneMap.invalidateSize({pan:false,animate:false});if(!initialSized){initialSized=true;zoneMap.setView(INITIAL_CENTER,INITIAL_ZOOM,{animate:false})}}})}
  if(window.ResizeObserver){mapObserver=new ResizeObserver(fixSize);mapObserver.observe(host)}
- const visibleObserver=new MutationObserver(fixSize);visibleObserver.observe(document.querySelector('[data-config-panel="master"]')||root,{attributes:true,attributeFilter:['hidden','style','class']});
+ const visibleObserver=new MutationObserver(fixSize);visibleObserver.observe(document.querySelector('[data-config-panel="response"]')||root,{attributes:true,attributeFilter:['hidden','style','class']});
  const previousObserver=mapObserver;mapObserver={disconnect(){previousObserver?.disconnect();visibleObserver.disconnect()}};
  setTimeout(fixSize,150);setTimeout(fixSize,650);
  setTimeout(()=>{if(zoneMap&&host.isConnected){zoneMap.invalidateSize({pan:false,animate:false});loadMapZones()}},250);
