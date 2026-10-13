@@ -295,21 +295,9 @@ window.cadAddIncidentLocation=(id,address,role='RELATED',source='DISPATCH',verif
  const records=cadLocationHistory(i);records.push(cadLocationRecord(i,value,role,source,verified));
  event(i,'LOCATION_ADDED '+role+' '+value+' VIA '+source+(verified?.ok?' GIS_VERIFIED':' NOT_VERIFIED'));save();return {ok:true};
 };
-window.cadUpdateIncidentFields=(id,updates,source='DISPATCH')=>{
- const i=state.incidents.find(x=>x.id===id);if(!i||i.status==='CLOSED')return {ok:false,message:'Active event not found'};
- const allowed=['type','priority','agency','discipline','caller','phone'];
- for(const key of allowed)if(Object.hasOwn(updates,key)){
-  const next=String(updates[key]??'').trim();if((key==='type'||key==='priority'||key==='agency'||key==='discipline')&&!next)return {ok:false,message:key+' is required'};
-  if(key==='priority'&&!/^P[1-5]$/.test(next))return {ok:false,message:'Priority must be P1 through P5'};
-  if(key==='discipline'&&!['LAW','FIRE','EMS'].includes(next))return {ok:false,message:'Invalid discipline'};
- }
- for(const key of allowed)if(Object.hasOwn(updates,key)){
-  const next=String(updates[key]??'').trim();
-  if(String(i[key]??'')!==next){event(i,'FIELD_CHANGED '+key.toUpperCase()+' FROM '+String(i[key]??'')+' TO '+next+' VIA '+source);i[key]=next}
- }
- if(updates.narrative?.trim()){const note=updates.narrative.trim();i.narrative ||= [];i.narrative.push(note);event(i,'NARRATIVE_ADDED VIA '+source+' '+note)}
- save();return {ok:true,message:'Event updated'};
-};
+window.cadUpdateIncidentFields=(id,updates,source='DISPATCH')=>
+ window.CadIncidentCommands.updateFields({state,id,updates,source,event,save});
+
 function cadUpdateIncidentLocation(i,newLocation,source,verified){
  const previous=i.location,location=String(newLocation||'').trim();
  if(!location)return {ok:false,message:'Location is required'};
