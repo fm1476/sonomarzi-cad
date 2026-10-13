@@ -25,6 +25,7 @@
   let refreshAgain=false;
   let refreshTimer=null;
   let lastSignature='';
+  let confirmedMutationEpoch=0;
   const workspace=document.getElementById('cadSharedWorkspace');
   const workIncidents=document.getElementById('cadSharedWorkspaceIncidents');
   const workUnits=document.getElementById('cadSharedWorkspaceUnits');
@@ -169,6 +170,7 @@
    if(refreshing){refreshAgain=true;return;}
    if(!window.CadDemoLogin.current()){if(!quiet)say('Sign in to load shared data.');return}
    refreshing=true;
+   const refreshEpoch=confirmedMutationEpoch;
    const client=window.CadDemoLogin.client();
    const agency=window.CadDemoLogin.current().agencyId;
    if(!quiet)say('Refreshing shared CAD data…');
@@ -176,6 +178,7 @@
     const [incidents,roster,missing,assignments,dispatchAreas,areaAgencies,incidentEvents,incidentLocations]=await Promise.all([
      client.listIncidents(agency),client.listUnits(agency),client.listOutstanding(agency),client.listAssignments(agency),client.listDispatchAreas(agency),client.listDispatchAreaAgencies(agency),client.listIncidentEvents(agency),client.listIncidentLocations(agency)
     ]);
+    if(refreshEpoch!==confirmedMutationEpoch){refreshAgain=true;return;}
     const signature=JSON.stringify({incidents,roster,missing,assignments,incidentEvents,incidentLocations});
     const needsRender=lastSignature!==signature;
     const changed=lastSignature!==''&&needsRender;
@@ -201,6 +204,7 @@
    snapshot.assignments=snapshot.assignments.filter(a=>a.incident_id!==incidentId);
    snapshot.roster=snapshot.roster.map(u=>releasedIds.has(u.id)?{...u,status:'AVAILABLE',version:u.version+1}:u);
    snapshot.incidentEvents=[...(snapshot.incidentEvents||[]),{incident_id:incidentId,event_type:'INCIDENT_CLOSED',payload:{disposition},occurred_at:new Date().toISOString()}];
+   confirmedMutationEpoch++;
    lastSignature='';
    window.cadSharedApplySnapshot?.(snapshot);
   }
