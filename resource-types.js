@@ -14,7 +14,7 @@ function forAgency(agencyName,discipline){
 }
 function forDiscipline(d){const m=master();return [...new Set([...read().filter(x=>x.discipline===d).map(x=>x.name),...m.units.filter(u=>u.discipline===d).map(u=>u.resourceType).filter(Boolean)])]}
 function render(){
- const host=document.getElementById('cadResourceTypeManager');if(!host)return;
+ let host=document.getElementById('cadResourceTypeManager');if(!host){const target=document.getElementById('cadMasterList');if(!target)return;host=document.createElement('section');host.id='cadResourceTypeManager';host.className='cad-resource-type-manager';target.before(host)}
  const m=master(),agencies=m.agencies.map(a=>a.name);
  host.innerHTML='<h4>Resource Type Catalog</h4><p>Configure resource types for each agency. Existing types used by unit definitions remain visible; the catalog feeds the alarm and response-plan palettes.</p><div class="cad-rt-toolbar"><label>Agency<select id="crtAgency">'+agencies.map(x=>'<option>'+esc(x)+'</option>').join('')+'</select></label><label>Discipline<select id="crtDisc"><option>FIRE</option><option>EMS</option><option>LAW</option></select></label></div><div class="cad-rt-toolbar"><label>New resource type<input id="crtName" placeholder="QUINT"></label><label>Icon<input id="crtIcon" placeholder="🚒" maxlength="8"></label><button id="crtAdd" type="button">Add Resource Type</button></div><div id="crtCards" class="cad-rt-cards"></div><p id="crtStatus" role="status"></p>';
  const agency=document.getElementById('crtAgency'),disc=document.getElementById('crtDisc'),cards=document.getElementById('crtCards'),status=document.getElementById('crtStatus');
