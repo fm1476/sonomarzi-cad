@@ -24,6 +24,25 @@
   let refreshing=false;
   let refreshTimer=null;
   let lastSignature='';
+  const workspace=document.getElementById('cadSharedWorkspace');
+  const workIncidents=document.getElementById('cadSharedWorkspaceIncidents');
+  const workUnits=document.getElementById('cadSharedWorkspaceUnits');
+  const workUpdated=document.getElementById('cadSharedWorkspaceUpdated');
+  document.getElementById('cadSharedWorkspaceManage')?.addEventListener('click',()=>setOpen(true));
+  function renderWorkspace(){
+   if(!workspace)return;
+   workspace.hidden=!window.CadDemoLogin.current();
+   if(workspace.hidden)return;
+   const make=(host,items,format)=>{
+    host.replaceChildren();
+    if(!items.length){const empty=document.createElement('div');empty.className='cad-shared-workspace-empty';empty.textContent='No shared records yet';host.appendChild(empty);return}
+    for(const item of items){const line=document.createElement('div');line.className='cad-shared-workspace-item';line.textContent=format(item);host.appendChild(line)}
+   };
+   make(workIncidents,snapshot.incidents.slice(0,8),i=>i.incident_number+'  ·  '+i.discipline+'  ·  '+i.status+'  ·  '+i.current_location);
+   make(workUnits,snapshot.roster,u=>u.call_sign+'  ·  '+u.status);
+   workUpdated.textContent=snapshot.incidents.length+' incidents · '+snapshot.roster.length+' units · auto-sync every 4s';
+  }
+
   const option=(value,label)=>{const o=document.createElement('option');o.value=value;o.textContent=label;return o};
   function choose(select,items,format){
    const previous=select.value;select.replaceChildren();
@@ -89,7 +108,7 @@
     const signature=JSON.stringify({incidents,roster,missing,assignments});
     const changed=lastSignature!==''&&lastSignature!==signature;
     lastSignature=signature;
-    snapshot={incidents,roster,assignments};syncChoices();
+    snapshot={incidents,roster,assignments};syncChoices();renderWorkspace();
     displayRows(tbody,incidents,['incident_number','status','discipline','created_at']);
     displayRows(units,roster,['call_sign','status','resource_type']);
     displayRows(shortages,missing,['incident_id','resource_type','missing_count']);
@@ -118,7 +137,7 @@
    lastSignature='';
    window.CadDemoLogin.logout();
    tbody.replaceChildren();units.replaceChildren();shortages.replaceChildren();
-   snapshot={incidents:[],roster:[],assignments:[]};syncChoices();
+   snapshot={incidents:[],roster:[],assignments:[]};syncChoices();renderWorkspace();
    board.hidden=true;loginPanel.hidden=false;text(headerUser,'Offline');toggle.classList.remove('is-connected');
    say('Signed out of shared CAD. Local demo remains available.');
   });
