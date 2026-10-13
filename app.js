@@ -144,6 +144,10 @@ function assignCaseNumber(inc){
  state.caseSequence=n;inc.caseNumber=candidate;event(inc,`CASE_NUMBER_AUTO ${candidate}`);
  return candidate;
 }
+function cadSharedCrewGroups(){
+ try{const groups=JSON.parse(localStorage.getItem('smcad-shared-crews-v1')||'[]');return Array.isArray(groups)?groups:[]}
+ catch{return []}
+}
 function clearCadUnit(inc,u,disposition='',source='MANUAL'){
  if(!inc.units.includes(u.id))return {ok:false,message:`${u.id} not assigned to ${inc.id}`};
  const d=String(disposition||'').trim();
@@ -374,7 +378,7 @@ function detailAction(i,a){
  if(a==='edit'){cadDispatchEdit(i);return;}
  if(a==='location-search'){const q=document.getElementById('cadLocationSearchInput')?.value||'';const matches=window.cadFindEventsByLocation(q);const panel=document.getElementById('cadLocationSearchResults');if(panel)panel.innerHTML=matches.length?matches.map(m=>'<div><button data-location-result="'+escapeCad(m.id)+'">'+escapeCad(m.id)+'</button> · '+escapeCad(m.type)+' · '+m.locations.map(l=>escapeCad(l.role+': '+l.address)).join(' | ')+'</div>').join(''):'No matching locations';panel?.querySelectorAll('[data-location-result]').forEach(b=>b.onclick=()=>{state.selected=b.dataset.locationResult;render()});return;}
  if(a==='activate'){i.status='ACTIVE';event(i,'INCIDENT_ACTIVATED')}
- if(a==='assign'){let u=state.units.find(u=>u.discipline===i.discipline&&u.status==='AVAILABLE');if(u){const resolved=cadDispatchTarget(i,u);const target=resolved.incident;u.status='DISPATCHED';u.location=target.location;if(!target.units.includes(u.id))target.units.push(u.id);target.status='ACTIVE';event(target,`UNIT_ASSIGNED ${u.id}`)}else toast('No available unit of '+i.discipline+' discipline')}
+ if(a==='assign'){let u=state.units.find(u=>u.discipline===i.discipline&&u.status==='AVAILABLE');if(u){const resolved=cadDispatchTarget(i,u);const target=resolved.incident;const result=window.CadUnitCommands.assign({state,incident:target,unit:u,event,sharedGroups:cadSharedCrewGroups()});if(!result.ok)toast(result.message)}else toast('No available unit of '+i.discipline+' discipline')}
  if(a==='plan'){const panel=document.getElementById('cadIncidentPlanRecommendations');if(panel){panel.scrollIntoView({block:'center',behavior:'smooth'});panel.style.outline='2px solid #46b7ec';setTimeout(()=>panel.style.outline='',1800)}return}
  if(a==='manage'){show('dispatch');document.getElementById('operationsPanel')?.scrollIntoView({block:'nearest'});window.cadOpsSelectIncident?.(i.id);return}
  if(a==='case'){const n=prompt('Case number (leave blank to remove)',i.caseNumber||'');if(n!==null){i.caseNumber=n.trim().slice(0,80);event(i,`CASE_NUMBER ${i.caseNumber||'REMOVED'}`)}}
