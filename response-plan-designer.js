@@ -96,19 +96,36 @@ function testPlan(plan){
   const group=crews.find(g=>g.units.some(id=>id.toUpperCase()===String(u.id).toUpperCase()));
   return {...u,resourceType:definition?.resourceType||infer(u),crewId:group?.id||null,definition};
  });
+ const eligibility=u=>chosen.has(u.id)?'Already selected':String(u.status).toUpperCase()!=='AVAILABLE'?'Status: '+u.status:u.crewId&&usedCrew.has(u.crewId)?'Shared crew committed':null;
  for(const request of plan.resources){
-  const matches=[],rejected=[];const need=Number(request.count)||0;
+  const selected=[],rejected=[],trace=[];const need=Number(request.count)||0;
+  const pool=candidates.filter(x=>x.resourceType===request.type);
   const rule=(plan.runOrders||{})[request.type]||[];
-  const rank=u=>{for(let i=0;i<rule.length;i++){const step=rule[i];if(step.kind==='UNIT'&&step.value.toUpperCase()===String(u.id).toUpperCase())return i;if(step.kind==='EITHER'&&step.value.toUpperCase().split(',').map(x=>x.trim()).includes(String(u.id).toUpperCase()))return i;if(step.kind==='LOCATION'&&String(u.location||'').toUpperCase().includes(step.value.toUpperCase()))return i;if(step.kind==='CLOSEST')return i+0.5;}return rule.length+1};
-  const ordered=candidates.filter(x=>x.resourceType===request.type).sort((a,b)=>rank(a)-rank(b));
-  for(const u of ordered){
-   const reason=chosen.has(u.id)?'Already selected':String(u.status).toUpperCase()!=='AVAILABLE'?'Status: '+u.status:u.crewId&&usedCrew.has(u.crewId)?'Shared crew committed':null;
-   if(reason){rejected.push({id:u.id,reason});continue}
-   if(matches.length>=need)continue;
-   chosen.add(u.id);if(u.crewId)usedCrew.add(u.crewId);
-   matches.push(u.id);
+  const tryUnit=(u,why)=>{
+   if(selected.length>=need)return;
+   const reason=eligibility(u);
+   if(reason){rejected.push({id:u.id,reason});trace.push(u.id+' skipped: '+reason);return}
+   selected.push(u.id);chosen.add(u.id);if(u.crewId)usedCrew.add(u.crewId);
+   trace.push(u.id+' selected via '+why);
+  };
+  for(const step of rule){
+   if(selected.length>=need)break;
+   const value=String(step.value||'').trim(),kind=step.kind;
+   if(kind==='CLOSEST'){trace.push('CLOSEST not evaluated: no verified travel-time calculation');continue}
+   let found=[];
+   if(kind==='UNIT')found=pool.filter(u=>String(u.id).toUpperCase()===value.toUpperCase());
+   if(kind==='EITHER'){const ids=value.toUpperCase().split(',').map(x=>x.trim()).filter(Boolean);found=ids.map(id=>pool.find(u=>String(u.id).toUpperCase()===id)).filter(Boolean)}
+   if(kind==='LOCATION')found=pool.filter(u=>String(u.location||'').toUpperCase().includes(value.toUpperCase()));
+   if(!found.length)trace.push(kind+' '+value+': no matching '+request.type+' units');
+   for(const u of found){if(selected.length>=need)break;tryUnit(u,kind+' '+value)}
   }
-  rows.push({type:request.type,need,selected:matches,rejected,short:Math.max(0,need-matches.length),rule:rule.length?rule.map(x=>x.kind+' '+x.value).join(' → '):'Default roster order'});
+  // The current prototype has no geographic distance calculation. When rules
+  // cannot fill a request, explicitly use an unordered roster fallback.
+  if(selected.length<need){
+   trace.push('Using unranked demo-roster fallback for '+(need-selected.length)+' remaining resource(s)');
+   for(const u of pool){if(selected.length>=need)break;if(chosen.has(u.id))continue;tryUnit(u,'roster fallback')}
+  }
+  rows.push({type:request.type,need,selected,rejected,short:Math.max(0,need-selected.length),trace,rule:rule.length?rule.map(x=>x.kind+' '+(x.value||'')).join(' → '):'No configured preference'});
  }
  return rows;
 }
@@ -119,7 +136,7 @@ function drawTest(plan){
  '<p>Read-only demo roster check. No units dispatched. Unit types without a master definition are inferred from designators for demo purposes. Staffing qualifications, travel time, and actual geographic closest-unit calculations are not verified.</p>'+
  rows.map(r=>'<div style="border:1px solid #36536c;border-radius:8px;padding:10px;margin:8px 0"><strong>'+escape(r.type)+' · '+r.selected.length+'/'+r.need+'</strong> — '+(r.selected.length?'Selected: '+escape(r.selected.join(', ')):'No eligible units selected')+
  (r.short?' <strong style="color:#ffb17c">Short '+r.short+'</strong>':'')+'<div style="font-size:12px;color:#a9bfd0">Run order: '+escape(r.rule)+'</div>'+
- (r.rejected.length?'<div style="font-size:12px;color:#a9bfd0">Excluded: '+r.rejected.map(x=>escape(x.id+' ('+x.reason+')')).join('; ')+'</div>':'')+'</div>').join('');
+ (r.rejected.length?'<div style="font-size:12px;color:#a9bfd0">Excluded: '+r.rejected.map(x=>escape(x.id+' ('+x.reason+')')).join('; ')+'</div>':'')+'<details><summary>Why these units?</summary><ol>'+r.trace.map(t=>'<li>'+escape(t)+'</li>').join('')+'</ol></details></div>').join('');
 }
 function edit(id){
  const p=plans.find(x=>x.id===id);
@@ -154,12 +171,12 @@ function edit(id){
   const types=[...new Set(resources.map(x=>x.type))];
   el('rpRunOrders').innerHTML=types.map(type=>'<section class="rp-run-group" data-run-type="'+escape(type)+'"><h4>'+escape(type)+'</h4>'+
    (runOrders[type]||[]).map((step,i)=>'<div class="rp-run-step" draggable="true" data-step="'+i+'"><span class="rp-run-grip" title="Drag to reorder">⠿</span><strong>'+(i+1)+'</strong><select data-run-kind="'+i+'"><option value="UNIT" '+(step.kind==='UNIT'?'selected':'')+'>Specific unit</option><option value="EITHER" '+(step.kind==='EITHER'?'selected':'')+'>Either unit</option><option value="LOCATION" '+(step.kind==='LOCATION'?'selected':'')+'>Station / beat</option><option value="CLOSEST" '+(step.kind==='CLOSEST'?'selected':'')+'>Closest (placeholder)</option></select><input data-run-value="'+i+'" value="'+escape(step.value||'')+'" placeholder="E1, or E1,E2, or Station 1"><button data-run-remove="'+i+'" type="button">Remove</button></div>').join('')+
-   '<button data-run-add type="button">+ Add run-order step</button></section>').join('');
+   '<button data-run-add type="button">+ Add run-order step</button><p class="rp-rule-explain" style="font-size:12px;color:#a9bfd0">'+escape((runOrders[type]||[]).map((step,i)=>(i+1)+'. '+({UNIT:'Prefer unit',EITHER:'Choose first eligible from',LOCATION:'Prefer units at',CLOSEST:'Closest eligible unit (not yet implemented)'}[step.kind]||step.kind)+' '+(step.value||'')).join(' · ')||'No preference set; use demo roster order')+'</p></section>').join('');
   el('rpRunOrders').querySelectorAll('[data-run-type]').forEach(group=>{
    const type=group.dataset.runType;
    group.querySelector('[data-run-add]').onclick=()=>{(runOrders[type]??=[]).push({kind:'UNIT',value:''});drawOrders()};
-   group.querySelectorAll('[data-run-kind]').forEach(x=>x.onchange=()=>{runOrders[type][Number(x.dataset.runKind)].kind=x.value});
-   group.querySelectorAll('[data-run-value]').forEach(x=>x.oninput=()=>{runOrders[type][Number(x.dataset.runValue)].value=x.value});
+   group.querySelectorAll('[data-run-kind]').forEach(x=>x.onchange=()=>{runOrders[type][Number(x.dataset.runKind)].kind=x.value;drawOrders()});
+   group.querySelectorAll('[data-run-value]').forEach(x=>x.oninput=()=>{runOrders[type][Number(x.dataset.runValue)].value=x.value;const explain=group.querySelector('.rp-rule-explain');if(explain)explain.textContent=runOrders[type].map((step,i)=>(i+1)+'. '+step.kind+' '+(step.value||'')).join(' · ')});
    group.querySelectorAll('[data-run-remove]').forEach(x=>x.onclick=()=>{runOrders[type].splice(Number(x.dataset.runRemove),1);drawOrders()});
    let from=null;
    group.querySelectorAll('[data-step]').forEach(node=>{
