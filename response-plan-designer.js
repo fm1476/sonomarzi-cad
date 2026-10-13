@@ -7,7 +7,7 @@ const root=document.getElementById('cadResponseDesigner');if(!root)return;
 const el=id=>document.getElementById(id);
 const save=()=>{localStorage.setItem(KEY,JSON.stringify(plans));localStorage.setItem(CREWS,JSON.stringify(crews))};
 const escape=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-let discipline='FIRE',agency='',zone='',zoneMap=null,zoneOverlay=null,zoneAbort=null,mapObserver=null;
+let selectedCrewId=null;let discipline='FIRE',agency='',zone='',zoneMap=null,zoneOverlay=null,zoneAbort=null,mapObserver=null;
 const INITIAL_CENTER=[38.2448,-122.6400], INITIAL_ZOOM=13;
 const gis={FIRE:{url:'https://maps.cityofpetaluma.net/mapping/rest/services/Fire/FireWebApp_MIL/MapServer/11',field:'ESZ_NUM'},EMS:{url:'https://maps.cityofpetaluma.net/mapping/rest/services/Fire/FireWebApp_MIL/MapServer/11',field:'ESZ_NUM'},LAW:{url:'https://maps.cityofpetaluma.net/mapping/rest/services/Police/DistrictPolicing_Public_MIL1/FeatureServer/1',field:'PD_BEAT'}};
 function render(){
@@ -73,10 +73,10 @@ function showCrews(){
  const owned=crews.filter(g=>g.agency===agency);
  const vehicle=id=>{const d=defs.find(x=>x.designator===id);const type=d?.resourceType||'';const icon=window.CadResourceTypes?.iconFor(agency,d?.discipline||discipline,type);return icon&&window.CadVehicleIcons?.items.some(x=>x.id===icon)?window.CadVehicleIcons.svg(icon):'🚒'};
  host.innerHTML='<div class="rp-crew-workspace"><section class="rp-crew-library"><h4>Apparatus library</h4><p>Drag a unit into a crew card, or select a card and click the unit.</p><div class="rp-crew-pills">'+unitIds.map(id=>'<button type="button" draggable="true" class="rp-crew-pill" data-crew-source="'+escape(id)+'">'+vehicle(id)+'<strong>'+escape(id)+'</strong></button>').join('')+'</div><h4>Personnel library</h4><p>Personnel assignments here are planning assignments, not shift sign-on.</p><div class="rp-crew-pills">'+personnel.map(x=>'<button type="button" draggable="true" class="rp-crew-pill" data-person-source="'+escape(x.id)+'">👤 '+escape(x.name)+'</button>').join('')+'</div></section><section class="rp-crew-board"><div class="rp-crew-board-header"><h4>Shared crew groups</h4><button type="button" id="rpCrewNewVisual">+ New crew</button></div><div id="rpCrewCards">'+owned.map(g=>'<article class="rp-crew-card" data-crew-target="'+escape(g.id)+'"><div class="rp-crew-card-header"><strong>'+escape(g.name)+'</strong><button type="button" data-crew-delete="'+escape(g.id)+'">Remove</button></div><div class="rp-crew-pills">'+(g.units||[]).map(id=>'<span class="rp-crew-assigned">'+vehicle(id)+' '+escape(id)+' <button type="button" data-crew-unassign="'+escape(g.id)+'" data-unit="'+escape(id)+'" aria-label="Remove '+escape(id)+'">×</button></span>').join('')+'</div><div class="rp-crew-personnel"><strong>Planned personnel</strong><div class="rp-crew-pills">'+(g.personIds||[]).map(id=>'<span class="rp-crew-assigned">👤 '+escape(personnel.find(p=>p.id===id)?.name||id)+' <button type="button" data-person-unassign="'+escape(g.id)+'" data-person="'+escape(id)+'">×</button></span>').join('')+'</div></div><small>Drop apparatus or personnel here. A crew may operate only one apparatus at a time.</small></article>').join('')+'</div></section></div>';
- let selected=owned[0]?.id||null;
+ let selected=owned.some(g=>g.id===selectedCrewId)?selectedCrewId:(owned[0]?.id||null);
  const change=(id,kind)=>{const group=crews.find(g=>g.id===selected);if(!group)return msg('Create a crew group first.');if(kind==='unit'){if(crews.some(g=>g.id!==group.id&&(!g.agency||g.agency===agency)&&(g.units||[]).includes(id)))return msg(id+' already belongs to another crew.');group.units=[...new Set([...(group.units||[]),id])]}else{if(crews.some(g=>g.id!==group.id&&g.agency===agency&&(g.personIds||[]).includes(id)))return msg('Personnel already assigned to another planned crew.');group.personIds=[...new Set([...(group.personIds||[]),id])]}save();showCrews()};
- host.querySelector('#rpCrewNewVisual').onclick=()=>{const name=prompt('Crew group name (for example, Station 1 shared crew)')?.trim();if(!name)return;crews.push({id:crypto.randomUUID(),agency,name,units:[],personIds:[]});selected=crews[crews.length-1].id;save();showCrews();msg('Crew group created. Drag apparatus and personnel into its card.')};
- host.querySelectorAll('[data-crew-target]').forEach(card=>{card.onclick=e=>{if(e.target.closest('button'))return;selected=card.dataset.crewTarget;host.querySelectorAll('[data-crew-target]').forEach(c=>c.classList.toggle('rp-crew-selected',c===card))};card.ondragover=e=>{e.preventDefault();card.classList.add('rp-crew-hover')};card.ondragleave=()=>card.classList.remove('rp-crew-hover');card.ondrop=e=>{e.preventDefault();card.classList.remove('rp-crew-hover');selected=card.dataset.crewTarget;const data=e.dataTransfer.getData('text/plain');if(data.startsWith('crew-unit:'))change(data.slice(10),'unit');if(data.startsWith('crew-person:'))change(data.slice(12),'person')}});
+ host.querySelector('#rpCrewNewVisual').onclick=()=>{const name=prompt('Crew group name (for example, Station 1 shared crew)')?.trim();if(!name)return;crews.push({id:crypto.randomUUID(),agency,name,units:[],personIds:[]});selectedCrewId=crews[crews.length-1].id;save();showCrews();msg('Crew group created. Drag apparatus and personnel into its card.')};
+ host.querySelectorAll('[data-crew-target]').forEach(card=>{card.onclick=e=>{if(e.target.closest('button'))return;selected=card.dataset.crewTarget;selectedCrewId=selected;host.querySelectorAll('[data-crew-target]').forEach(c=>c.classList.toggle('rp-crew-selected',c===card))};card.ondragover=e=>{e.preventDefault();card.classList.add('rp-crew-hover')};card.ondragleave=()=>card.classList.remove('rp-crew-hover');card.ondrop=e=>{e.preventDefault();card.classList.remove('rp-crew-hover');selected=card.dataset.crewTarget;selectedCrewId=selected;const data=e.dataTransfer.getData('text/plain');if(data.startsWith('crew-unit:'))change(data.slice(10),'unit');if(data.startsWith('crew-person:'))change(data.slice(12),'person')}});
  host.querySelectorAll('[data-crew-source]').forEach(b=>{b.ondragstart=e=>e.dataTransfer.setData('text/plain','crew-unit:'+b.dataset.crewSource);b.onclick=()=>change(b.dataset.crewSource,'unit')});
  host.querySelectorAll('[data-person-source]').forEach(b=>{b.ondragstart=e=>e.dataTransfer.setData('text/plain','crew-person:'+b.dataset.personSource);b.onclick=()=>change(b.dataset.personSource,'person')});
  host.querySelectorAll('[data-crew-delete]').forEach(b=>b.onclick=()=>{if(!confirm('Remove this shared crew group?'))return;crews=crews.filter(g=>g.id!==b.dataset.crewDelete);save();showCrews()});
@@ -100,7 +100,7 @@ const RESOURCE_TYPES={
 function testPlan(plan,overrides={}){
  const master=(()=>{try{return window.CadAgencyMaster?.read(localStorage)||{units:[]}}catch{return {units:[]}}})();
  const roster=window.cadSafetyState?.().units||[];
- const chosen=new Set(),usedCrew=new Set(),rows=[];
+ const chosen=new Set(),usedCrew=new Set(),usedPersonnel=new Set(),rows=[];
  const infer=u=>{
   const id=String(u.id||'').toUpperCase();
   if(u.discipline==='LAW')return /K9/.test(id)?'K9':/MOTOR|M[0-9]/.test(id)?'MOTOR':'PATROL';
@@ -117,7 +117,7 @@ function testPlan(plan,overrides={}){
   const group=crews.find(g=>(!g.agency||g.agency===u.agency)&&g.units.some(id=>id.toUpperCase()===String(u.id).toUpperCase()));
   return {...u,status:overrides[u.id]?.status||u.status,simStaff:overrides[u.id]?.staff,resourceType:definition?.resourceType||infer(u),crewId:group?.id||null,definition};
  });
- const eligibility=u=>{if(chosen.has(u.id))return 'Already selected';if(String(u.status).toUpperCase()!=='AVAILABLE')return 'Status: '+u.status;if(u.crewId&&usedCrew.has(u.crewId))return 'Shared crew committed';const required=Number(u.definition?.minStaffing||0);if(required>0){if(u.simStaff===undefined||u.simStaff===null||u.simStaff==='')return 'Staffing unverified (requires '+required+')';if(Number(u.simStaff)<required)return 'Understaffed: '+u.simStaff+' of '+required+' required'}return null};
+ const eligibility=u=>{if(chosen.has(u.id))return 'Already selected';if(String(u.status).toUpperCase()!=='AVAILABLE')return 'Status: '+u.status;if(u.crewId&&usedCrew.has(u.crewId))return 'Shared crew committed';if(u.staffing?.active&&u.staffing.personIds?.some(id=>usedPersonnel.has(id)))return 'Signed-on personnel already committed';const required=Number(u.definition?.minStaffing||0);if(required>0){if(u.simStaff===undefined||u.simStaff===null||u.simStaff==='')return 'Staffing unverified (requires '+required+')';if(Number(u.simStaff)<required)return 'Understaffed: '+u.simStaff+' of '+required+' required'}return null};
  for(const request of plan.resources){
   const selected=[],rejected=[],trace=[];const need=Number(request.count)||0;
   const pool=candidates.filter(x=>x.resourceType===request.type);
@@ -126,7 +126,7 @@ function testPlan(plan,overrides={}){
    if(selected.length>=need)return;
    const reason=eligibility(u);
    if(reason){rejected.push({id:u.id,reason});trace.push(u.id+' skipped: '+reason);return}
-   selected.push(u.id);chosen.add(u.id);if(u.crewId)usedCrew.add(u.crewId);
+   selected.push(u.id);chosen.add(u.id);if(u.crewId)usedCrew.add(u.crewId);if(u.staffing?.active)for(const id of u.staffing.personIds||[])usedPersonnel.add(id);
    trace.push(u.id+' selected via '+why);
   };
   for(const step of rule){
