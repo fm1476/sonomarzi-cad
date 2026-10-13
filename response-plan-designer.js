@@ -24,7 +24,7 @@ function render(){
 }
 function initZoneMap(){
  if(!window.L){msg('Map library unavailable. Zone IDs can still be entered manually.');return}
- zoneMap=L.map('rpZoneMap',{scrollWheelZoom:false}).setView([38.2324,-122.6367],12);
+ zoneMap=L.map('rpZoneMap',{scrollWheelZoom:false}).setView([38.2324,-122.6367],13);
  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap contributors'}).addTo(zoneMap);
  zoneOverlay=L.geoJSON(null,{style:f=>({color:zone===featureZone(f)?'#f7d66b':'#5cb3e6',weight:zone===featureZone(f)?3:1.2,fillColor:'#50a2d4',fillOpacity:.12}),onEachFeature:(f,layer)=>{
  const id=featureZone(f);layer.bindTooltip(id||'Unnamed area',{sticky:true});
