@@ -843,3 +843,31 @@ button.rp-crew-pill:hover{border-color:#80c8f0;background:#28516f}
 .rp-crew-personnel{border-top:1px solid #34536d;padding-top:10px;margin-top:12px}
 .rp-crew-personnel strong{font-size:12px;color:#bad7e9}
 @media(max-width:900px){.rp-crew-workspace{grid-template-columns:minmax(0,1fr)}}
+
+/* Station and facility configuration */
+.cad-station-header{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:14px}
+.cad-station-header h3{margin:0 0 5px}
+.cad-station-header p,.cad-station-hint{color:#a9c4d7;font-size:12px}
+.cad-station-header button,.cad-station-actions button,#sfMoveOrder{border:1px solid #5b94b5;background:#1b5778;color:#f4fbff;border-radius:9px;padding:10px 14px;cursor:pointer}
+.cad-station-layout{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(300px,.8fr);gap:18px}
+.cad-station-map{height:380px;border:1px solid #42617c;border-radius:13px;overflow:hidden;background:#132e43}
+.cad-station-editor{background:linear-gradient(155deg,#10283d,#142f46);border:1px solid #355a76;border-radius:14px;padding:18px;min-width:0}
+.cad-station-editor h4{margin:0 0 12px}
+.cad-station-editor label{display:block;margin:9px 0}
+.cad-station-editor input,.cad-station-editor select{width:100%;box-sizing:border-box}
+.cad-station-coords{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.cad-station-actions{display:flex;gap:8px;margin:12px 0}
+.cad-station-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;margin-top:16px}
+button.cad-station-card{width:100%;text-align:left;display:flex;flex-direction:column;gap:12px;background:#16364c;border:1px solid #3a627f;border-radius:12px;padding:14px;color:#eaf6ff;cursor:pointer}
+button.cad-station-card:hover,button.cad-station-card.is-selected{border-color:#81c7ef;background:#20465f}
+.cad-station-card small{display:block;color:#b1ccdf;margin-top:5px}
+.cad-station-status{display:inline-flex;align-self:flex-start;border-radius:30px;padding:5px 9px;font-size:11px;font-weight:700}
+.cad-station-status.is-covered{background:#184e44;color:#98f2c6}
+.cad-station-status.is-gap{background:#673b36;color:#ffbfad}
+.cad-station-unit{display:flex!important;justify-content:space-between;align-items:center;background:#1b3a50;border-radius:9px;padding:9px 12px}
+.cad-station-unit input{width:auto}
+.cad-station-unit small{color:#a9c4d7}
+.cad-station-move{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:10px;border-bottom:1px solid #34536d}
+.cad-station-move strong{margin-right:auto}
+.cad-station-move button{background:#245575;border:1px solid #547d99;color:#fff;border-radius:7px;padding:5px 8px;cursor:pointer}
+@media(max-width:950px){.cad-station-layout{grid-template-columns:minmax(0,1fr)}}
