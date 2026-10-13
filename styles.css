@@ -922,3 +922,7 @@ button.cad-station-card:hover,button.cad-station-card.is-selected{border-color:#
 .cad-gis-dataset button{background:#3c2733;border:1px solid #81556a;color:#f7ceda;border-radius:8px;padding:8px 12px;cursor:pointer}
 .cad-gis-disclaimer{font-size:12px;line-height:1.6;color:#a2bacb;margin:16px 0 0}
 @media(max-width:600px){.cad-gis-import{grid-template-columns:1fr}.cad-gis-dialog{padding:16px}}
+
+.cad-gis-dialog .cad-gis-sync{display:block;width:100%;margin:15px 0 5px;padding:12px 15px;border:1px solid #399ac6;border-radius:10px;background:#153d5a;color:#e6f5ff;font-size:13px;font-weight:800;cursor:pointer;text-align:center}
+.cad-gis-dialog .cad-gis-sync:hover{background:#1b5174}
+.cad-gis-dialog .cad-gis-sync:disabled{opacity:.6;cursor:wait}
