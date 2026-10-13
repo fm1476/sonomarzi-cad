@@ -243,7 +243,7 @@ function render(){
  $('#pendingCount').textContent=`(${pending.length})`; $('#activeCount').textContent=`(${active.length})`;
  if(window.cadBoardRender){window.cadBoardRender('pending',pending);window.cadBoardRender('active',active);window.cadBoardRender('units',window.CadDiscipline.filterUnits(state.units,filter));}
  else {$('#pending').innerHTML=pending.map(row).join('')||'<div class="row muted">No pending incidents</div>';$('#activeCalls').innerHTML=active.map(row).join('')||'<div class="row muted">No active incidents</div>';$('#units').innerHTML=state.units.map(u=>`<div class="unit"><b>${u.id}</b><span>${u.agency}</span><span>${u.status}</span></div>`).join('');}
- $('.row[data-id]').forEach(el=>el.onclick=()=>{state.selected=el.dataset.id;render()});
+ document.querySelectorAll('.row[data-id]').forEach(el=>{el.onclick=()=>{state.selected=el.dataset.id;render();};});
  renderDetail(); window.cadDispatchInfoRefresh?.(); (window.renderMap||renderMap)();
 }
 function row(i){return `<div class="row ${state.selected===i.id?'selected':''}" data-id="${escapeCad(i.id)}"><span class="prio ${String(i.priority).toLowerCase()}">${escapeCad(i.priority)}<br><span class="meta">${escapeCad(i.id)}</span></span><span><b>${escapeCad(i.type)}</b>${i.alarmLevel?`<span class="cad-alarm-chip">${escapeCad(i.alarmLevel)}</span>`:''}<div>${escapeCad(i.location)}</div><div class="meta">${escapeCad(i.agency)} • ${escapeCad(i.discipline)}</div></span><span>${escapeCad(i.units.join(', ')||'—')}<div class="meta">${i.caseNumber?'Case '+escapeCad(i.caseNumber):'No case number'}</div></span></div>`}
