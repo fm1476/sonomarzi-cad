@@ -13,7 +13,7 @@ const app=fs.readFileSync(path.join(__dirname,'..','app.js'),'utf8');
 const clear=app.slice(app.indexOf('function clearCadUnit('),app.indexOf('function toast(t)'));
 // Limit evaluation to the clear routine (the intervening code also contains incident linking helpers).
 const fn=clear.slice(0,clear.indexOf('\nfunction cadIncidentFamily('));
-const stateCtx={now:()=>'12:00:00',event:(i,m)=>i.events.push(m)};vm.createContext(stateCtx);vm.runInContext(fn,stateCtx);
+const stateCtx={now:()=>'12:00:00',event:(i,m)=>i.events.push(m),window:{}};vm.createContext(stateCtx);vm.runInContext(fs.readFileSync(path.join(__dirname,'..','core','unit-commands.js'),'utf8'),stateCtx);vm.runInContext(fn,stateCtx);
 const police={id:'26-004518',status:'ACTIVE',units:['3A21'],events:[]};
 const fire={id:'26-004526',status:'ACTIVE',units:['E1'],events:[]};
 const engine={id:'E1',status:'ONSCENE',location:'725 D St'};
