@@ -211,7 +211,7 @@ function renderDetail(){
  if(i.callTakeNewInfoAt)window.cadDispatchInfoRead?.(i.id,i.callTakeNewInfoAt);
  $('#detail').innerHTML=`<div class="detailwrap"><div class="detailhead"><div><b>${i.id} • ${i.type}</b><div>${escapeCad(window.cadCommonPlaces?.resolve(i.location)?.name||'')}${window.cadCommonPlaces?.resolve(i.location)?' · ':''}${escapeCad(i.location)}</div><div class="meta">${i.agency} • ${i.discipline} • ${i.priority} • Case: ${escapeCad(i.caseNumber||'Not assigned')}</div>${cadLinkedNavigation(i)}</div><b>${i.status}</b></div>
  <div class="actions">${i.status==='PENDING'?'<button data-act="activate">Activate</button>':''}<button data-act="plan">Response Plan / Recommendations</button><button data-act="assign">Quick Assign</button><button data-act="manage">Dispatch / Manage Units</button><button data-act="edit">Edit Event / Location</button><button data-act="case">Set Case #</button><button data-act="note">Add Narrative</button>${i.status!=='CLOSED'?'<button data-act="close">Clear Event</button>':''}</div>
- <div><b>Units:</b> ${i.units.join(', ')||'None'}</div><div id="cadIncidentZoneInfo"></div><div id="cadIncidentPlanRecommendations"></div>${window.CadAlarmLevels?.renderIncident(i)||''}${window.voiceDetailHtml ? window.voiceDetailHtml(i) : `<div class="narr">${i.narrative.join('<br>')}</div>`}<h3>Event History</h3><div class="timeline">${i.events.slice().reverse().map(e=>`<div>${e}</div>`).join('')||'<div>No events yet.</div>'}</div></div>`;
+ <div><b>Units:</b> ${i.units.join(', ')||'None'}</div><div id="cadLocationHistory"><strong>Event locations</strong><div>${cadLocationHistory(i).map(l=>'<div>'+escapeCad(l.role)+' · '+escapeCad(l.address)+' · '+escapeCad(l.source)+' · '+escapeCad(l.recordedAt)+'</div>').join('')}</div>${i.locationAdvisory?.pendingUnits?.length?'<div style="color:#ffc778">Location correction: notify / acknowledge '+escapeCad(i.locationAdvisory.pendingUnits.join(', '))+'</div>':''}</div><div id="cadIncidentZoneInfo"></div><div id="cadIncidentPlanRecommendations"></div>${window.CadAlarmLevels?.renderIncident(i)||''}${window.voiceDetailHtml ? window.voiceDetailHtml(i) : `<div class="narr">${i.narrative.join('<br>')}</div>`}<h3>Event History</h3><div class="timeline">${i.events.slice().reverse().map(e=>`<div>${e}</div>`).join('')||'<div>No events yet.</div>'}</div></div>`;
  $$('#detail [data-act]').forEach(b=>b.onclick=()=>detailAction(i,b.dataset.act)); $$('#detail [data-linked-incident]').forEach(b=>b.onclick=()=>{state.selected=b.dataset.linkedIncident;render();}); if(window.CadResponsePlans){const panel=document.getElementById('cadIncidentPlanRecommendations');const result=window.CadResponsePlans.recommendIncident(i);if(panel){const esc=escapeCad;panel.innerHTML='<section class="cad-plan-recommendation"><strong>Response Plan Recommendations</strong><p>'+esc(result.message)+'</p>'+(result.status==='ready'?'<p>Published plan: '+esc(result.plan.type)+' · Zone '+esc(result.plan.zone)+' · '+esc(result.plan.level||'Standard')+'</p>'+result.rows.map(r=>'<div><strong>'+esc(r.type)+'</strong>: '+esc(r.selected.join(', ')||'No additional eligible units')+' · Plan '+r.requested+' / Assigned '+r.already+' / Needed '+r.need+(r.short?' / Short '+r.short:'')+'</div>').join(''):'')+'</section>'}}if(window.CadResponsePlans){const panel=document.getElementById('cadIncidentPlanRecommendations');if(panel){const result=window.CadResponsePlans.recommendIncident(i);if(result.status==='ready'){const b=document.createElement('button');b.type='button';b.textContent='Dispatch recommended units';b.onclick=()=>{const preview=window.CadPlanDispatch?.preview(i);if(!preview?.ok){alert(preview?.message||'Unable to dispatch');return;}if(!confirm('Dispatch '+preview.units.join(', ')+' to '+i.id+'?\\n'+preview.message))return;const outcome=window.CadPlanDispatch.commit(i,preview);if(!outcome.ok)alert(outcome.message);};panel.appendChild(b)}}}{const zonePanel=document.getElementById('cadIncidentZoneInfo');if(zonePanel){const zones=[['Fire / EMS ESZ',i.esz],['Police beat',i.beat],['Response zone',i.responseZone||i.zone]].filter(x=>x[1]);zonePanel.innerHTML='<section class="cad-response-area"><div class="cad-response-area-head"><div><div class="cad-eyebrow">LOCATION INTELLIGENCE</div><h3>Response areas</h3></div><span class="cad-zone-status '+(['GIS_POINT_LOOKUP','GIS_AUTO_MATCH'].includes(i.responseZoneSource)?'verified':i.responseZoneReviewed?'reviewed':'unverified')+'">'+(i.responseZoneSource==='GIS_AUTO_MATCH'?'Auto GIS matched':i.responseZoneSource==='GIS_POINT_LOOKUP'?'GIS matched':i.responseZoneError?'GIS needs review':i.responseZoneReviewed?'Operator reviewed':'Not verified')+'</span></div><div class="cad-zone-grid"><div class="cad-zone-tile"><span>FIRE / EMS ESZ</span><strong>'+escapeCad(i.esz||'—')+'</strong></div><div class="cad-zone-tile"><span>POLICE BEAT</span><strong>'+escapeCad(i.beat||'—')+'</strong></div><div class="cad-zone-tile"><span>PLAN RESPONSE AREA</span><strong>'+escapeCad(i.responseZone||i.zone||'—')+'</strong></div></div><div class="cad-zone-toolbar"><button class="cad-zone-primary" id="cadLookupResponseZone" type="button">⌖ &nbsp; Find response areas</button><button class="cad-zone-secondary" id="cadManageLocalGIS" type="button">GIS datasets</button><details class="cad-zone-override"><summary>Manual override <span>⌄</span></summary><div class="cad-zone-override-body"><label for="cadManualResponseZone">Response zone or beat ID</label><input id="cadManualResponseZone" value="'+escapeCad(i.responseZone||i.zone||'')+'" placeholder="Enter zone ID"><div class="cad-zone-override-actions"><button id="cadSetResponseZone" type="button">Apply zone</button><button id="cadReviewResponseZone" type="button">Review zone</button></div><small>Operator-entered zones require review before plan dispatch.</small></div></details></div></section>';document.getElementById('cadManageLocalGIS').onclick=()=>window.CadLocalGISAdmin?.open();document.getElementById('cadLookupResponseZone').onclick=async()=>{const button=document.getElementById('cadLookupResponseZone');button.disabled=true;button.textContent='Looking up GIS zones…';try{const result=await window.CadIncidentZones.lookup(i.location,i.discipline);if(!result.ok){alert(result.message);return}const lines=Object.entries(result.zones).map(([k,v])=>k+': '+v);if(!confirm('Address candidate: '+result.address+'\\n'+lines.join('\\n')+'\\n\\nConfirm this location and apply GIS-derived areas to '+i.id+'?'))return;if(i.location!==result.original){alert('Incident location changed. Run lookup again.');return}i.esz=result.zones.esz||null;i.beat=result.zones.beat||null;i.responseZone=i.discipline==='LAW'?i.beat:i.esz;i.responseZoneSource='GIS_POINT_LOOKUP';i.responseZoneReviewed=true;i.responseZoneError=null;i.responseZoneLookup={address:result.address,lat:result.lat,lon:result.lon,at:new Date().toISOString(),original:i.discipline+'|'+i.location,source:result.source==='LOCAL_GEOJSON'?'ArcGIS geocode + local GeoJSON':'ArcGIS geocode + Petaluma GIS'};event(i,'RESPONSE_ZONE_GIS_LOOKUP '+lines.join(' '));save()}catch(error){alert('GIS lookup failed: '+error.message)}finally{button.disabled=false;button.textContent='Look up ESZ / beat from address'}};document.getElementById('cadReviewResponseZone').onclick=()=>{if(i.responseZoneSource!=='MANUAL_UNVERIFIED'){alert('No operator-entered zone awaiting review.');return}if(!confirm('Confirm you independently checked the incident location and jurisdiction for response zone '+i.responseZone+'? This is an operator review, not GIS verification.'))return;i.responseZoneReviewed=true;event(i,'RESPONSE_ZONE_OPERATOR_REVIEW '+i.responseZone);save()};document.getElementById('cadSetResponseZone').onclick=()=>{const entered=document.getElementById('cadManualResponseZone').value.trim();if(!entered){alert('Enter a response zone or beat.');return}if(!confirm('Set operator-entered response zone '+entered+' for '+i.id+'? Verify location and jurisdiction first.'))return;i.responseZone=entered;i.responseZoneSource='MANUAL_UNVERIFIED';i.responseZoneReviewed=false;event(i,'RESPONSE_ZONE_MANUAL '+entered);save()}}}if(window.voiceBindDetail)window.voiceBindDetail(i);window.CadAlarmLevels?.bindIncident(i);
 }
 // Shared event closure transaction. Requires disposition regardless of entry path.
@@ -237,16 +237,50 @@ window.cadCloseEvent=function(incident,disposition,source='MANUAL'){
  return {ok:true,message:`${incident.id} closed (${d}). ${released.length} unit(s) released.`};
 };
 
+function cadLocationRecord(i,address,role,source,verified){
+ return {id:'loc-'+Date.now()+'-'+Math.random().toString(36).slice(2,8),address:String(address||'').trim(),role,source,recordedAt:new Date().toISOString(),verified:!!verified?.ok,lat:verified?.lat??null,lon:verified?.lon??null,beat:verified?.zones?.beat||null,esz:verified?.zones?.esz||null};
+}
+function cadLocationHistory(i){
+ if(!Array.isArray(i.locations)||!i.locations.length)i.locations=[cadLocationRecord(i,i.location,'PRIMARY','INITIAL',i.responseZoneReviewed?{ok:true,lat:i.responseZoneLookup?.lat,lon:i.responseZoneLookup?.lon,zones:{beat:i.beat,esz:i.esz}}:null)];
+ return i.locations;
+}
+window.cadFindEventsByLocation=query=>{
+ const q=String(query||'').trim().toLowerCase();if(!q)return [];
+ return state.incidents.filter(i=>cadLocationHistory(i).some(l=>l.address.toLowerCase().includes(q))).map(i=>({id:i.id,type:i.type,status:i.status,currentLocation:i.location,locations:i.locations.filter(l=>l.address.toLowerCase().includes(q))}));
+};
+window.cadAddIncidentLocation=(id,address,role='RELATED',source='DISPATCH')=>{
+ const i=state.incidents.find(x=>x.id===id),value=String(address||'').trim();
+ if(!i||!value)return {ok:false,message:'Event and location required'};
+ const records=cadLocationHistory(i);records.push(cadLocationRecord(i,value,role,source,null));
+ event(i,'LOCATION_ADDED '+role+' '+value+' VIA '+source);save();return {ok:true};
+};
+window.cadUpdateIncidentFields=(id,updates,source='DISPATCH')=>{
+ const i=state.incidents.find(x=>x.id===id);if(!i||i.status==='CLOSED')return {ok:false,message:'Active event not found'};
+ const allowed=['type','priority','agency','discipline','caller','phone'];
+ for(const key of allowed)if(Object.hasOwn(updates,key)){
+  const next=String(updates[key]??'').trim();if((key==='type'||key==='priority'||key==='agency'||key==='discipline')&&!next)return {ok:false,message:key+' is required'};
+  if(key==='priority'&&!/^P[1-5]$/.test(next))return {ok:false,message:'Priority must be P1 through P5'};
+  if(key==='discipline'&&!['LAW','FIRE','EMS'].includes(next))return {ok:false,message:'Invalid discipline'};
+ }
+ for(const key of allowed)if(Object.hasOwn(updates,key)){
+  const next=String(updates[key]??'').trim();
+  if(String(i[key]??'')!==next){event(i,'FIELD_CHANGED '+key.toUpperCase()+' FROM '+String(i[key]??'')+' TO '+next+' VIA '+source);i[key]=next}
+ }
+ if(updates.narrative?.trim()){const note=updates.narrative.trim();i.narrative ||= [];i.narrative.push(note);event(i,'NARRATIVE_ADDED VIA '+source+' '+note)}
+ save();return {ok:true,message:'Event updated'};
+};
 function cadUpdateIncidentLocation(i,newLocation,source,verified){
  const previous=i.location,location=String(newLocation||'').trim();
  if(!location)return {ok:false,message:'Location is required'};
  if(previous===location&&!verified)return {ok:false,message:'Location unchanged'};
+ const records=cadLocationHistory(i);const oldPrimary=records.findLast?.(l=>l.role==='PRIMARY')||records.filter(l=>l.role==='PRIMARY').slice(-1)[0];if(oldPrimary)oldPrimary.role='PREVIOUS';records.push(cadLocationRecord(i,location,'PRIMARY',source,verified));
  i.location=location;i.beat=null;i.esz=null;i.responseZone=null;i.responseZoneReviewed=false;i.responseZoneLookup=null;i.responseZoneSource='UNVERIFIED';i.responseZoneError=null;
  if(verified?.ok){i.beat=verified.zones?.beat||null;i.esz=verified.zones?.esz||null;i.responseZone=i.discipline==='LAW'?i.beat:i.esz;i.responseZoneReviewed=true;i.responseZoneSource='GIS_POINT_LOOKUP';i.responseZoneLookup={address:verified.address,lat:verified.lat,lon:verified.lon,at:new Date().toISOString(),source:verified.source,original:i.discipline+'|'+location}}
  event(i,'LOCATION_CHANGED '+source+' FROM '+previous+' TO '+location+(verified?.ok?' GIS_VERIFIED':' NOT_VERIFIED'));
- if((i.units||[]).length)event(i,'LOCATION_CHANGE_NOTIFY_RESPONDING_UNITS');
+ if((i.units||[]).length){i.locationAdvisory={location,previous,at:new Date().toISOString(),pendingUnits:[...i.units],acknowledgedUnits:[]};event(i,'LOCATION_CHANGE_NOTIFY_RESPONDING_UNITS '+i.units.join(','));}
  save();return {ok:true,message:'Location updated'+(verified?.ok?' and GIS validated':' (not verified)')};
 }
+window.cadAcknowledgeLocation=(id,unitId)=>{const i=state.incidents.find(x=>x.id===id);if(!i?.locationAdvisory?.pendingUnits?.includes(unitId))return {ok:false};i.locationAdvisory.pendingUnits=i.locationAdvisory.pendingUnits.filter(x=>x!==unitId);i.locationAdvisory.acknowledgedUnits.push(unitId);event(i,'LOCATION_ADVISORY_ACK '+unitId);save();return {ok:true}};
 window.cadUpdateIncidentLocation=(id,location,source,verified)=>{
  const i=state.incidents.find(x=>x.id===id);return i?cadUpdateIncidentLocation(i,location,source||'MANUAL',verified):{ok:false,message:'Event not found'};
 };
@@ -263,6 +297,15 @@ function cadDispatchEdit(i){
  for(const name of options){const option=document.createElement('option');option.value=name;option.textContent=name;type.append(option)}
  type.value=i.type;typeLabel.append(type);form.append(typeLabel);
  const location=field('Location',i.location),caller=field('Caller',i.caller),phone=field('Phone',i.phone);
+ const priorityLabel=document.createElement('label');priorityLabel.textContent='Priority';priorityLabel.style.cssText='display:grid;gap:5px';
+ const priority=document.createElement('select');priority.style.cssText=type.style.cssText;
+ for(const p of ['P1','P2','P3','P4','P5']){const o=document.createElement('option');o.value=p;o.textContent=p;priority.append(o)}priority.value=i.priority||'P2';priorityLabel.append(priority);form.insertBefore(priorityLabel,location.parentElement);
+ const agency=field('Agency',i.agency);const disciplineLabel=document.createElement('label');disciplineLabel.textContent='Discipline';disciplineLabel.style.cssText='display:grid;gap:5px';
+ const discipline=document.createElement('select');discipline.style.cssText=type.style.cssText;
+ for(const d of ['LAW','FIRE','EMS']){const o=document.createElement('option');o.value=d;o.textContent=d;discipline.append(o)}discipline.value=i.discipline;disciplineLabel.append(discipline);form.append(disciplineLabel);
+ discipline.onchange=()=>{const selected=type.value;type.replaceChildren();for(const name of [...new Set([selected,...(defaultConfig.types?.[discipline.value]||[]),...(config.types?.[discipline.value]||[])])]){const o=document.createElement('option');o.value=name;o.textContent=name;type.append(o)}type.value=selected};
+ const note=field('Add narrative (optional)','');
+ const related=field('Add related location (optional)','');
  let verified=null;
  window.cadAddressPicker?.(location,()=>i.discipline,v=>{verified=v});
  const info=document.createElement('p');info.style.cssText='font-size:12px;color:#f4c68c';info.textContent='Unverified locations may be saved. Assigned units must be advised of location changes.';form.append(info);
@@ -272,8 +315,9 @@ function cadDispatchEdit(i){
  actions.append(saveButton,cancel);form.append(actions);dialog.append(heading,form);document.body.append(dialog);
  saveButton.onclick=()=>{
   if(!type.value.trim()||!location.value.trim()){info.textContent='Incident type and location are required.';info.style.color='#ff9898';return}
-  const newType=type.value.trim();if(i.type!==newType){event(i,'INCIDENT_TYPE_CHANGED FROM '+i.type+' TO '+newType);i.type=newType}
-  for(const [key,input] of [['caller',caller],['phone',phone]])if(i[key]!==input.value.trim()){i[key]=input.value.trim();event(i,key.toUpperCase()+'_UPDATED')}
+  const updated=window.cadUpdateIncidentFields(i.id,{type:type.value,priority:priority.value,agency:agency.value,discipline:discipline.value,caller:caller.value,phone:phone.value,narrative:note.value},'DISPATCH_EDITOR');
+  if(!updated.ok){info.textContent=updated.message;return}
+  if(related.value.trim())window.cadAddIncidentLocation(i.id,related.value.trim(),'RELATED','DISPATCH_EDITOR');
   if(location.value.trim()!==i.location||verified){cadUpdateIncidentLocation(i,location.value.trim(),'DISPATCH_EDITOR',verified?.result)}
   else save();
   dialog.close();toast('Event '+i.id+' updated');
