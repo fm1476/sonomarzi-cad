@@ -256,6 +256,14 @@ window.cadClassifyIncidentLocation=(id,locationId,classification,reason='')=>{
  entry.classificationHistory.push({from:old,to:classification,reason:String(reason),at:new Date().toISOString()});
  entry.role=classification;event(i,'LOCATION_RECLASSIFIED '+entry.address+' '+old+' TO '+classification+' REASON '+String(reason));save();return {ok:true};
 };
+function cadCallerParts(i){if(i.callerFirstName!==undefined||i.callerLastName!==undefined)return [i.callerFirstName||'',i.callerLastName||''];const words=String(i.caller||'').trim().split(/\s+/);return words.length===2?words:[String(i.caller||''),'']}
+window.cadSaveCaller=(id,first,last,address,same,verified)=>{
+ const i=state.incidents.find(x=>x.id===id);if(!i)return {ok:false};
+ const name=[first.trim(),last.trim()].filter(Boolean).join(' '),old=i.callerLocation||'',next=String(address||'').trim();
+ if(old!==next){if(next){cadLocationHistory(i).push(cadLocationRecord(i,next,'CALLER','DISPATCH_EDITOR',verified));}event(i,'CALLER_LOCATION_CHANGED FROM '+(old||'(none)')+' TO '+(next||'(none)'));}
+ if(i.caller!==name)event(i,'CALLER_NAME_CHANGED FROM '+(i.caller||'')+' TO '+name);
+ i.callerFirstName=first.trim();i.callerLastName=last.trim();i.caller=name;i.callerLocation=next;i.callerSameAsEvent=!!same;save();return {ok:true};
+};
 window.cadConfiguredTypes=discipline=>[...new Set([...(defaultConfig.types?.[discipline]||[]),...(config.types?.[discipline]||[])])];
 window.cadFindEventsByLocation=query=>{
  const q=String(query||'').trim().toLowerCase();if(!q)return [];
@@ -310,7 +318,16 @@ function cadDispatchEdit(i){
  const options=[...new Set([i.type,...(defaultConfig.types?.[i.discipline]||[]),...(config.types?.[i.discipline]||[])].filter(Boolean))];
  for(const name of options){const option=document.createElement('option');option.value=name;option.textContent=name;type.append(option)}
  type.value=i.type;typeLabel.append(type);form.append(typeLabel);
- const location=field('Primary location',i.location),caller=field('Caller',i.caller),phone=field('Phone',i.phone);location.parentElement.style.gridColumn='1 / -1';
+ const location=field('Primary location',i.location);location.parentElement.style.gridColumn='1 / -1';
+ const [firstName,lastName]=cadCallerParts(i);
+ const callerFirst=field('Caller first name',firstName),callerLast=field('Caller last name',lastName),phone=field('Caller phone',i.phone);
+ const callerLocation=field('Caller location',i.callerLocation||'');callerLocation.parentElement.style.gridColumn='1 / -1';
+ const sameRow=document.createElement('label');sameRow.style.cssText='grid-column:1 / -1;display:flex;align-items:center;gap:10px;color:#c9e3f3;font-size:13px';
+ const sameLocation=document.createElement('input');sameLocation.type='checkbox';sameLocation.checked=!!i.callerSameAsEvent;sameLocation.style.cssText='width:18px;height:18px;accent-color:#3198ee';
+ sameRow.append(sameLocation,document.createTextNode('Caller is at the same location as the event'));form.append(sameRow);
+ let callerVerified=null;window.cadAddressPicker?.(callerLocation,()=>i.discipline,v=>{callerVerified=v});
+ const syncCaller=()=>{callerLocation.readOnly=sameLocation.checked;if(sameLocation.checked){callerLocation.value=location.value;callerVerified=null}callerLocation.style.opacity=sameLocation.checked?'.7':'1'};
+ sameLocation.onchange=syncCaller;location.addEventListener('input',()=>{if(sameLocation.checked)syncCaller()});syncCaller();
  const priorityLabel=document.createElement('label');priorityLabel.textContent='Priority';priorityLabel.style.cssText=typeLabel.style.cssText;
  const priority=document.createElement('select');priority.style.cssText=type.style.cssText;
  for(const p of ['P1','P2','P3','P4','P5']){const o=document.createElement('option');o.value=p;o.textContent=p;priority.append(o)}priority.value=i.priority||'P2';priorityLabel.append(priority);form.insertBefore(priorityLabel,location.parentElement);
@@ -330,11 +347,12 @@ function cadDispatchEdit(i){
  actions.append(saveButton,cancel);form.append(actions);dialog.append(heading,form);document.body.append(dialog);
  saveButton.onclick=()=>{
   if(!type.value.trim()||!location.value.trim()){info.textContent='Incident type and location are required.';info.style.color='#ff9898';return}
-  const updated=window.cadUpdateIncidentFields(i.id,{type:type.value,priority:priority.value,agency:agency.value,discipline:discipline.value,caller:caller.value,phone:phone.value,narrative:note.value},'DISPATCH_EDITOR');
+  const updated=window.cadUpdateIncidentFields(i.id,{type:type.value,priority:priority.value,agency:agency.value,discipline:discipline.value,phone:phone.value,narrative:note.value},'DISPATCH_EDITOR');
   if(!updated.ok){info.textContent=updated.message;return}
+  if(location.value.trim()!==i.location)cadUpdateIncidentLocation(i,location.value.trim(),'DISPATCH_EDITOR',verified?.result);
+  window.cadSaveCaller(i.id,callerFirst.value,callerLast.value,sameLocation.checked?location.value:callerLocation.value,sameLocation.checked,sameLocation.checked?verified?.result:callerVerified?.result);
   if(related.value.trim())window.cadAddIncidentLocation(i.id,related.value.trim(),'RELATED','DISPATCH_EDITOR',relatedVerified?.result||null);
-  if(location.value.trim()!==i.location){cadUpdateIncidentLocation(i,location.value.trim(),'DISPATCH_EDITOR',verified?.result)}
-  else save();
+  save();
   dialog.close();toast('Event '+i.id+' updated');
  };
  dialog.addEventListener('close',()=>dialog.remove());dialog.showModal();
