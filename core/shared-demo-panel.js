@@ -1,4 +1,4 @@
-/* Optional read-only shared CAD board; local demo stays independent. */
+/* Optional shared CAD test controls; local dispatch workspace stays independent. */
 (()=>{'use strict';
  function boot(){
   const demoConfig=Object.freeze({url:'https://gtmdigvuwjyfpgpdjmph.supabase.co',publishableKey:'sb_publishable_h8InBmqS_gfcHbgdxGqF6A_s3cf5ShD',agencyId:'ec800f31-c030-438f-9d8f-51c70a75af95'});
@@ -21,6 +21,9 @@
   const shortages=$('cadSharedShortages');
   const counts=$('cadSharedCounts');
   let snapshot={incidents:[],roster:[],assignments:[]};
+  let refreshing=false;
+  let refreshTimer=null;
+  let lastSignature='';
   const option=(value,label)=>{const o=document.createElement('option');o.value=value;o.textContent=label;return o};
   function choose(select,items,format){
    const previous=select.value;select.replaceChildren();
@@ -72,22 +75,27 @@
    host.replaceChildren();
    for(const item of items){const tr=document.createElement('tr');for(const field of fields)cell(tr,item[field]);host.appendChild(tr)}
   }
-  async function refresh(){
-   if(!window.CadDemoLogin.current()){say('Sign in to load shared data.');return}
+  async function refresh({quiet=false}={}){
+   if(refreshing)return;
+   if(!window.CadDemoLogin.current()){if(!quiet)say('Sign in to load shared data.');return}
+   refreshing=true;
    const client=window.CadDemoLogin.client();
    const agency=window.CadDemoLogin.current().agencyId;
-   say('Refreshing shared CAD data…');
+   if(!quiet)say('Refreshing shared CAD data…');
    try{
     const [incidents,roster,missing,assignments]=await Promise.all([
      client.listIncidents(agency),client.listUnits(agency),client.listOutstanding(agency),client.listAssignments(agency)
     ]);
+    const signature=JSON.stringify({incidents,roster,missing,assignments});
+    const changed=lastSignature!==''&&lastSignature!==signature;
+    lastSignature=signature;
     snapshot={incidents,roster,assignments};syncChoices();
     displayRows(tbody,incidents,['incident_number','status','discipline','created_at']);
     displayRows(units,roster,['call_sign','status','resource_type']);
     displayRows(shortages,missing,['incident_id','resource_type','missing_count']);
     text(counts,incidents.length+' incidents · '+roster.length+' units · '+missing.length+' resource shortages');
-    say('Shared CAD snapshot loaded. Read-only preview; local demo actions are not synchronized.');
-   }catch(error){say(error.message)}
+    if(!quiet||changed)say(changed?'Shared CAD updated from another dispatcher. Local workspace remains separate.':'Shared CAD snapshot loaded. Local workspace remains separate.');
+   }catch(error){say(error.message)}finally{refreshing=false}
   }
   form.addEventListener('submit',async event=>{
    event.preventDefault();
@@ -100,10 +108,14 @@
     text($('cadSharedSignedIn'),result.username);text(headerUser,result.username);toggle.classList.add('is-connected');
     setOpen(false);
     await refresh();
+    if(refreshTimer)clearInterval(refreshTimer);
+    refreshTimer=setInterval(()=>{if(window.CadDemoLogin.current()&&document.visibilityState!=='hidden')refresh({quiet:true})},4000);
    }catch(error){say(error.message)}finally{submit.disabled=false}
   });
-  $('cadSharedRefresh').addEventListener('click',refresh);
+  $('cadSharedRefresh').addEventListener('click',()=>refresh());
   $('cadSharedLogout').addEventListener('click',()=>{
+   if(refreshTimer){clearInterval(refreshTimer);refreshTimer=null}
+   lastSignature='';
    window.CadDemoLogin.logout();
    tbody.replaceChildren();units.replaceChildren();shortages.replaceChildren();
    snapshot={incidents:[],roster:[],assignments:[]};syncChoices();
