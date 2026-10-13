@@ -5,6 +5,12 @@ const county='https://socogis.sonomacounty.ca.gov/map/rest/services';
 const base=pet+'/Basemaps/COFP_BASEMAP_PUBLIC/MapServer';
 const LIST=[
  {id:'hydrants',name:'Fire Hydrants',category:'Fire & EMS',special:true,terms:['fire hydrant','hydrant']},
+ {id:'petaluma-esz',name:'Petaluma Fire Response Zones (ESZ)',category:'Fire & EMS',url:pet+'/Fire/FireWebApp_MIL/MapServer/11',color:'#ff886b',terms:['fire response zones','petaluma esz','fire esz','fire zones','response zones']},
+ {id:'ems-esz',name:'EMS Emergency Service Zones',category:'Fire & EMS',url:pet+'/Fire/FireWebApp_MIL/MapServer/18',color:'#6fc8ed',terms:['ems response zones','ems esz','ems zones']},
+ {id:'ambulance-area',name:'Ambulance Response Areas',category:'Fire & EMS',url:pet+'/Fire/FireWebApp_MIL/MapServer/7',color:'#e8a2db',terms:['ambulance response areas','ambulance zones']},
+ {id:'bls-area',name:'BLS Response Areas',category:'Fire & EMS',url:pet+'/Fire/FireWebApp_MIL/MapServer/6',color:'#76d6a2',terms:['bls response areas','bls zones']},
+ {id:'mutual-threat',name:'Mutual Threat Zones',category:'Fire & EMS',url:pet+'/Fire/FireWebApp_MIL/MapServer/3',color:'#e8c36d',terms:['mutual threat zones','mutual threat']},
+ {id:'fire-districts',name:'Sonoma Fire District Boundaries',category:'Fire & EMS',url:county+'/BASEPublic/Fire_Districts/FeatureServer/0',color:'#b9a0ff',terms:['fire districts','fire district boundaries']},
  {id:'stations',name:'Fire Stations',category:'Fire & EMS',url:county+'/BASEPublic/Fire_Stations/FeatureServer/0',color:'#ff9b72',terms:['fire station','station locations']},
  {id:'firehazard',name:'Fire Hazard Zones',category:'Fire & EMS',url:pet+'/Planning/Development_Related/MapServer/2',color:'#f57d67',terms:['fire hazard','hazard zones']},
  {id:'wui',name:'Wildland Urban Interface',category:'Fire & EMS',url:pet+'/Fire/FireWebApp_MIL/MapServer/2',color:'#efb75a',terms:['wildland urban','wildland interface','wui']},
