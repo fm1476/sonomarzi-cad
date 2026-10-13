@@ -7,7 +7,7 @@
  let session=null;
  let api=null;
  function configure({url,publishableKey,agencyId}){
-  if(!/^https:\/\[a-z0-9.-]+$/i.test(url||''))throw Error('HTTPS Supabase URL required');
+  if(!/^https:\/\/[a-z0-9.-]+$/i.test(url||''))throw Error('HTTPS Supabase URL required');
   if(!publishableKey||!agencyId)throw Error('CAD demo configuration incomplete');
   api={url:url.replace(/\/$/,''),key:publishableKey,agencyId};
  }
