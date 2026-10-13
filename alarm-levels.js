@@ -54,6 +54,7 @@ function renderConfig(){
  const resources=[];
  const typesByDisc={FIRE:['ENGINE','TRUCK','LADDER','RESCUE','BRUSH','CHIEF','TENDER','MEDIC','AMBULANCE'],EMS:['AMBULANCE','MEDIC','ENGINE','RESCUE','CHIEF','SUPERVISOR'],LAW:['PATROL','SUPERVISOR','TRAFFIC','K9','DETECTIVE','SWAT','MOTOR']};
  const symbols={ENGINE:'🚒',TRUCK:'🪜',LADDER:'🪜',RESCUE:'🚑',BRUSH:'🌲',CHIEF:'⭐',TENDER:'💧',MEDIC:'🚑',AMBULANCE:'🚑',PATROL:'🚓',SUPERVISOR:'⭐',TRAFFIC:'🚦',K9:'🐕',DETECTIVE:'🔎',SWAT:'🛡️',MOTOR:'🏍️'};
+ const iconFor=type=>{const agency=$('almAgency')?.value||'';const disc=$('almDisc')?.value||'FIRE';const id=window.CadResourceTypes?.iconFor(agency,disc,type);return id&&window.CadVehicleIcons?.items.some(x=>x.id===id)?window.CadVehicleIcons.svg(id):esc(id||symbols[type]||'▣')};
  function addType(type){const existing=resources.find(x=>x.type===type);if(existing)existing.count++;else resources.push({type,count:1});drawResources()}
  function drawPalette(){
   const disc=$('almDisc').value,masterTypes=master().units.filter(u=>u.discipline===disc).map(u=>u.resourceType).filter(Boolean);
