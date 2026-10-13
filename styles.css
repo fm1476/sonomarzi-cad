@@ -471,3 +471,18 @@ header nav.cad-header-tabs button{position:relative;z-index:102;pointer-events:a
 #calltake .cad-ct-right>#cadCTEditor:not([hidden]) #cadCTForm{flex:0 0 auto;min-width:0}
 #calltake .cad-ct-section select{width:100%;background:#091c2c;color:#e6f5ff;border:1px solid #3b617e;border-radius:6px;padding:8px}
 #calltake .cad-ct-section .cad-ct-danger{background:#793044;border-color:#bd586b}
+
+/* Active event: persistent narrative alongside editable incident summary */
+#calltake .cad-ct-event-body{display:grid;grid-template-columns:minmax(280px,43%) minmax(0,1fr);gap:12px;flex:1;min-height:0;overflow:hidden}
+#calltake .cad-ct-event-info,#calltake .cad-ct-event-narrative{min-width:0;min-height:0;overflow-y:auto;padding:4px 10px 16px}
+#calltake .cad-ct-event-info{border-right:1px solid #31506b}
+#calltake .cad-ct-event-narrative{display:flex;flex-direction:column}
+#calltake .cad-ct-record-title{gap:10px;align-items:flex-start}
+#calltake .cad-ct-record-title strong{display:block;color:#eaf7ff}
+#calltake .cad-ct-record-title small{display:block;color:#a8c4d7;font-weight:400;margin-top:5px}
+#calltake .cad-ct-record-actions{display:flex;gap:5px;flex-shrink:0}
+#calltake .cad-ct-savebar{position:sticky;bottom:0;background:#0e2538;padding:12px 8px;display:flex;align-items:center;gap:12px;border-top:1px solid #31516b}
+#calltake #cadCTSaveStatus{font-size:12px;color:#b2d7e9}
+#calltake .cad-ct-event-narrative #cadCTNarrative{flex:1;min-height:180px;overflow-y:auto}
+#calltake .cad-ct-record .cad-ct-fields[hidden]{display:none!important}
+@media(max-width:1150px){#calltake .cad-ct-event-body{display:block;overflow-y:auto}#calltake .cad-ct-event-info,#calltake .cad-ct-event-narrative{overflow:visible;border:0}}
