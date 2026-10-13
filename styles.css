@@ -694,3 +694,17 @@ header :is(button,select){max-width:100%}
 #rpRunOrders .rp-run-step :is(select,input){min-width:0;width:100%;box-sizing:border-box}
 #rpRunOrders .rp-run-grip{cursor:grab;color:#91b5d0}
 @media(max-width:700px){#rpRunOrders .rp-run-step{grid-template-columns:20px 24px minmax(0,1fr)}#rpRunOrders .rp-run-step input{grid-column:1/3}#rpRunOrders .rp-run-step button{grid-column:3}}
+
+/* Compact side-by-side response plan resource and run-order cards */
+#rpResourceCards{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,350px),1fr));gap:10px;align-items:start}
+#rpResourceCards>[data-resource-index]{margin:0!important;min-width:0;align-content:start}
+#rpResourceCards>[data-resource-index] label{min-width:0!important}
+#rpResourceCards>[data-resource-index] label:first-of-type{flex:1 1 180px!important}
+#rpRunOrders{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,390px),1fr));gap:10px;align-items:start}
+#rpRunOrders .rp-run-group{margin:0;min-width:0}
+#rpRunOrders .rp-run-step{display:grid;grid-template-columns:18px 20px minmax(0,1fr) auto;gap:6px;padding:7px}
+#rpRunOrders .rp-run-step select{grid-column:3;min-width:0}
+#rpRunOrders .rp-run-step input{grid-column:1/4;min-width:0;width:100%}
+#rpRunOrders .rp-run-step button{grid-column:4;grid-row:1/3;align-self:center}
+#rpRunOrders .rp-run-step :is(input,select){box-sizing:border-box;max-width:100%}
+@media(max-width:780px){#rpResourceCards,#rpRunOrders{grid-template-columns:minmax(0,1fr)}}
