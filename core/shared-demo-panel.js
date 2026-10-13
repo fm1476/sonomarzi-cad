@@ -237,7 +237,7 @@
     setOpen(false);
     await refresh();
     if(refreshTimer)clearInterval(refreshTimer);
-    refreshTimer=setInterval(()=>{if(window.CadDemoLogin.current()&&document.visibilityState!=='hidden')refresh({quiet:true})},4000);
+    refreshTimer=setInterval(()=>{if(window.CadDemoLogin.current()&&document.visibilityState!=='hidden')refresh({quiet:true})},750);
    }catch(error){say(error.message)}finally{submit.disabled=false}
   });
   $('cadSharedRefresh').addEventListener('click',()=>refresh());
