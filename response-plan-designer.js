@@ -98,14 +98,17 @@ function testPlan(plan){
  });
  for(const request of plan.resources){
   const matches=[],rejected=[];const need=Number(request.count)||0;
-  for(const u of candidates.filter(x=>x.resourceType===request.type)){
+  const rule=(plan.runOrders||{})[request.type]||[];
+  const rank=u=>{for(let i=0;i<rule.length;i++){const step=rule[i];if(step.kind==='UNIT'&&step.value.toUpperCase()===String(u.id).toUpperCase())return i;if(step.kind==='EITHER'&&step.value.toUpperCase().split(',').map(x=>x.trim()).includes(String(u.id).toUpperCase()))return i;if(step.kind==='LOCATION'&&String(u.location||'').toUpperCase().includes(step.value.toUpperCase()))return i;if(step.kind==='CLOSEST')return i+0.5;}return rule.length+1};
+  const ordered=candidates.filter(x=>x.resourceType===request.type).sort((a,b)=>rank(a)-rank(b));
+  for(const u of ordered){
    const reason=chosen.has(u.id)?'Already selected':String(u.status).toUpperCase()!=='AVAILABLE'?'Status: '+u.status:u.crewId&&usedCrew.has(u.crewId)?'Shared crew committed':null;
    if(reason){rejected.push({id:u.id,reason});continue}
    if(matches.length>=need)continue;
    chosen.add(u.id);if(u.crewId)usedCrew.add(u.crewId);
    matches.push(u.id);
   }
-  rows.push({type:request.type,need,selected:matches,rejected,short:Math.max(0,need-matches.length)});
+  rows.push({type:request.type,need,selected:matches,rejected,short:Math.max(0,need-matches.length),rule:rule.length?rule.map(x=>x.kind+' '+x.value).join(' → '):'Default roster order'});
  }
  return rows;
 }
@@ -115,20 +118,21 @@ function drawTest(plan){
  host.innerHTML='<h4>Simulation results — '+(short?'Resource shortfall':'All requested types matched')+'</h4>'+
  '<p>Read-only demo roster check. No units dispatched. Unit types without a master definition are inferred from designators for demo purposes. Staffing qualifications, travel time, and actual geographic closest-unit calculations are not verified.</p>'+
  rows.map(r=>'<div style="border:1px solid #36536c;border-radius:8px;padding:10px;margin:8px 0"><strong>'+escape(r.type)+' · '+r.selected.length+'/'+r.need+'</strong> — '+(r.selected.length?'Selected: '+escape(r.selected.join(', ')):'No eligible units selected')+
- (r.short?' <strong style="color:#ffb17c">Short '+r.short+'</strong>':'')+
+ (r.short?' <strong style="color:#ffb17c">Short '+r.short+'</strong>':'')+'<div style="font-size:12px;color:#a9bfd0">Run order: '+escape(r.rule)+'</div>'+
  (r.rejected.length?'<div style="font-size:12px;color:#a9bfd0">Excluded: '+r.rejected.map(x=>escape(x.id+' ('+x.reason+')')).join('; ')+'</div>':'')+'</div>').join('');
 }
 function edit(id){
  const p=plans.find(x=>x.id===id);
  const defaults=discipline==='LAW'?[{type:'PATROL',count:2},{type:'SUPERVISOR',count:1}]:discipline==='EMS'?[{type:'AMBULANCE',count:1},{type:'ENGINE',count:1}]:[{type:'ENGINE',count:2},{type:'TRUCK',count:1},{type:'CHIEF',count:1}];
  let resources=(p?.resources||defaults).map(r=>({...r}));
+ let runOrders=structuredClone(p?.runOrders||{});
  const options=RESOURCE_TYPES[discipline];
  el('rpEditor').innerHTML='<h4>'+(p?'Edit Plan':'New Plan')+' — '+escape(discipline==='LAW'?'Beat ':'ESZ ')+escape(zone)+'</h4>'+
  '<label>Call type<select id="rpType">'+cfsOptions(discipline,p?.type).map(type=>'<option value="'+escape(type)+'" '+(type===p?.type?'selected':'')+'>'+escape(type)+'</option>').join('')+'</select></label>'+
  '<label>Response level<select id="rpLevel"><option>First Alarm</option><option>Working Fire</option><option>Second Alarm</option><option>Standard</option></select></label>'+
  '<label>Selection method<select id="rpMethod"><option>HYBRID</option><option>CLOSEST</option><option>RUN_CARD</option></select></label>'+
  '<h4>Response resources</h4><p>Choose resource types, set quantities, and use the arrows to establish dispatch order.</p>'+
- '<div id="rpResourceCards"></div><button id="rpAddResource" type="button">+ Add Resource</button><button id="rpTest" type="button" style="margin-left:8px">Test Response Plan</button><div id="rpTestResults" role="status" aria-live="polite"></div>'+
+ '<div id="rpResourceCards"></div><h4>Visual Run Order Builder</h4><p>Define preferred units or station/beat locations for each resource type. Drag a rule by its grip to change priority. Unmatched resources fall back to roster order in this prototype.</p><div id="rpRunOrders"></div><button id="rpAddResource" type="button">+ Add Resource</button><button id="rpTest" type="button" style="margin-left:8px">Test Response Plan</button><div id="rpTestResults" role="status" aria-live="polite"></div>'+
  '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:18px"><button id="rpDraft" type="button">Save Draft</button><button id="rpPublish" type="button">Publish Locally</button></div><p id="rpSaveFeedback" role="status" aria-live="polite" style="margin-top:10px;font-weight:700"></p>';
  el('rpLevel').value=p?.level||'Standard';el('rpMethod').value=p?.method||'HYBRID';
  function drawResources(){
@@ -146,12 +150,34 @@ function edit(id){
   el('rpResourceCards').querySelectorAll('[data-resource-remove]').forEach(x=>x.onclick=()=>{resources.splice(Number(x.dataset.resourceRemove),1);drawResources()});
  }
  drawResources();
- el('rpAddResource').onclick=()=>{resources.push({type:options[0],count:1});drawResources()};
- el('rpTest').onclick=()=>{const requested=resources.map(r=>({...r,count:Number(r.count)}));if(!requested.length||requested.some(r=>!r.type||!Number.isInteger(r.count)||r.count<1))return msg('Enter valid resources before testing.');drawTest({discipline,resources:requested})};
+ function drawOrders(){
+  const types=[...new Set(resources.map(x=>x.type))];
+  el('rpRunOrders').innerHTML=types.map(type=>'<section class="rp-run-group" data-run-type="'+escape(type)+'"><h4>'+escape(type)+'</h4>'+
+   (runOrders[type]||[]).map((step,i)=>'<div class="rp-run-step" draggable="true" data-step="'+i+'"><span class="rp-run-grip" title="Drag to reorder">⠿</span><strong>'+(i+1)+'</strong><select data-run-kind="'+i+'"><option value="UNIT" '+(step.kind==='UNIT'?'selected':'')+'>Specific unit</option><option value="EITHER" '+(step.kind==='EITHER'?'selected':'')+'>Either unit</option><option value="LOCATION" '+(step.kind==='LOCATION'?'selected':'')+'>Station / beat</option><option value="CLOSEST" '+(step.kind==='CLOSEST'?'selected':'')+'>Closest (placeholder)</option></select><input data-run-value="'+i+'" value="'+escape(step.value||'')+'" placeholder="E1, or E1,E2, or Station 1"><button data-run-remove="'+i+'" type="button">Remove</button></div>').join('')+
+   '<button data-run-add type="button">+ Add run-order step</button></section>').join('');
+  el('rpRunOrders').querySelectorAll('[data-run-type]').forEach(group=>{
+   const type=group.dataset.runType;
+   group.querySelector('[data-run-add]').onclick=()=>{(runOrders[type]??=[]).push({kind:'UNIT',value:''});drawOrders()};
+   group.querySelectorAll('[data-run-kind]').forEach(x=>x.onchange=()=>{runOrders[type][Number(x.dataset.runKind)].kind=x.value});
+   group.querySelectorAll('[data-run-value]').forEach(x=>x.oninput=()=>{runOrders[type][Number(x.dataset.runValue)].value=x.value});
+   group.querySelectorAll('[data-run-remove]').forEach(x=>x.onclick=()=>{runOrders[type].splice(Number(x.dataset.runRemove),1);drawOrders()});
+   let from=null;
+   group.querySelectorAll('[data-step]').forEach(node=>{
+    node.addEventListener('dragstart',e=>{from=Number(node.dataset.step);e.dataTransfer.setData('text/plain',String(from))});
+    node.addEventListener('dragover',e=>e.preventDefault());
+    node.addEventListener('drop',e=>{e.preventDefault();const to=Number(node.dataset.step);if(from===null||from===to)return;const steps=runOrders[type];steps.splice(to,0,steps.splice(from,1)[0]);drawOrders()});
+   });
+  });
+ }
+ drawOrders();
+ el('rpResourceCards').addEventListener('change',e=>{if(e.target.matches('[data-resource-type]'))setTimeout(drawOrders,0)});
+ el('rpAddResource').onclick=()=>{resources.push({type:options[0],count:1});drawResources();drawOrders()};
+ el('rpTest').onclick=()=>{const requested=resources.map(r=>({...r,count:Number(r.count)}));if(!requested.length||requested.some(r=>!r.type||!Number.isInteger(r.count)||r.count<1))return msg('Enter valid resources before testing.');drawTest({discipline,resources:requested,runOrders})};
  function commit(status){
   const type=el('rpType').value.trim();
   if(!type||!resources.length||resources.some(r=>!r.type||!Number.isInteger(r.count)||r.count<1||r.count>99))return msg('Enter a call type and at least one resource with a quantity from 1 to 99.');
-  const next={id:id||crypto.randomUUID(),zone,discipline,type,level:el('rpLevel').value,method:el('rpMethod').value,resources:resources.map(r=>({...r})),status,savedAt:new Date().toISOString()};
+  if(Object.values(runOrders).some(steps=>steps.some(step=>step.kind!=='CLOSEST'&&!step.value.trim())))return msg('Complete each run-order step or remove the empty step.');
+  const next={id:id||crypto.randomUUID(),zone,discipline,type,level:el('rpLevel').value,method:el('rpMethod').value,resources:resources.map(r=>({...r})),runOrders,status,savedAt:new Date().toISOString()};
   try{plans=plans.filter(x=>x.id!==id);plans.push(next);save();showPlans();const confirmation=(status==='Draft'?'Draft saved':'Plan published locally')+' at '+new Date(next.savedAt).toLocaleTimeString()+'.';const feedback=el('rpSaveFeedback');if(feedback){feedback.textContent='✓ '+confirmation;feedback.style.color='#72e0a2'}msg(confirmation+' No live dispatch changes.')}catch(error){const feedback=el('rpSaveFeedback');if(feedback){feedback.textContent='Save failed: '+error.message;feedback.style.color='#ff9898'}msg('Save failed: '+error.message)}
  }
  el('rpDraft').onclick=()=>commit('Draft');el('rpPublish').onclick=()=>commit('Published');
