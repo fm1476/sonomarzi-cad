@@ -307,3 +307,223 @@ header nav.cad-header-tabs button{white-space:nowrap;padding:6px 9px;font-size:1
 .cad-staff-actions button{flex:1;width:auto;border-radius:6px;padding:9px 12px;font-size:13px}
 .cad-staff-actions button:disabled{opacity:.4;cursor:not-allowed}
 @media(max-width:620px){.cad-staff-fields{grid-template-columns:1fr}.cad-staff-actions{flex-wrap:wrap}}
+
+/* Configurable Unit Status columns */
+.board-columns[data-columns="units"]{position:relative;display:flex;align-items:stretch;gap:5px;overflow:visible}
+.board-columns[data-columns="units"] .cad-column-headings{display:grid;flex:1;min-width:max-content}
+.board-columns[data-columns="units"] .col-drag{position:relative;min-width:0;display:flex;align-items:center;overflow:visible;white-space:nowrap;user-select:none}
+.board-columns[data-columns="units"] .cad-col-resizer{position:absolute;right:-4px;top:0;bottom:0;width:9px;cursor:col-resize;z-index:3;border-right:2px solid transparent;touch-action:none}
+.board-columns[data-columns="units"] .cad-col-resizer:hover{border-color:#77c9ff}
+.cad-column-menu-button{flex:none;background:#16344b;border:1px solid #476c88;border-radius:4px;color:#d9ecfa;padding:5px 7px;cursor:pointer;font-size:11px}
+.cad-column-menu{position:absolute;top:100%;left:0;z-index:100;background:#10283d;border:1px solid #5b839e;border-radius:6px;padding:10px;box-shadow:0 8px 22px #0009;min-width:170px}
+.cad-column-menu[hidden]{display:none}.cad-column-menu label{display:block;padding:5px;white-space:nowrap;font-size:12px}.cad-column-menu button{margin-top:8px;padding:7px;cursor:pointer}
+#units .cad-unit-grid{display:grid!important;align-items:center;justify-content:start;min-width:max-content;gap:0}
+#units .cad-unit-grid>span{min-width:0;margin:0 4px;overflow-wrap:anywhere}
+#units{overflow-x:auto}
+
+/* Officer safety proof-of-concept controls */
+.cad-safety-clock{display:inline-block;margin-left:5px;padding:2px 4px;font-size:11px;background:#164e37;border:1px solid #36a77a;color:#d4ffec;border-radius:5px;cursor:pointer;white-space:nowrap}
+.cad-safety-clock.cad-safety-due{background:#772d28;border-color:#f66;color:#fff;animation:cad-safety-pulse 1s infinite}
+.cad-safety-clock.cad-safety-stopped{background:#35465a;border-color:#8392a3;color:#ddd}
+@keyframes cad-safety-pulse{50%{box-shadow:0 0 0 3px #f5565655}}
+.cad-safety-enable{font-size:11px!important;padding:5px 8px!important}
+.cad-safety-dialog{background:#10283c;color:#ecf6ff;border:1px solid #6a8ba6;border-radius:12px;max-width:450px;width:calc(100% - 30px);padding:20px}
+.cad-safety-dialog::backdrop{background:#000b}
+.cad-safety-dialog form{display:grid;gap:12px}.cad-safety-dialog label{display:grid;gap:5px}.cad-safety-dialog input,.cad-safety-dialog select{padding:8px;background:#071e30;color:white;border:1px solid #64839b;border-radius:5px}
+.cad-safety-dialog button{padding:8px;background:#1b4d72;color:white;border:1px solid #5c88a8;border-radius:5px;cursor:pointer}
+.cad-safety-actions{display:flex;flex-wrap:wrap;gap:5px}
+
+/* Modern high-density officer safety controls */
+.cad-safety-modern{width:min(480px,calc(100vw - 28px));max-width:480px;padding:0;border:1px solid #42627c;border-radius:16px;background:#0b1b2c;color:#e8f4ff;box-shadow:0 24px 75px #000c;overflow:hidden}
+.cad-safety-modern::backdrop{background:#010913bb;backdrop-filter:blur(4px)}
+.cad-safety-shell{padding:22px;display:grid;gap:15px}
+.cad-safety-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.cad-safety-eyebrow{color:#8eb4d1;letter-spacing:.12em;font-weight:750;font-size:10px}
+.cad-safety-top h3{margin:5px 0 0;font-size:25px;line-height:1.1;letter-spacing:-.04em}
+.cad-safety-status-dot{display:inline-block;width:8px;height:8px;background:#3cc68e;border-radius:50%;vertical-align:middle}
+.cad-safety-modern button{cursor:pointer;border:1px solid #365773;background:#18324b;color:#e8f4ff;border-radius:8px;padding:10px;font-weight:650;transition:background .15s,border-color .15s}
+.cad-safety-modern button:hover{background:#244765;border-color:#5c94b8}
+.cad-safety-modern .cad-safety-close{border:0;background:transparent;font-size:17px;padding:2px 6px;color:#b4c9dc}
+.cad-safety-context{display:flex;flex-wrap:wrap;gap:6px}
+.cad-safety-context span{background:#152e44;border:1px solid #294b66;border-radius:20px;padding:4px 9px;font-size:11px;color:#c0d9eb}
+.cad-safety-readout{display:grid;grid-template-columns:1.1fr 1fr;gap:12px;padding:16px;background:linear-gradient(135deg,#153b53,#10283d);border:1px solid #315772;border-radius:12px}
+.cad-safety-readout>div{display:grid;align-content:center;gap:4px}
+.cad-safety-readout small,.cad-safety-rule small{font-size:10px;letter-spacing:.08em;color:#9cbed6;font-weight:700}
+.cad-safety-readout strong{font-size:30px;letter-spacing:-.05em;font-variant-numeric:tabular-nums}
+.cad-safety-rule strong{font-size:20px}.cad-safety-rule span{font-size:11px;color:#9fbbd1}
+.cad-safety-section-title{font-size:11px;letter-spacing:.09em;text-transform:uppercase;font-weight:800;color:#9cbdd4}
+.cad-safety-action-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.cad-safety-action-grid button{min-height:65px;display:grid;place-content:center;gap:4px;font-size:17px}
+.cad-safety-action-grid button span{font-size:11px}
+.cad-safety-presets{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}
+.cad-safety-modern .cad-safety-presets .is-selected{background:#145a75;border-color:#3fb4dd}
+.cad-safety-custom{display:grid;grid-template-columns:1fr 85px 78px;align-items:center;gap:8px}
+.cad-safety-custom label{font-size:12px;color:#c4d7e6}
+.cad-safety-modern input{min-width:0;width:100%;padding:10px;background:#071828;color:#fff;border:1px solid #41637d;border-radius:8px}
+.cad-safety-modern .cad-safety-primary{background:#1676b6;border-color:#2795da}
+.cad-safety-reason{padding:12px;background:#382528;border:1px solid #975659;border-radius:9px;display:grid;gap:9px}
+.cad-safety-reason[hidden]{display:none}
+.cad-safety-reason label{font-size:12px}.cad-safety-reason label span{color:#e3a7a9}
+.cad-safety-reason-buttons{display:flex;gap:7px}
+.cad-safety-modern .cad-safety-danger{background:#92393d;border-color:#b95259}
+.cad-safety-footer{border-top:1px solid #29445c;padding-top:13px;display:flex;gap:9px;flex-wrap:wrap}
+.cad-safety-footer button{flex:1;font-size:11px}
+.cad-safety-disclaimer{margin:0;color:#789ab5;font-size:10px}
+@media(max-width:480px){.cad-safety-shell{padding:15px}.cad-safety-custom{grid-template-columns:1fr 75px}.cad-safety-custom label{grid-column:1/-1}}
+
+/* Unified incident narrative: distinguish dispatcher entries without splitting timeline */
+.voice-detail-content .cad-narrative-manual{border-left:3px solid #49b8dd;background:linear-gradient(90deg,#13394a88,transparent);padding-left:10px}
+.voice-detail-content .cad-narrative-manual .meta{color:#9bdaf2;font-weight:700}
+
+/* Modern call-taker incident queue and shared editor */
+.cad-calltake-queue,.cad-ct-editor{margin-bottom:16px;padding:16px;border:1px solid #29465e;border-radius:12px;background:#0d2031}
+.cad-ct-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;flex-wrap:wrap}
+.cad-ct-heading h2{margin:0;font-size:16px}.cad-ct-heading p{margin:5px 0;color:#91afc7;font-size:12px}
+.cad-ct-heading label{display:flex;align-items:center;gap:8px;font-size:12px;color:#acc6d9}
+.cad-ct-heading select{background:#091827;color:#e4f1ff;border:1px solid #365975;border-radius:7px;padding:8px}
+.cad-ct-queue{display:grid;gap:6px;max-height:285px;overflow:auto}
+.cad-ct-item{display:grid;grid-template-columns:125px minmax(130px,1fr) minmax(180px,1.4fr) minmax(150px,1fr) 95px;gap:12px;align-items:center;text-align:left;border:1px solid #294860;border-radius:8px;background:#102a3e;color:#e7f3ff;padding:12px;cursor:pointer;font-size:12px}
+.cad-ct-item:hover,.cad-ct-item.selected{background:#19435e;border-color:#4197c5}
+.cad-ct-id{font-weight:800}.cad-ct-type{font-weight:700}.cad-ct-place,.cad-ct-agency{color:#a8c4d7}
+.cad-ct-status{justify-self:end;border-radius:6px;padding:5px 8px;font-size:10px;font-weight:800}
+.cad-ct-status.pending{background:#644417;color:#ffdc8e}.cad-ct-status.active{background:#14583f;color:#9bffce}
+.cad-ct-toolbar{display:flex;gap:8px}
+.cad-ct-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-bottom:14px}
+.cad-ct-fields label{display:grid;gap:5px;font-size:12px;color:#9fbdd3}
+.cad-ct-fields input{width:100%;padding:10px;background:#081827;color:#eaf5ff;border:1px solid #35556e;border-radius:7px}
+.cad-ct-narrative-header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:20px 0 12px}
+.cad-ct-narrative-header h3{margin:0;font-size:15px}
+#cadCTNarrative .voice-detail-content{max-height:380px;overflow-y:auto}
+@media(max-width:760px){.cad-ct-item{grid-template-columns:1fr 1fr}.cad-ct-place,.cad-ct-agency{grid-column:span 1}.cad-ct-fields{grid-template-columns:1fr}}
+
+/* Call-taker narrative composer and dispatcher update cues */
+.cad-ct-note-form{display:grid;gap:9px;padding:12px;background:#102c41;border:1px solid #315671;border-radius:10px;margin-bottom:14px}
+.cad-ct-note-form label{font-size:11px;color:#a8c9dd;font-weight:700;letter-spacing:.04em}
+.cad-ct-note-form textarea{width:100%;min-height:85px;resize:vertical;border-radius:8px;border:1px solid #456983;background:#081b2d;color:#eff9ff;padding:11px;font:inherit}
+.cad-ct-note-form button{justify-self:start}
+.cad-dispatch-new-info{display:inline-flex;align-items:center;margin:4px 5px;padding:3px 7px;border-radius:5px;border:1px solid #4db4db;background:#123c54;color:#a9edff;font-size:10px;font-weight:800;letter-spacing:.05em;white-space:nowrap}
+.cad-dispatch-info-audio{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:500;color:#b0cbdc;margin-left:12px;letter-spacing:normal}
+.cad-dispatch-info-audio input{accent-color:#4baee0}
+
+/* Unread incident updates: highlight the entire event pill without masking priority */
+#pending .row.cad-dispatch-updated,#activeCalls .row.cad-dispatch-updated{background:linear-gradient(90deg,#15507855,#123349);border:1px solid #4ba8d6;box-shadow:inset 3px 0 #61c5f4,0 0 0 1px #2b749344;transition:background .18s,border-color .18s}
+#pending .row.cad-dispatch-updated:hover,#activeCalls .row.cad-dispatch-updated:hover{background:#1b4a68}
+
+/* Ensure top-level navigation remains clickable above draggable CAD panels */
+header{z-index:100!important;isolation:isolate}
+header nav.cad-header-tabs{position:relative!important;z-index:101!important;pointer-events:auto!important}
+header nav.cad-header-tabs button{position:relative;z-index:102;pointer-events:auto;cursor:pointer}
+
+/* Split call-taking console: call intake/queue left, incident management right */
+#calltake .cad-ct-split{display:grid;grid-template-columns:minmax(0,var(--cad-ct-left-width,48%)) 10px minmax(0,1fr);align-items:stretch;gap:0;padding:10px;min-height:calc(100vh - 100px)}
+#calltake .cad-ct-left,#calltake .cad-ct-right{min-width:0;display:flex;flex-direction:column;gap:12px}
+#calltake .cad-ct-divider{cursor:col-resize;touch-action:none;background:#10263a;border:1px solid #254c66;border-radius:7px;margin:0 3px;transition:background .15s}
+#calltake .cad-ct-divider:hover,#calltake .cad-ct-divider:focus{background:#2775a2;outline:1px solid #7dd2ff}
+#calltake .cad-ct-right>.panel{flex:1}
+#calltake .cad-ct-empty-editor{padding:0 14px;color:#a6c1d5}
+#calltake .cad-ct-empty-editor p{margin:20px 0}
+#calltake .cad-ct-left .formgrid{grid-template-columns:repeat(2,minmax(0,1fr))}
+#calltake .cad-ct-left .panel{margin:0}
+#calltake .cad-ct-right .cad-ct-editor{margin:0}
+@media(max-width:850px){#calltake .cad-ct-split{display:flex;flex-direction:column;gap:12px}#calltake .cad-ct-divider{display:none}}
+
+#calltake .cad-ct-recovery{padding:12px;border:1px solid #416c89;border-radius:8px;background:#102e44;color:#b9d9ea;font-size:12px}
+#calltake .cad-ct-recovery button{padding:8px 11px;border-radius:6px;background:#174f76;border:1px solid #4e9ac4;color:#effaff;cursor:pointer}
+
+/* Modern agency master configuration section separation and consistent actions */
+#config [data-config-panel="master"]{display:flex;flex-direction:column;gap:14px}
+#config [data-config-panel="master"][hidden]{display:none!important}
+#config .cad-master-section{padding:17px 19px 19px;border:1px solid #2e526c;border-radius:12px;background:linear-gradient(145deg,#10273b,#0b1c2e);box-shadow:0 4px 14px #0002}
+#config .cad-master-section h4{margin:0 0 15px;padding:0 0 11px;border-bottom:1px solid #34546b;color:#e5f4ff;font-size:14px;letter-spacing:.035em}
+#config .cad-master-section label{display:flex;flex-direction:column;gap:5px;margin:0 0 12px}
+#config .cad-master-section button{appearance:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:36px;padding:8px 15px;margin:4px 8px 6px 0;border-radius:8px;border:1px solid #398bc2;background:#1768a8;color:#fff;font-weight:650;font-size:12px;letter-spacing:.015em;box-shadow:0 2px 9px #0003;cursor:pointer;transition:background .15s,border-color .15s,transform .15s}
+#config .cad-master-section button:hover{background:#2586c8;border-color:#73c3f2;transform:translateY(-1px)}
+#config .cad-master-section button:focus-visible{outline:2px solid #93d7ff;outline-offset:3px}
+#config .cad-master-section button:disabled{opacity:.45;cursor:not-allowed;transform:none}
+#config .cad-master-section input[type=file]{padding:9px;border:1px dashed #54758e;border-radius:8px}
+#config .cad-master-section input[type=file]::file-selector-button{background:#204e72;color:#e9f6ff;border:1px solid #427eac;border-radius:6px;padding:7px 12px;margin-right:10px;cursor:pointer}
+#config #cadMasterMessage:not(:empty){padding:10px 12px;margin:9px 0;border-left:3px solid #56b8ec;background:#10354c;border-radius:5px}
+
+/* Call Taking queue filters and single right-side master event editor */
+#calltake [hidden]{display:none!important}
+#calltake .cad-ct-filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(115px,1fr));gap:8px;padding:10px 12px;border-bottom:1px solid #27475c}
+#calltake .cad-ct-filters label{display:flex;flex-direction:column;gap:5px;font-size:11px;color:#a8c5d8}
+#calltake .cad-ct-filters select{width:100%;min-width:0;background:#0b1e30;color:#e5f4ff;border:1px solid #3a607b;border-radius:6px;padding:7px}
+#calltake #cadCTNewForm{margin:0;flex:1;min-width:0}
+#calltake .cad-ct-right{min-height:400px}
+#calltake .cad-ct-heading>button{align-self:center;white-space:nowrap}
+
+/* Resizable call queue and master event window */
+#calltake .cad-calltake-queue{height:var(--cad-ct-queue-height,440px);min-height:200px;max-height:calc(100vh - 110px);overflow:auto;resize:vertical;flex:none}
+#calltake .cad-ct-right>#cadCTEditor:not([hidden]){height:var(--cad-ct-editor-height,700px);min-height:260px;max-height:none;overflow:auto;resize:vertical;flex:none}
+#calltake .cad-ct-section{border:1px solid #2d516c;border-radius:9px;background:#102639;margin:12px 0;padding:12px}
+#calltake .cad-ct-section>summary{font-weight:750;cursor:pointer;color:#d9efff;padding:5px 2px}
+#calltake .cad-ct-section .cad-ct-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;padding:12px 0}
+#calltake .cad-ct-record{padding:10px 0;border-top:1px solid #31516a}
+#calltake .cad-ct-record-title{display:flex;align-items:center;justify-content:space-between;font-weight:650}
+#calltake .cad-ct-section button{background:#173f5c;border:1px solid #417fa8;color:#e7f5ff;border-radius:7px;padding:8px 11px;cursor:pointer}
+#calltake .cad-ct-section button:hover{background:#24658b}
+
+/* Make queue and editor contents follow the outer resizable panel */
+#calltake .cad-calltake-queue{display:flex;flex-direction:column;overflow:hidden}
+#calltake .cad-calltake-queue #cadCTQueue{flex:1;min-height:0;max-height:none!important;overflow-y:auto}
+#calltake .cad-ct-right>#cadCTEditor:not([hidden]){display:flex;flex-direction:column;overflow:auto;box-sizing:border-box}
+#calltake .cad-ct-right>#cadCTEditor:not([hidden]) #cadCTForm{flex:0 0 auto;min-width:0}
+#calltake .cad-ct-section select{width:100%;background:#091c2c;color:#e6f5ff;border:1px solid #3b617e;border-radius:6px;padding:8px}
+#calltake .cad-ct-section .cad-ct-danger{background:#793044;border-color:#bd586b}
+
+/* Active event: persistent narrative alongside editable incident summary */
+#calltake .cad-ct-event-body{display:grid;grid-template-columns:minmax(280px,43%) minmax(0,1fr);gap:12px;flex:1;min-height:0;overflow:hidden}
+#calltake .cad-ct-event-info,#calltake .cad-ct-event-narrative{min-width:0;min-height:0;overflow-y:auto;padding:4px 10px 16px}
+#calltake .cad-ct-event-info{border-right:1px solid #31506b}
+#calltake .cad-ct-event-narrative{display:flex;flex-direction:column}
+#calltake .cad-ct-record-title{gap:10px;align-items:flex-start}
+#calltake .cad-ct-record-title strong{display:block;color:#eaf7ff}
+#calltake .cad-ct-record-title small{display:block;color:#a8c4d7;font-weight:400;margin-top:5px}
+#calltake .cad-ct-record-actions{display:flex;gap:5px;flex-shrink:0}
+#calltake .cad-ct-savebar{position:sticky;bottom:0;background:#0e2538;padding:12px 8px;display:flex;align-items:center;gap:12px;border-top:1px solid #31516b}
+#calltake #cadCTSaveStatus{font-size:12px;color:#b2d7e9}
+#calltake .cad-ct-event-narrative #cadCTNarrative{flex:1;min-height:180px;overflow-y:auto}
+#calltake .cad-ct-record .cad-ct-fields[hidden]{display:none!important}
+@media(max-width:1150px){#calltake .cad-ct-event-body{display:block;overflow-y:auto}#calltake .cad-ct-event-info,#calltake .cad-ct-event-narrative{overflow:visible;border:0}}
+
+/* CAD full-height Call Taking panels with easy full-width lower resize rails */
+#calltake .cad-calltake-queue,#calltake .cad-ct-right>#cadCTEditor:not([hidden]),#calltake #cadCTNewForm:not([hidden]){resize:none!important;position:relative;box-sizing:border-box;min-height:350px;max-height:none!important;padding-bottom:22px;overflow:hidden}
+#calltake #cadCTNewForm:not([hidden]){display:flex;flex-direction:column;overflow-y:auto}
+#calltake .cad-ct-bottom-handle{position:absolute;bottom:0;left:0;right:0;height:18px;z-index:20;cursor:ns-resize;touch-action:none;background:linear-gradient(180deg,#143149,#1c435d);border-top:1px solid #4b7898;border-radius:0 0 8px 8px}
+#calltake .cad-ct-bottom-handle:hover,#calltake .cad-ct-bottom-handle:focus-visible{background:#296285;outline:2px solid #71b6ec;outline-offset:-2px}
+#calltake .cad-ct-bottom-handle:after{content:'';position:absolute;width:72px;height:3px;left:calc(50% - 36px);top:7px;background:#85b5d1;border-radius:6px}
+#calltake .cad-ct-event-body{min-height:0;overflow:hidden}
+
+/* Agency event form designer */
+.cad-designer-entry{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:24px;background:#112b40;border:1px solid #315875;border-radius:12px;margin:12px 0}
+#cadFormDesigner{padding:16px;background:#0b1d2d;border:1px solid #32516a;border-radius:12px;margin-top:12px}
+.cad-fd-head,.cad-fd-actions{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.cad-fd-actions button,.cad-fd-library button,.cad-fd-properties button{padding:9px 12px;border-radius:7px;background:#194361;border:1px solid #487fa3;color:#e8f6ff;cursor:pointer}
+.cad-fd-actions button.primary{background:#1464b9}
+.cad-fd-grid{display:grid;grid-template-columns:minmax(150px,190px) minmax(300px,1fr) minmax(210px,270px);gap:14px}
+.cad-fd-grid>aside,.cad-fd-canvas{border:1px solid #32516a;background:#10293e;padding:14px;border-radius:9px;min-width:0}
+.cad-fd-library{display:flex;flex-direction:column;gap:8px}
+.cad-fd-library p,.cad-fd-properties p{font-size:12px;color:#a9c5d7}
+.cad-fd-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.cad-fd-tile{display:flex;flex-direction:column;align-items:flex-start;gap:5px;text-align:left;background:#16354d;border:1px solid #406985;color:#e4f3ff;padding:14px;border-radius:8px;cursor:grab}
+.cad-fd-tile.selected{outline:2px solid #65b5ef}
+.cad-fd-tile small{color:#b0cadd}
+.cad-fd-grip{font-size:18px;color:#91b6cf}
+.cad-fd-tile.wide,.cad-fd-fields>.wide,#calltake .cad-ct-config-field.wide{grid-column:1/-1}
+.cad-fd-properties label{display:block;margin:10px 0}
+.cad-fd-properties input:not([type=checkbox]),.cad-fd-properties select,.cad-fd-properties textarea{width:100%;box-sizing:border-box}
+#cadFdPreviewPane{margin-top:14px;padding:16px;border:1px solid #487b9b;border-radius:9px}
+#calltake .cad-ct-config-field textarea,#calltake .cad-ct-config-field select{width:100%;min-height:38px}
+@media(max-width:900px){.cad-fd-grid{grid-template-columns:1fr}}
+
+/* Searchable CAD call-for-service combobox */
+.cad-cfs-combo{position:relative;width:100%;display:flex;align-items:center;min-width:0}
+.cad-cfs-combo input{width:100%;min-width:0;padding-right:66px!important}
+.cad-cfs-clear,.cad-cfs-toggle{position:absolute;top:50%;transform:translateY(-50%);background:transparent!important;border:0!important;color:#b5cde0!important;padding:3px 7px!important;cursor:pointer;z-index:3}
+.cad-cfs-clear{right:29px}.cad-cfs-toggle{right:4px}
+.cad-cfs-menu{position:absolute;top:calc(100% + 3px);left:0;right:0;max-height:300px;overflow-y:auto;overscroll-behavior:contain;background:#18232e;border:1px solid #48627a;border-radius:7px;box-shadow:0 14px 30px #0009;z-index:10000;padding:4px 0}
+.cad-cfs-menu[hidden]{display:none!important}
+.cad-cfs-option{padding:9px 12px;color:#e5edf7;cursor:pointer;white-space:normal;line-height:1.3}
+.cad-cfs-option:hover,.cad-cfs-option.active{background:#2467c4;color:#fff}
+.cad-cfs-empty{padding:12px;color:#a6bac9}

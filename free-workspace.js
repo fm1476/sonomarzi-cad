@@ -19,11 +19,7 @@ const definitions=[
 ];
 let saved={};try{saved=JSON.parse(localStorage.getItem(KEY)||'{}')||{}}catch{}
 const nodes=new Map();let maxZ=5;let pendingSave=0;
-const toolbar=document.createElement('div');toolbar.className='cad-freeform-actions';
-const mode=document.createElement('span');mode.textContent='FREE WORKSPACE · Drag headings to move · Drag lower-right corners to resize';
-const reset=document.createElement('button');reset.type='button';reset.textContent='Reset positions';reset.title='Restore default panel locations and sizes without changing CAD data';
-const fit=document.createElement('button');fit.type='button';fit.textContent='Fit canvas';
-toolbar.append(mode,fit,reset);main.insertBefore(toolbar,stage);
+
 stage.classList.add('cad-freeform');
 function store(){const data={};for(const [id,el] of nodes){const r=el.getBoundingClientRect(),g=stage.getBoundingClientRect();data[id]={x:Math.round(r.left-g.left),y:Math.round(r.top-g.top),w:Math.round(r.width),h:Math.round(r.height),z:Number(el.style.zIndex)||1};}localStorage.setItem(KEY,JSON.stringify(data));}
 function delayedStore(){cancelAnimationFrame(pendingSave);pendingSave=requestAnimationFrame(store)}
@@ -70,8 +66,7 @@ for(const [id,label,selector,x,y,w,h] of definitions){
  bindResize(el);
 }
 function restoreDefaults(){saved={};for(const [id,label,sel,x,y,w,h] of definitions){const el=nodes.get(id);if(!el)continue;const scale=layoutDefault();apply(id,el,Math.round(x*scale),y,Math.round(w*scale),h,2);constrain(el);}totalHeight();store();window.renderMap?.();}
-reset.addEventListener('click',()=>{if(confirm('Reset panel positions and sizes? CAD incidents and units will not change.'))restoreDefaults()});
-fit.addEventListener('click',()=>{for(const el of nodes.values())constrain(el);totalHeight();store();window.renderMap?.()});
+
 for(const el of nodes.values())constrain(el);totalHeight();
 window.addEventListener('resize',()=>{for(const el of nodes.values())constrain(el);totalHeight()});
 // Force initial tile repaint after moving map into a positioned container.

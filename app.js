@@ -23,6 +23,20 @@ const defaultState=()=>({seq:4525,selected:null,incidents:[
 {id:'M3',agency:'Petaluma Fire / EMS',discipline:'EMS',status:'TRANSPORTING',location:'Hospital',x:16,y:24}
 ]});
 let state=JSON.parse(localStorage.getItem(KEY)||'null')||defaultState();
+window.cadSafetyState=()=>state;
+window.cadCallTakeSave=()=>save();
+window.cadCallTakeEvent=(inc,msg)=>event(inc,msg);
+window.cadRestoreMissingDemoCalls=()=>{
+ const existing=new Set((state.incidents||[]).map(i=>i.id));
+ const missing=defaultState().incidents.filter(i=>!existing.has(i.id));
+ if(!missing.length)return 0;
+ state.incidents.push(...missing);
+ state.seq=Math.max(Number(state.seq)||0,4525);
+ save();
+ return missing.length;
+};
+window.cadDemoDataHealth=()=>({incidentCount:state.incidents?.length||0,openCount:(state.incidents||[]).filter(i=>['PENDING','ACTIVE'].includes(i.status)).length,agencyCount:config?.agencies?.length||0});
+
 // Add the expanded incident roster once when upgrading an untouched original 3-call demo.
 // Never overwrite or replace saved user-created incidents.
 const EIGHT_CALL_SEED_KEY='smcad-eight-call-seed-v15';
@@ -48,7 +62,10 @@ if(!localStorage.getItem(SIX_UNIT_SEED_KEY)){
 }
 let config=JSON.parse(localStorage.getItem(CFG)||'null')||defaultConfig;
 // Add the new field-initiated CFS to existing configurations without replacing agency-defined types.
-if(!Array.isArray(config.types?.LAW))config.types.LAW=[];
+if(!config||typeof config!=='object')config=structuredClone(defaultConfig);
+if(!config.types||typeof config.types!=='object')config.types={};
+if(!Array.isArray(config.agencies))config.agencies=[];
+if(!Array.isArray(config.types.LAW))config.types.LAW=[];
 if(!config.types.LAW.some(t=>String(t).trim().toLowerCase()==='traffic stop')){config.types.LAW.push('Traffic Stop');localStorage.setItem(CFG,JSON.stringify(config));}
 let filter='ALL';window.cadUnitDisciplineFilter='ALL';
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
@@ -61,7 +78,7 @@ function save(){
   if(lastSavedStatuses.has(u.id)&&lastSavedStatuses.get(u.id)!==u.status){u.statusChangedAt=Date.now();}
   lastSavedStatuses.set(u.id,u.status);
  }
- localStorage.setItem(KEY,JSON.stringify(state));render();window.dispatchEvent(new Event('storage'));
+ localStorage.setItem(KEY,JSON.stringify(state));render();window.cadCallTakeRefresh?.();window.dispatchEvent(new Event('storage'));
 }
 function event(inc,msg){inc.events.push(`${now()} ${msg}`)}
 
@@ -135,11 +152,12 @@ function render(){
  if(window.cadBoardRender){window.cadBoardRender('pending',pending);window.cadBoardRender('active',active);window.cadBoardRender('units',window.CadDiscipline.filterUnits(state.units,filter));}
  else {$('#pending').innerHTML=pending.map(row).join('')||'<div class="row muted">No pending incidents</div>';$('#activeCalls').innerHTML=active.map(row).join('')||'<div class="row muted">No active incidents</div>';$('#units').innerHTML=state.units.map(u=>`<div class="unit"><b>${u.id}</b><span>${u.agency}</span><span>${u.status}</span></div>`).join('');}
  $$('.row[data-id]').forEach(el=>el.onclick=()=>{state.selected=el.dataset.id;render()});
- renderDetail(); (window.renderMap||renderMap)();
+ renderDetail(); window.cadDispatchInfoRefresh?.(); (window.renderMap||renderMap)();
 }
 function row(i){return `<div class="row ${state.selected===i.id?'selected':''}" data-id="${escapeCad(i.id)}"><span class="prio ${String(i.priority).toLowerCase()}">${escapeCad(i.priority)}<br><span class="meta">${escapeCad(i.id)}</span></span><span><b>${escapeCad(i.type)}</b><div>${escapeCad(i.location)}</div><div class="meta">${escapeCad(i.agency)} • ${escapeCad(i.discipline)}</div></span><span>${escapeCad(i.units.join(', ')||'—')}<div class="meta">${i.caseNumber?'Case '+escapeCad(i.caseNumber):'No case number'}</div></span></div>`}
 function renderDetail(){
  const i=state.incidents.find(x=>x.id===state.selected); if(!i){$('#detail').innerHTML='<div class="detailwrap muted">Select an incident.</div>';return}
+ if(i.callTakeNewInfoAt)window.cadDispatchInfoRead?.(i.id,i.callTakeNewInfoAt);
  $('#detail').innerHTML=`<div class="detailwrap"><div class="detailhead"><div><b>${i.id} • ${i.type}</b><div>${escapeCad(window.cadCommonPlaces?.resolve(i.location)?.name||'')}${window.cadCommonPlaces?.resolve(i.location)?' · ':''}${escapeCad(i.location)}</div><div class="meta">${i.agency} • ${i.discipline} • ${i.priority} • Case: ${escapeCad(i.caseNumber||'Not assigned')}</div>${cadLinkedNavigation(i)}</div><b>${i.status}</b></div>
  <div class="actions">${i.status==='PENDING'?'<button data-act="activate">Activate</button>':''}<button data-act="assign">Recommend / Assign</button><button data-act="manage">Dispatch / Manage Units</button><button data-act="case">Set Case #</button><button data-act="note">Add Narrative</button>${i.status!=='CLOSED'?'<button data-act="close">Clear Event</button>':''}</div>
  <div><b>Units:</b> ${i.units.join(', ')||'None'}</div>${window.voiceDetailHtml ? window.voiceDetailHtml(i) : `<div class="narr">${i.narrative.join('<br>')}</div>`}<h3>Event History</h3><div class="timeline">${i.events.slice().reverse().map(e=>`<div>${e}</div>`).join('')||'<div>No events yet.</div>'}</div></div>`;
@@ -172,7 +190,7 @@ function detailAction(i,a){
  if(a==='assign'){let u=state.units.find(u=>u.discipline===i.discipline&&u.status==='AVAILABLE');if(u){const resolved=cadDispatchTarget(i,u);const target=resolved.incident;u.status='DISPATCHED';u.location=target.location;if(!target.units.includes(u.id))target.units.push(u.id);target.status='ACTIVE';event(target,`UNIT_ASSIGNED ${u.id}`)}else toast('No available unit of '+i.discipline+' discipline')}
  if(a==='manage'){show('dispatch');document.getElementById('operationsPanel')?.scrollIntoView({block:'nearest'});window.cadOpsSelectIncident?.(i.id);return}
  if(a==='case'){const n=prompt('Case number (leave blank to remove)',i.caseNumber||'');if(n!==null){i.caseNumber=n.trim().slice(0,80);event(i,`CASE_NUMBER ${i.caseNumber||'REMOVED'}`)}}
- if(a==='note'){let n=prompt('Narrative entry');if(n){i.narrative.push(n);event(i,'NARRATIVE_ADDED')}}
+ if(a==='note'){let n=prompt('Narrative entry');if(n?.trim()){const text=n.trim(),timestamp=new Date().toISOString();const author=(localStorage.getItem('smcad-dispatcher-identity-v1')||'').trim()||'Unidentified';i.narrative.push(text);(i.manualNarrativeEntries ||= []).push({id:'manual-'+Date.now()+'-'+Math.random().toString(36).slice(2,7),text,timestamp,author});event(i,'NARRATIVE_ADDED '+timestamp+' BY '+author)}}
  if(a==='close'){window.cadShowClearEvent?.(i);return;}
  save();
 }
@@ -180,16 +198,45 @@ function renderMap(){
  $('#map').querySelectorAll('.marker').forEach(m=>m.remove());
  state.units.forEach(u=>{let m=document.createElement('div');m.className='marker '+u.discipline.toLowerCase();m.style.left=u.x+'%';m.style.top=u.y+'%';m.title=`${u.id} ${u.status}`;$('#map').appendChild(m)})
 }
-function populate(){
- $('#agency').innerHTML=config.agencies.map(a=>`<option>${a}</option>`).join('');
- updateTypes();
- $('#cfgAgencies').value=config.agencies.join('\n');$('#cfgLaw').value=config.types.LAW.join('\n');$('#cfgFire').value=config.types.FIRE.join('\n');$('#cfgEms').value=config.types.EMS.join('\n');
+function availableAgencies(){
+ const names=['Petaluma Police'];
+ const add=a=>{const n=String(a??'').trim();if(n&&!names.some(x=>x.toLowerCase()===n.toLowerCase()))names.push(n)};
+ for(const a of defaultConfig.agencies)add(a);
+ for(const a of config.agencies||[])add(a);
+ for(const a of state.incidents||[])add(a.agency);
+ for(const u of state.units||[])add(u.agency);
+ try{for(const a of window.CadAgencyMaster?.read(localStorage)?.agencies||[])add(a.name)}catch(e){console.warn('Agency master unavailable',e)}
+ return names;
 }
-function updateTypes(){let d=$('#discipline').value;$('#type').innerHTML=config.types[d].map(t=>`<option>${t}</option>`).join('')}
+function populate(){
+ const agency=$('#agency'),previous=agency.value;
+ agency.innerHTML=availableAgencies().map(a=>`<option value="${escapeCad(a)}">${escapeCad(a)}</option>`).join('');
+ agency.value=availableAgencies().includes(previous)?previous:'Petaluma Police';
+ updateTypes();
+ $('#cfgAgencies').value=(config.agencies||[]).join('\n');$('#cfgLaw').value=(config.types?.LAW||[]).join('\n');$('#cfgFire').value=(config.types?.FIRE||[]).join('\n');$('#cfgEms').value=(config.types?.EMS||[]).join('\n');
+}
+function updateTypes(){const d=$('#discipline').value;const types=[...new Set([...(defaultConfig.types[d]||[]),...(config.types?.[d]||[])])];$('#type').innerHTML=types.map(t=>`<option value="${escapeCad(t)}">${escapeCad(t)}</option>`).join('')}
 $('#discipline').onchange=updateTypes;
-$('#createCall').onclick=()=>{let id=`${String(new Date().getFullYear()).slice(-2)}-${String(++state.seq).padStart(6,'0')}`,i={id,caseNumber:$('#newCaseNumber').value.trim().slice(0,80),agency:$('#agency').value,discipline:$('#discipline').value,priority:$('#priority').value,type:($('#customIncidentType').value.trim()||$('#type').value),location:(window.cadCommonPlaces?.resolve($('#location').value)?.address||$('#location').value),caller:$('#caller').value,phone:$('#phone').value,narrative:[$('#narrative').value],status:'PENDING',units:[],events:[]};event(i,'CALL_CREATED');state.incidents.push(i);state.selected=id;save();show('dispatch');toast(`Created ${id}`)}
-$$('nav [data-view]').forEach(b=>b.onclick=()=>show(b.dataset.view));
-function show(v){$$('.view').forEach(x=>x.classList.toggle('active',x.id===v));$$('nav [data-view]').forEach(x=>x.classList.toggle('active',x.dataset.view===v))}
+$('#createCall').onclick=()=>{
+ const agency=$('#agency').value.trim(),discipline=$('#discipline').value;
+ const type=($('#customIncidentType').value.trim()||$('#type').value||'').trim();
+ const location=$('#location').value.trim();
+ if(!agency){toast('Select an agency');$('#agency').focus();return}
+ if(!type){toast('Select a Call for Service type');$('#type').focus();return}
+ if(!location){toast('Enter the call location');$('#location').focus();return}
+ const id=`${String(new Date().getFullYear()).slice(-2)}-${String(++state.seq).padStart(6,'0')}`;
+ const initialNote=$('#narrative').value.trim();
+ const i={id,caseNumber:$('#newCaseNumber').value.trim().slice(0,80),agency,discipline,priority:$('#priority').value,type,location:window.cadCommonPlaces?.resolve(location)?.address||location,caller:$('#caller').value.trim(),phone:$('#phone').value.trim(),narrative:initialNote?[initialNote]:[],status:'PENDING',units:[],events:[]};
+ event(i,'CALL_CREATED');state.incidents.push(i);state.selected=id;save();
+ for(const key of ['newCaseNumber','customIncidentType','location','caller','phone','narrative'])$('#'+key).value='';
+ $('#priority').value='P2';
+ if(document.getElementById('calltake')?.classList.contains('active'))window.cadCallTakeSelect?.(id);else show('dispatch');
+ toast('Pending call created: '+id);
+};
+
+$('nav [data-view]').forEach(b=>b.onclick=()=>show(b.dataset.view));
+window.cadShowView=show;
+function show(v){$('.view').forEach(x=>x.classList.toggle('active',x.id===v));$('nav [data-view]').forEach(x=>x.classList.toggle('active',x.dataset.view===v));if(v==='calltake')window.cadCallTakeRefresh?.()}
 $$('.filters button').forEach(b=>b.onclick=()=>{filter=window.CadDiscipline.normalize(b.dataset.discipline);window.cadUnitDisciplineFilter=filter;$$('.filters button').forEach(x=>x.classList.toggle('active',x===b));render()});
 // The enhanced command desk installs its own keyboard handling from command-intelligence.js.
 $('#saveConfig').onclick=()=>{config={...config,agencies:$('#cfgAgencies').value.split('\n').filter(Boolean),types:{LAW:$('#cfgLaw').value.split('\n').filter(Boolean),FIRE:$('#cfgFire').value.split('\n').filter(Boolean),EMS:$('#cfgEms').value.split('\n').filter(Boolean)}};localStorage.setItem(CFG,JSON.stringify(config));populate();toast('Configuration saved')}

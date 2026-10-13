@@ -195,7 +195,7 @@ function association(units,source,status){
  if(selected && assigned.length===0)return selected;
  return null;
 }
-function process(text,source=el('voiceSource').value){text=String(text||'').trim();if(!text){indicator('READY');return;}ensure();const match=contextUnits(text,unitMatches(text)),units=match.units,parsed=parseStatus(window.CadRadioStatusRepair.repair(text,match.resolution==='explicit'&&units.length===1));const selectedActive=state.incidents.find(i=>i.id===state.selected&&i.status==='ACTIVE');const inc=association(units,source,parsed.status)||(!units.length?selectedActive:null);const tid='r'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);const record={id:tid,time:stamp(),source,text,units:units.map(x=>x.id),status:parsed.status,incidentId:inc?.id||null};const actions=[];const blockers=[];const observed=units.map(u=>u.id).join(', ')||'NONE';
+function process(text,source=el('voiceSource').value){text=String(text||'').trim();if(!text){indicator('READY');return;}ensure();const match=contextUnits(text,unitMatches(text)),units=match.units,parsed=parseStatus(window.CadRadioStatusRepair.repair(text,match.resolution==='explicit'&&units.length===1));const selectedActive=state.incidents.find(i=>i.id===state.selected&&i.status==='ACTIVE');const inc=association(units,source,parsed.status)||(!units.length?selectedActive:null);const tid='r'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);const record={id:tid,time:stamp(),timestamp:new Date().toISOString(),source,text,units:units.map(x=>x.id),status:parsed.status,incidentId:inc?.id||null};const actions=[];const blockers=[];const observed=units.map(u=>u.id).join(', ')||'NONE';
 if(!units.length)blockers.push(match.resolution==='ambiguous'?'Multiple assigned units match spoken digits. Confirm unit.':'Unit not identified. No status update applied. Check recognized words against unit IDs.');if(units.length&&!inc)blockers.push('No unique associated active incident for '+observed);if(parsed.reason)blockers.push(parsed.reason);if(!parsed.status){const incomplete=window.CadRadioIncomplete.inspect(text,match.resolution==='explicit'&&units.length===1);if(incomplete)blockers.push(incomplete.reason);}
 if(inc){inc.radioTranscripts.push(record);event(inc,`RADIO_${source==='FIELD'?'RX':'TX'} ${units.map(u=>u.id).join(', ')||'UNIDENTIFIED'}: ${text} [transcript:${tid}]`);const descriptors=details(text);if(parsed.status&&units.length&&!parsed.dispositionRequired){for(const u of units){const already=inc.units.includes(u.id);if(!already && !(source==='DISPATCH'&&parsed.status==='DISPATCHED')){blockers.push(`${u.id} not assigned to event`);continue;}if(!already){inc.units.push(u.id);inc.status='ACTIVE';event(inc,`VOICE_UNIT_ASSIGNED ${u.id}`);}const prev=u.status;const allowed={AVAILABLE:['DISPATCHED','ONSCENE','ENROUTE','OUT_OF_SERVICE'],CLEAR:['DISPATCHED','ENROUTE','ONSCENE','AVAILABLE'],DISPATCHED:['ENROUTE','ONSCENE','AVAILABLE','CLEAR'],ENROUTE:['ONSCENE','AVAILABLE','CLEAR'],ONSCENE:['CODE4','AVAILABLE_ON_SCENE','CLEAR','AVAILABLE'],CODE4:['ONSCENE','AVAILABLE_ON_SCENE','CLEAR'],AVAILABLE_ON_SCENE:['ONSCENE','CODE4','CLEAR'],TRANSPORTING:['AVAILABLE','ONSCENE','CLEAR'],OUT_OF_SERVICE:['AVAILABLE']};if(prev!==parsed.status && !(allowed[prev]||[]).includes(parsed.status)){blockers.push(`${u.id} status transition ${prev} → ${parsed.status} requires manual review`);continue;}if(prev!==parsed.status){u.status=parsed.status;if(parsed.status==='AVAILABLE'||parsed.status==='CLEAR'){u.location='Available';if(parsed.status==='CLEAR')inc.units=inc.units.filter(id=>id!==u.id);}else u.location=inc.location;actions.push(`${u.id} ${prev} → ${u.status}`);event(inc,`VOICE_STATUS ${u.id} ${prev} -> ${u.status} transcript:${tid}`);}}}
 // Event narratives describe radio content, not backend status transitions. Those belong in Event History.
@@ -212,7 +212,7 @@ if(parsed.status && mentionedIds.length){
 summaryPieces.push(...operationalDescriptors);
 if(summaryPieces.length){
  const s=summaryPieces.map(x=>x.replace(/[.; ]+$/,'')).join('. ')+'.';
- const note={id:tid,time:record.time,summary:s,source:units.length===1?units[0].id:source,method:'rule-based'};
+ const note={id:tid,time:record.time,timestamp:record.timestamp,summary:s,source:units.length===1?units[0].id:source,method:'rule-based'};
  inc.voiceNotes.push(note);inc.narrative.push(`${record.time} [Radio summary] ${s}`);
  event(inc,`RADIO_SUMMARY transcript:${tid}`);
   requestAISummary(inc.id,tid,text,note.source,inc.type,inc.location);
@@ -237,7 +237,7 @@ async function requestAISummary(incidentId, transcriptId, originalText, speaker,
   const incident=state.incidents.find(i=>i.id===incidentId);if(!incident)return;
   let note=incident.voiceNotes?.find(n=>n.id===transcriptId);
   if(note){note.summary=data.summary;note.method='ai';note.uncertainties=data.uncertainties||[];}
-  else{note={id:transcriptId,time:record.time,summary:data.summary,source:speaker,method:'ai',uncertainties:data.uncertainties||[]};incident.voiceNotes.push(note);}
+  else{note={id:transcriptId,time:record.time,timestamp:record.timestamp,summary:data.summary,source:speaker,method:'ai',uncertainties:data.uncertainties||[]};incident.voiceNotes.push(note);}
   // voiceNotes holds the authoritative generated summary. Leave manual incident notes intact.
   event(incident,`AI_SUMMARY transcript:${transcriptId}`);
   save();if(state.selected===incidentId)renderDetail();
@@ -264,16 +264,33 @@ refreshRadioIncidents();
 window.voiceDetailHtml=i=>{
  ensure();
  const notes=i.voiceNotes||[],trans=i.radioTranscripts||[];
- const original=(i.narrative||[]).filter(x=>!x.includes('[Radio summary]'));
- // Stored data stays chronological. Display order is purely a browser preference.
- const orderedNotes=newestFirst?[...notes].reverse():[...notes];
- const orderedTrans=newestFirst?[...trans].reverse():[...trans];
- const narrativeItems=[...original.map(t=>({type:'original',text:t})),...orderedNotes.map(n=>({type:'summary',note:n}))];
- if(newestFirst)narrativeItems.splice(0,narrativeItems.length,...orderedNotes.map(n=>({type:'summary',note:n})),...original.slice().reverse().map(t=>({type:'original',text:t})));
- const narrativeHtml=narrativeItems.map(item=>item.type==='original'?`<div class="narr">${safe(item.text)}</div>`:`<div class="voice-entry"><div class="meta">${safe(item.note.time)} | ${safe(item.note.source)} | ${item.note.method==='ai'?'AI summary':'Local summary'}</div>${safe(item.note.summary)}${item.note.uncertainties?.length?` <span class="meta">[Check: ${safe(item.note.uncertainties.join('; '))}]</span>`:''} <button data-transcript-ref="${safe(item.note.id)}">Source transcript ↗</button></div>`).join('')||'<div class="narr muted">No narrative yet.</div>';
- const transcriptHtml=orderedTrans.map(r=>`<div class="voice-entry ${highlightId===r.id?'highlight':''}" data-transcript-id="${safe(r.id)}"><div class="meta">${safe(r.time)} | ${r.source==='FIELD'?'Incoming':'Outgoing'} | ${safe((r.units||[]).join(', ')||'Unidentified')}</div>${safe(r.text)}</div>`).join('')||'<div class="narr muted">No radio transmissions linked to this event.</div>';
- return `<div class="voice-log-count">Radio records linked to this event: <strong>${trans.length}</strong> | Summaries: <strong>${notes.length}</strong></div><div class="voice-tabs"><button data-voice-tab="narrative" class="${activeTab==='narrative'?'active':''}">Event Narrative (${notes.length} radio summaries)</button><button data-voice-tab="transcript" class="${activeTab==='transcript'?'active':''}">Radio Transcript (${trans.length})</button><label class="voice-order-label" title="Choose whether the most recent entries appear first or last">Order: <select id="voiceEntryOrder"><option value="newest" ${newestFirst?'selected':''}>Newest on top</option><option value="oldest" ${!newestFirst?'selected':''}>Newest on bottom</option></select></label></div><div class="voice-detail-content" tabindex="0" role="region" aria-label="${activeTab==='narrative'?'Event narrative':'Radio transcript'}">${activeTab==='narrative'?narrativeHtml:transcriptHtml}</div>`;
+ const legacy=(i.narrative||[]).filter(x=>!x.includes('[Radio summary]'));
+ const manual=i.manualNarrativeEntries||[];
+ const unmatched=[...manual];
+ const legacyItems=legacy.filter(text=>{const ix=unmatched.findIndex(n=>n.text===text);if(ix<0)return true;unmatched.splice(ix,1);return false});
+ const clockTime=clock=>{const m=String(clock||'').match(/(\d{1,2}):(\d{2}):(\d{2})/);if(!m)return null;const d=new Date();d.setHours(+m[1],+m[2],+m[3],0);return d.getTime()};
+ const stampTime=x=>{const t=Date.parse(x||'');return Number.isFinite(t)?t:null};
+ const items=[...legacyItems.map((text,index)=>({kind:'legacy',text,index,time:null})),...notes.map((note,index)=>({kind:'summary',note,index,time:stampTime(note.timestamp)??clockTime(note.time)})),...manual.map((note,index)=>({kind:'manual',note,index,time:stampTime(note.timestamp)}))];
+ items.sort((a,b)=>{if(a.time!==null&&b.time!==null)return newestFirst?b.time-a.time:a.time-b.time;if(a.time===null&&b.time!==null)return newestFirst?1:-1;if(b.time===null&&a.time!==null)return newestFirst?-1:1;return newestFirst?b.index-a.index:a.index-b.index});
+ const formatDate=x=>{const d=new Date(x);return Number.isFinite(d.getTime())?d.toLocaleString('en-US',{year:'numeric',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'}):'Timestamp unavailable'};
+ const narrativeHtml=items.map(item=>{
+  if(item.kind==='legacy')return '<div class="voice-entry cad-narrative-manual"><div class="meta">Manual narrative | Legacy entry, timestamp unavailable</div>'+safe(item.text)+'</div>';
+  if(item.kind==='manual')return '<div class="voice-entry cad-narrative-manual"><div class="meta">'+safe(formatDate(item.note.timestamp))+' | Dispatcher note · '+safe(item.note.author||'Unidentified')+'</div>'+safe(item.note.text)+'</div>';
+  const n=item.note;return '<div class="voice-entry"><div class="meta">'+safe(n.timestamp?formatDate(n.timestamp):String(n.time||'Time unavailable')+' | Date not recorded')+' | '+safe(n.source)+' | '+(n.method==='ai'?'AI summary':'Local summary')+'</div>'+safe(n.summary)+(n.uncertainties?.length?' <span class="meta">[Check: '+safe(n.uncertainties.join('; '))+']</span>':'')+' <button data-transcript-ref="'+safe(n.id)+'">Source transcript ↗</button></div>';
+ }).join('')||'<div class="narr muted">No narrative yet.</div>';
+ const orderedTrans=[...trans].sort((a,b)=>newestFirst?String(b.timestamp||b.time||'').localeCompare(String(a.timestamp||a.time||'')):String(a.timestamp||a.time||'').localeCompare(String(b.timestamp||b.time||'')));
+  const transcriptHtml=orderedTrans.map(r=>`<div class="voice-entry ${highlightId===r.id?'highlight':''}" data-transcript-id="${safe(r.id)}"><div class="meta">${safe(r.time)} | ${r.source==='FIELD'?'Incoming':'Outgoing'} | ${safe((r.units||[]).join(', ')||'Unidentified')}</div>${safe(r.text)}</div>`).join('')||'<div class="narr muted">No radio transmissions linked to this event.</div>';
+ return `<div class="voice-log-count">Radio records linked to this event: <strong>${trans.length}</strong> | Summaries: <strong>${notes.length}</strong></div><div class="voice-tabs"><button data-voice-tab="narrative" class="${activeTab==='narrative'?'active':''}">Event Narrative (${items.length} entries)</button><button data-voice-tab="transcript" class="${activeTab==='transcript'?'active':''}">Radio Transcript (${trans.length})</button><label class="voice-order-label" title="Choose whether the most recent entries appear first or last">Order: <select id="voiceEntryOrder"><option value="newest" ${newestFirst?'selected':''}>Newest on top</option><option value="oldest" ${!newestFirst?'selected':''}>Newest on bottom</option></select></label></div><div class="voice-detail-content" tabindex="0" role="region" aria-label="${activeTab==='narrative'?'Event narrative':'Radio transcript'}">${activeTab==='narrative'?narrativeHtml:transcriptHtml}</div>`;
 };
+function ensureDispatcherIdentity(){
+ let id=(localStorage.getItem('smcad-dispatcher-identity-v1')||'').trim();
+ if(id)return id;
+ const entered=prompt('Dispatcher ID or initials for narrative attribution (saved on this browser):','');
+ if(entered?.trim()){id=entered.trim().slice(0,24);localStorage.setItem('smcad-dispatcher-identity-v1',id);return id}
+ return null;
+}
+document.addEventListener('click',e=>{if(e.target.closest('[data-act="note"]'))ensureDispatcherIdentity()},true);
+window.cadVoiceSetOrder=value=>{newestFirst=value!=='oldest';localStorage.setItem('smcad-voice-order-v17.3',newestFirst?'newest':'oldest')};
 window.voiceBindDetail=i=>{
  document.querySelectorAll('[data-voice-tab]').forEach(b=>b.onclick=()=>{activeTab=b.dataset.voiceTab;highlightId=null;renderDetail();});
  const order=document.getElementById('voiceEntryOrder');if(order)order.onchange=()=>{newestFirst=order.value==='newest';localStorage.setItem('smcad-voice-order-v17.3',newestFirst?'newest':'oldest');renderDetail();};
@@ -424,7 +441,7 @@ function processDispatch(text,source){
  if(preempt&&busy.some(u=>state.incidents.filter(i=>i.status==='ACTIVE'&&i.units.includes(u.id)&&!(family&&cadIncidentFamily(i).id===family&&i.discipline===u.discipline)).length!==1))
    blockers.push('PREEMPT held: unit has ambiguous existing assignments. Review manually.');
  const id='r'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
- const record={id,time:stamp(),source,text,units:units.map(u=>u.id),status:'DISPATCHED',incidentId:inc?.id||null};
+ const record={id,time:stamp(),timestamp:new Date().toISOString(),source,text,units:units.map(u=>u.id),status:'DISPATCHED',incidentId:inc?.id||null};
  ensure();
  if(inc){
   inc.radioTranscripts.push(record);
@@ -452,7 +469,7 @@ function processDispatch(text,source){
    if(target.id!==inc.id)target.radioTranscripts.push({...record,incidentId:target.id});
    event(target,`VOICE_UNIT_ASSIGNED ${u.id} ${prior} -> DISPATCHED [transcript:${id}]`);
    target.voiceNotes ||= [];
-   target.voiceNotes.push({id,time:record.time,source:'DISPATCH',summary:`${u.id} dispatched to ${target.type} at ${target.location}${resolved.linked?' (linked from '+inc.id+')':''}.`,method:'rule-based'});
+   target.voiceNotes.push({id,time:record.time,timestamp:record.timestamp,source:'DISPATCH',summary:`${u.id} dispatched to ${target.type} at ${target.location}${resolved.linked?' (linked from '+inc.id+')':''}.`,method:'rule-based'});
    destinations.push(target);
   }
   for(const target of [...new Set(destinations)]){
