@@ -178,7 +178,7 @@
     const signature=JSON.stringify({incidents,roster,missing,assignments});
     const changed=lastSignature!==''&&lastSignature!==signature;
     lastSignature=signature;
-    snapshot={incidents,roster,assignments,dispatchAreas,areaAgencies};syncChoices();renderWorkspace();renderSharedBoard();
+    snapshot={incidents,roster,assignments,dispatchAreas,areaAgencies};syncChoices();renderWorkspace();renderSharedBoard();window.cadSharedApplySnapshot?.(snapshot);
     displayRows(tbody,incidents,['incident_number','status','discipline','created_at']);
     displayRows(units,roster,['call_sign','status','resource_type']);
     displayRows(shortages,missing,['incident_id','resource_type','missing_count']);
@@ -186,6 +186,30 @@
     if(!quiet||changed)say(changed?'Shared CAD updated from another dispatcher. Local workspace remains separate.':'Shared CAD snapshot loaded. Local workspace remains separate.');
    }catch(error){say(error.message)}finally{refreshing=false}
   }
+  window.cadSharedRequestRefresh=()=>refresh({quiet:true});
+  document.addEventListener('click',event=>{
+   const button=event.target.closest?.('[data-act="shared-dispatch"]');
+   if(!button)return;
+   const state=window.cadSafetyState?.();
+   const selected=state?.incidents?.find(i=>i.id===state.selected);
+   if(!selected?.sharedUuid)return;
+   const incident=snapshot.incidents.find(i=>i.id===selected.sharedUuid);
+   if(!incident)return;
+   const available=snapshot.roster.filter(u=>u.status==='AVAILABLE');
+   const assigned=snapshot.assignments.filter(a=>a.incident_id===incident.id).map(a=>snapshot.roster.find(u=>u.id===a.unit_id)).filter(Boolean);
+   const options=['Dispatch available unit',...assigned.map(u=>'Clear '+u.call_sign)];
+   const chosen=window.prompt('Shared CAD · '+incident.incident_number+'\\n'+options.map((v,index)=>index+': '+v).join('\\n')+'\\nEnter an option number:','0');
+   if(chosen===null)return;
+   const n=Number(chosen);
+   if(!Number.isInteger(n)||n<0||n>=options.length)return window.alert('Invalid selection.');
+   if(n>0){const unit=assigned[n-1];if(!window.confirm('Clear '+unit.call_sign+'?'))return;return operate(button,(client,agency)=>client.clearUnit({agency,incident:incident.id,unit:unit.id,incidentVersion:incident.version,unitVersion:unit.version,disposition:'CLEARED'}))}
+   if(!available.length)return window.alert('No available units.');
+   const callSign=window.prompt('Available units: '+available.map(u=>u.call_sign).join(', ')+'\\nEnter call sign:');
+   if(!callSign)return;
+   const unit=available.find(u=>u.call_sign.toUpperCase()===callSign.trim().toUpperCase());
+   if(!unit)return window.alert('Unit not available. Refresh and try again.');
+   operate(button,(client,agency)=>client.assignUnit({agency,incident:incident.id,unit:unit.id,incidentVersion:incident.version,unitVersion:unit.version}));
+  });
   form.addEventListener('submit',async event=>{
    event.preventDefault();
    const submit=$('cadSharedSignIn');submit.disabled=true;
@@ -207,7 +231,7 @@
    lastSignature='';
    window.CadDemoLogin.logout();
    tbody.replaceChildren();units.replaceChildren();shortages.replaceChildren();
-   snapshot={incidents:[],roster:[],assignments:[]};syncChoices();renderWorkspace();renderSharedBoard();
+   snapshot={incidents:[],roster:[],assignments:[]};syncChoices();renderWorkspace();renderSharedBoard();window.cadSharedRestoreLocal?.();
    board.hidden=true;loginPanel.hidden=false;text(headerUser,'Offline');toggle.classList.remove('is-connected');
    say('Signed out of shared CAD. Local demo remains available.');
   });
