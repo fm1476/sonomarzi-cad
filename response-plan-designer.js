@@ -64,9 +64,46 @@ async function loadMapZones(){
 function msg(t){el('rpMessage').textContent=t}
 function showCrews(){el('rpCrews').innerHTML=crews.map(g=>'<p>'+escape(g.name)+' — '+escape(g.units.join(', '))+' <button data-remove-crew="'+escape(g.id)+'">Remove</button></p>').join('')||'<p>No shared crew groups configured.</p>';el('rpCrews').querySelectorAll('[data-remove-crew]').forEach(b=>b.onclick=()=>{crews=crews.filter(g=>g.id!==b.dataset.removeCrew);save();showCrews()})}
 function showPlans(){el('rpZone').value=zone;const matches=plans.filter(p=>p.zone===zone&&p.discipline===discipline);el('rpPlans').innerHTML=matches.map(p=>'<p>'+escape(p.type)+' · '+escape(p.level)+' · '+escape(p.status)+' <button data-edit-plan="'+escape(p.id)+'">Edit</button></p>').join('')||(zone?'<p>No existing plans for this ESZ.</p>':'<p>Select an ESZ to begin.</p>');el('rpPlans').querySelectorAll('[data-edit-plan]').forEach(b=>b.onclick=()=>edit(b.dataset.editPlan));if(matches.length===1)edit(matches[0].id);else el('rpEditor').innerHTML=''}
-function edit(id){const p=plans.find(x=>x.id===id);el('rpEditor').innerHTML='<h4>'+(p?'Edit Plan':'New Plan')+' — ESZ '+escape(zone)+'</h4><label>Call type<input id="rpType" value="'+escape(p?.type||'Structure Fire')+'"></label><label>Response level<select id="rpLevel"><option>First Alarm</option><option>Working Fire</option><option>Second Alarm</option><option>Standard</option></select></label><label>Selection method<select id="rpMethod"><option>HYBRID</option><option>CLOSEST</option><option>RUN_CARD</option></select></label><label>Resources (one per line: TYPE,QUANTITY)<textarea id="rpResources"></textarea></label><button id="rpDraft">Save Draft</button> <button id="rpPublish">Publish Locally</button>';
- el('rpLevel').value=p?.level||'First Alarm';el('rpMethod').value=p?.method||'HYBRID';el('rpResources').value=(p?.resources||[{type:'ENGINE',count:2},{type:'TRUCK',count:1},{type:'CHIEF',count:1}]).map(r=>r.type+','+r.count).join('\n');
- function commit(status){const type=el('rpType').value.trim();const resources=el('rpResources').value.split('\n').filter(x=>x.trim()).map(line=>{const [type,count]=line.split(',');return{type:type?.trim().toUpperCase(),count:Number(count)}});if(!type||!resources.length||resources.some(r=>!r.type||!Number.isInteger(r.count)||r.count<1))return msg('Enter a call type and valid TYPE,QUANTITY resources.');plans=plans.filter(x=>x.id!==id);plans.push({id:id||crypto.randomUUID(),zone,discipline,type,level:el('rpLevel').value,method:el('rpMethod').value,resources,status});save();showPlans();msg('Saved '+status+' locally. No live dispatch changes.')}
+const RESOURCE_TYPES={
+ FIRE:['ENGINE','TRUCK','LADDER','RESCUE','BRUSH','CHIEF','TENDER','MEDIC','AMBULANCE','OTHER'],
+ EMS:['AMBULANCE','MEDIC','ENGINE','RESCUE','CHIEF','SUPERVISOR','OTHER'],
+ LAW:['PATROL','SUPERVISOR','TRAFFIC','K9','DETECTIVE','SWAT','MOTOR','OTHER']
+};
+function edit(id){
+ const p=plans.find(x=>x.id===id);
+ const defaults=discipline==='LAW'?[{type:'PATROL',count:2},{type:'SUPERVISOR',count:1}]:discipline==='EMS'?[{type:'AMBULANCE',count:1},{type:'ENGINE',count:1}]:[{type:'ENGINE',count:2},{type:'TRUCK',count:1},{type:'CHIEF',count:1}];
+ let resources=(p?.resources||defaults).map(r=>({...r}));
+ const options=RESOURCE_TYPES[discipline];
+ el('rpEditor').innerHTML='<h4>'+(p?'Edit Plan':'New Plan')+' — '+escape(discipline==='LAW'?'Beat ':'ESZ ')+escape(zone)+'</h4>'+
+ '<label>Call type<input id="rpType" value="'+escape(p?.type||(discipline==='LAW'?'Priority Emergency':discipline==='EMS'?'Medical Emergency':'Structure Fire'))+'"></label>'+
+ '<label>Response level<select id="rpLevel"><option>First Alarm</option><option>Working Fire</option><option>Second Alarm</option><option>Standard</option></select></label>'+
+ '<label>Selection method<select id="rpMethod"><option>HYBRID</option><option>CLOSEST</option><option>RUN_CARD</option></select></label>'+
+ '<h4>Response resources</h4><p>Choose resource types, set quantities, and use the arrows to establish dispatch order.</p>'+
+ '<div id="rpResourceCards"></div><button id="rpAddResource" type="button">+ Add Resource</button>'+
+ '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:18px"><button id="rpDraft" type="button">Save Draft</button><button id="rpPublish" type="button">Publish Locally</button></div>';
+ el('rpLevel').value=p?.level||'Standard';el('rpMethod').value=p?.method||'HYBRID';
+ function drawResources(){
+  el('rpResourceCards').innerHTML=resources.map((resource,i)=>'<div data-resource-index="'+i+'" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;border:1px solid #34536d;border-radius:10px;padding:12px;margin:8px 0;background:rgba(31,75,109,.22)">'+
+   '<strong style="min-width:30px">'+(i+1)+'.</strong>'+
+   '<label style="flex:1;min-width:160px">Resource type<select data-resource-type="'+i+'">'+[...new Set([...options,resource.type])].map(type=>'<option value="'+escape(type)+'" '+(resource.type===type?'selected':'')+'>'+escape(type)+'</option>').join('')+'</select></label>'+
+   '<label style="min-width:100px">Quantity<input type="number" min="1" max="99" style="width:85px" data-resource-count="'+i+'" value="'+escape(resource.count)+'"></label>'+
+   '<button type="button" data-resource-up="'+i+'" '+(i===0?'disabled':'')+' aria-label="Move resource up">↑</button>'+
+   '<button type="button" data-resource-down="'+i+'" '+(i===resources.length-1?'disabled':'')+' aria-label="Move resource down">↓</button>'+
+   '<button type="button" data-resource-remove="'+i+'" aria-label="Remove resource">Remove</button></div>').join('')||'<p>No resources yet. Add one to begin.</p>';
+  el('rpResourceCards').querySelectorAll('[data-resource-type]').forEach(x=>x.onchange=()=>{resources[Number(x.dataset.resourceType)].type=x.value});
+  el('rpResourceCards').querySelectorAll('[data-resource-count]').forEach(x=>x.onchange=()=>{resources[Number(x.dataset.resourceCount)].count=Number(x.value)});
+  el('rpResourceCards').querySelectorAll('[data-resource-up]').forEach(x=>x.onclick=()=>{const i=Number(x.dataset.resourceUp);[resources[i-1],resources[i]]=[resources[i],resources[i-1]];drawResources()});
+  el('rpResourceCards').querySelectorAll('[data-resource-down]').forEach(x=>x.onclick=()=>{const i=Number(x.dataset.resourceDown);[resources[i+1],resources[i]]=[resources[i],resources[i+1]];drawResources()});
+  el('rpResourceCards').querySelectorAll('[data-resource-remove]').forEach(x=>x.onclick=()=>{resources.splice(Number(x.dataset.resourceRemove),1);drawResources()});
+ }
+ drawResources();
+ el('rpAddResource').onclick=()=>{resources.push({type:options[0],count:1});drawResources()};
+ function commit(status){
+  const type=el('rpType').value.trim();
+  if(!type||!resources.length||resources.some(r=>!r.type||!Number.isInteger(r.count)||r.count<1||r.count>99))return msg('Enter a call type and at least one resource with a quantity from 1 to 99.');
+  const next={id:id||crypto.randomUUID(),zone,discipline,type,level:el('rpLevel').value,method:el('rpMethod').value,resources:resources.map(r=>({...r})),status};
+  plans=plans.filter(x=>x.id!==id);plans.push(next);save();showPlans();msg('Saved '+status+' locally. No live dispatch changes.');
+ }
  el('rpDraft').onclick=()=>commit('Draft');el('rpPublish').onclick=()=>commit('Published');
 }
 window.CadResponsePlans={openZone(z,d='FIRE'){zone=String(z);discipline=['EMS','LAW'].includes(d)?d:'FIRE';render()},sharedCrewConflicts:ids=>{const used=new Set();return ids.filter(id=>{const g=crews.find(x=>x.units.includes(id));if(!g)return false;if(used.has(g.id))return true;used.add(g.id);return false})}};
