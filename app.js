@@ -511,9 +511,11 @@ const newCallerLocation=$('#newCallerLocation'),newCallerSame=$('#newCallerSameA
  if(!location){toast('Location is required');$('#location').focus();$('#location').style.outline='2px solid #ef7777';return}
  const checkedPhone=cadPhoneCanonical($('#phone').value);if(!checkedPhone.ok){toast(checkedPhone.message);$('#phone').focus();return}
  if(cadSharedWorkspaceMode){
-  const max=state.incidents.reduce((m,i)=>Math.max(m,Number((i.id.match(/-(\\d+)$/)||[])[1])||0),state.seq);
-  const number=String(new Date().getFullYear()).slice(-2)+'-'+String(max+1).padStart(6,'0');
-  window.cadSharedCommand('create',{number,discipline,type,priority:$('#priority').value,location:window.cadCommonPlaces?.resolve(location)?.address||location}).then(()=>{state.selected=number;render();toast('Shared call created: '+number)}).catch(e=>alert(e.message));
+  window.cadSharedCommand('create',{discipline,type,priority:$('#priority').value,location:window.cadCommonPlaces?.resolve(location)?.address||location}).then(created=>{
+   state.selected=created.incident_number;
+   render();
+   toast('Shared call created: '+created.incident_number);
+  }).catch(e=>alert(e.message));
   return;
  }
  const id=`${String(new Date().getFullYear()).slice(-2)}-${String(++state.seq).padStart(6,'0')}`;
