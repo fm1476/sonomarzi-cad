@@ -49,7 +49,7 @@ const itemHTML=(type,item)=>{
  return `<div class="row board-flex ${state.selected===item.id?'selected':''}" data-id="${escapeCad(item.id)}">${opts[type].columns.map(f=>components[f]).join('')}</div>`;
  }
  const unitStatusClass=`status-${String(item.status).toLowerCase().replace(/[^a-z0-9]+/g,'-')}`;
- const components={id:`<span class="cad-unit-chip board-unit-pill ${unitStatusClass}" draggable="false" title="${escapeCad(item.id)} • ${escapeCad(String(item.status).replace(/_/g,' '))}">${escapeCad(item.id)}</span>`,agency:`<span>${escapeCad(item.agency)}<div class="meta">${escapeCad(item.discipline)}</div></span>`,location:`<span class="cad-board-location" title="${escapeCad(item.location||'Not reported')}">${escapeCad(item.location||'Not reported')}</span>`,status:`<span class="status ${unitStatusClass}">${escapeCad(String(item.status).replace(/_/g,' '))}</span>`};
+ const components={id:`<span class="cad-unit-chip board-unit-pill ${unitStatusClass}" data-unit-id="${escapeCad(item.id)}" draggable="false" title="${escapeCad(item.id)} • ${escapeCad(String(item.status).replace(/_/g,' '))}">${escapeCad(item.id)}</span>`,agency:`<span>${escapeCad(item.agency)}<div class="meta">${escapeCad(item.discipline)}</div></span>`,location:`<span class="cad-board-location" title="${escapeCad(item.location||'Not reported')}">${escapeCad(item.location||'Not reported')}</span>`,status:`<span class="status ${unitStatusClass}">${escapeCad(String(item.status).replace(/_/g,' '))}</span>`};
  return `<div class="unit board-flex cad-unit-grid" style="grid-template-columns:${unitGrid()}" draggable="true" data-drag-unit="${escapeCad(item.id)}" title="Drag to Pending/Active incident to dispatch, or Units board to make available">${opts.units.columns.map(f=>components[f]).join('')}</div>`;
 };
 function groupHTML(type,items,by){const groups=new Map();for(const item of items){const key=item[by]||'Unassigned';if(!groups.has(key))groups.set(key,[]);groups.get(key).push(item)}return [...groups].sort((a,b)=>alpha(a[0],b[0])).map(([name,rows])=>`<div class="board-group">${escapeCad(name)} <span>(${rows.length})</span></div>`+rows.map(i=>itemHTML(type,i)).join('')).join('')}
@@ -81,10 +81,10 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')closeUnitMenu()});
 document.addEventListener('contextmenu',e=>{
  const chip=e.target.closest('.cad-unit-chip');
  if(!chip)return;
- const unitId=chip.dataset.dragUnit||chip.closest('[data-id]')?.dataset.id;
+ const unitId=chip.dataset.unitId||chip.dataset.dragUnit||chip.closest('.unit[data-id]')?.dataset.id;
  const u=state.units.find(x=>x.id===unitId);
  if(!u)return;
- e.preventDefault();closeUnitMenu();
+ e.preventDefault();e.stopImmediatePropagation();closeUnitMenu();
  const assigned=state.incidents.filter(i=>i.status!=='CLOSED'&&i.units.includes(unitId));
  const title=document.createElement('strong');title.textContent=u.id+' · '+u.status.replaceAll('_',' ');
  title.style.cssText='display:block;padding:7px 9px 10px';unitMenu.append(title);
@@ -112,7 +112,7 @@ document.addEventListener('contextmenu',e=>{
  unitMenu.style.display='block';
  unitMenu.style.left=Math.max(8,Math.min(e.clientX,window.innerWidth-unitMenu.offsetWidth-8))+'px';
  unitMenu.style.top=Math.max(8,Math.min(e.clientY,window.innerHeight-unitMenu.offsetHeight-8))+'px';
-});
+},true);
 initialize();initPanelDrag();
 // app.js initially renders before this module loads; repaint once enhanced boards are installed.
 if(typeof window.render==='function')window.render();
