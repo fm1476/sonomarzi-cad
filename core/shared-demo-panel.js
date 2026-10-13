@@ -20,6 +20,52 @@
   const units=$('cadSharedUnits');
   const shortages=$('cadSharedShortages');
   const counts=$('cadSharedCounts');
+  let snapshot={incidents:[],roster:[],assignments:[]};
+  const option=(value,label)=>{const o=document.createElement('option');o.value=value;o.textContent=label;return o};
+  function choose(select,items,format){
+   const previous=select.value;select.replaceChildren();
+   for(const item of items)select.appendChild(option(item.id,format(item)));
+   if(items.some(item=>item.id===previous))select.value=previous;
+  }
+  function syncChoices(){
+   choose($('cadSharedTargetIncident'),snapshot.incidents.filter(i=>i.status!=='CLOSED'),i=>i.incident_number+' · '+i.status);
+   choose($('cadSharedTargetUnit'),snapshot.roster.filter(u=>u.status==='AVAILABLE'),u=>u.call_sign+' · '+u.discipline);
+   const active=snapshot.assignments.map(a=>{
+    const u=snapshot.roster.find(u=>u.id===a.unit_id);
+    const i=snapshot.incidents.find(i=>i.id===a.incident_id);
+    return u&&i?{id:a.id,unit:u,incident:i}:null;
+   }).filter(Boolean);
+   const target=$('cadSharedStatusUnit'),old=target.value;target.replaceChildren();
+   for(const a of active)target.appendChild(option(a.id,a.unit.call_sign+' · '+a.incident.incident_number+' · '+a.unit.status));
+   if(active.some(a=>a.id===old))target.value=old;
+  }
+  async function operate(button,work){
+   if(!window.CadDemoLogin.current())return say('Sign in first.');
+   button.disabled=true;
+   try{await work(window.CadDemoLogin.client(),window.CadDemoLogin.current().agencyId);await refresh()}
+   catch(error){say(error.message+' — Refresh shared data and retry after reviewing current assignments.')}
+   finally{button.disabled=false}
+  }
+  $('cadSharedCreateForm').addEventListener('submit',event=>{
+   event.preventDefault();
+   operate($('cadSharedCreate'),async(client,agency)=>{
+    await client.createIncident({agency,number:$('cadSharedNewNumber').value.trim(),discipline:$('cadSharedNewDiscipline').value,type:$('cadSharedNewType').value.trim(),priority:$('cadSharedNewPriority').value,location:$('cadSharedNewLocation').value.trim()});
+    $('cadSharedCreateForm').reset();
+   });
+  });
+  $('cadSharedAssign').addEventListener('click',()=>operate($('cadSharedAssign'),async(client,agency)=>{
+   const incident=snapshot.incidents.find(i=>i.id===$('cadSharedTargetIncident').value);
+   const unit=snapshot.roster.find(u=>u.id===$('cadSharedTargetUnit').value);
+   if(!incident||!unit)throw Error('Choose an active incident and available unit');
+   await client.assignUnit({agency,incident:incident.id,unit:unit.id,incidentVersion:incident.version,unitVersion:unit.version});
+  }));
+  $('cadSharedChangeStatus').addEventListener('click',()=>operate($('cadSharedChangeStatus'),async(client,agency)=>{
+   const assignment=snapshot.assignments.find(a=>a.id===$('cadSharedStatusUnit').value);
+   const unit=snapshot.roster.find(u=>u.id===assignment?.unit_id);
+   if(!assignment||!unit)throw Error('Choose an assigned unit');
+   await client.changeUnitStatus({agency,incident:assignment.incident_id,unit:unit.id,status:$('cadSharedNewStatus').value,unitVersion:unit.version});
+  }));
+
   const text=(node,value)=>{node.textContent=String(value??'—')};
   function cell(row,value){const td=document.createElement('td');text(td,value);row.appendChild(td)}
   function displayRows(host,items,fields){
@@ -32,9 +78,10 @@
    const agency=window.CadDemoLogin.current().agencyId;
    say('Refreshing shared CAD data…');
    try{
-    const [incidents,roster,missing]=await Promise.all([
-     client.listIncidents(agency),client.listUnits(agency),client.listOutstanding(agency)
+    const [incidents,roster,missing,assignments]=await Promise.all([
+     client.listIncidents(agency),client.listUnits(agency),client.listOutstanding(agency),client.listAssignments(agency)
     ]);
+    snapshot={incidents,roster,assignments};syncChoices();
     displayRows(tbody,incidents,['incident_number','status','discipline','created_at']);
     displayRows(units,roster,['call_sign','status','resource_type']);
     displayRows(shortages,missing,['incident_id','resource_type','missing_count']);
@@ -59,6 +106,7 @@
   $('cadSharedLogout').addEventListener('click',()=>{
    window.CadDemoLogin.logout();
    tbody.replaceChildren();units.replaceChildren();shortages.replaceChildren();
+   snapshot={incidents:[],roster:[],assignments:[]};syncChoices();
    board.hidden=true;loginPanel.hidden=false;text(headerUser,'Offline');toggle.classList.remove('is-connected');
    say('Signed out of shared CAD. Local demo remains available.');
   });
