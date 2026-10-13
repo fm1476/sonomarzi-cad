@@ -494,3 +494,25 @@ header nav.cad-header-tabs button{position:relative;z-index:102;pointer-events:a
 #calltake .cad-ct-bottom-handle:hover,#calltake .cad-ct-bottom-handle:focus-visible{background:#296285;outline:2px solid #71b6ec;outline-offset:-2px}
 #calltake .cad-ct-bottom-handle:after{content:'';position:absolute;width:72px;height:3px;left:calc(50% - 36px);top:7px;background:#85b5d1;border-radius:6px}
 #calltake .cad-ct-event-body{min-height:0;overflow:hidden}
+
+/* Agency event form designer */
+.cad-designer-entry{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:24px;background:#112b40;border:1px solid #315875;border-radius:12px;margin:12px 0}
+#cadFormDesigner{padding:16px;background:#0b1d2d;border:1px solid #32516a;border-radius:12px;margin-top:12px}
+.cad-fd-head,.cad-fd-actions{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.cad-fd-actions button,.cad-fd-library button,.cad-fd-properties button{padding:9px 12px;border-radius:7px;background:#194361;border:1px solid #487fa3;color:#e8f6ff;cursor:pointer}
+.cad-fd-actions button.primary{background:#1464b9}
+.cad-fd-grid{display:grid;grid-template-columns:minmax(150px,190px) minmax(300px,1fr) minmax(210px,270px);gap:14px}
+.cad-fd-grid>aside,.cad-fd-canvas{border:1px solid #32516a;background:#10293e;padding:14px;border-radius:9px;min-width:0}
+.cad-fd-library{display:flex;flex-direction:column;gap:8px}
+.cad-fd-library p,.cad-fd-properties p{font-size:12px;color:#a9c5d7}
+.cad-fd-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.cad-fd-tile{display:flex;flex-direction:column;align-items:flex-start;gap:5px;text-align:left;background:#16354d;border:1px solid #406985;color:#e4f3ff;padding:14px;border-radius:8px;cursor:grab}
+.cad-fd-tile.selected{outline:2px solid #65b5ef}
+.cad-fd-tile small{color:#b0cadd}
+.cad-fd-grip{font-size:18px;color:#91b6cf}
+.cad-fd-tile.wide,.cad-fd-fields>.wide,#calltake .cad-ct-config-field.wide{grid-column:1/-1}
+.cad-fd-properties label{display:block;margin:10px 0}
+.cad-fd-properties input:not([type=checkbox]),.cad-fd-properties select,.cad-fd-properties textarea{width:100%;box-sizing:border-box}
+#cadFdPreviewPane{margin-top:14px;padding:16px;border:1px solid #487b9b;border-radius:9px}
+#calltake .cad-ct-config-field textarea,#calltake .cad-ct-config-field select{width:100%;min-height:38px}
+@media(max-width:900px){.cad-fd-grid{grid-template-columns:1fr}}
