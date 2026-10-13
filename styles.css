@@ -747,3 +747,16 @@ header :is(button,select){max-width:100%}
 .cad-alarm-qty button,.cad-alarm-tile>button{padding:3px 7px;min-width:24px}
 .cad-alarm-empty{grid-column:1/-1;padding:22px;text-align:center;border:1px dashed #496e87;border-radius:8px}
 @media(max-width:850px){.cad-alarm-builder{grid-template-columns:minmax(0,1fr)}}
+
+/* Response-plan drag-and-drop resource and agency-unit palettes */
+.rp-palette-wrap{display:grid;grid-template-columns:minmax(200px,.85fr) minmax(0,2fr);gap:12px;margin:12px 0}
+.rp-palette-wrap>div,.rp-unit-palette-box{border:1px solid #34536d;border-radius:10px;padding:12px;min-width:0}
+.rp-palette-wrap p,.rp-unit-palette-box p{font-size:12px;opacity:.8;margin:5px 0 10px}
+.rp-palette{display:flex;flex-wrap:wrap;gap:7px;margin:10px 0}
+.rp-palette-pill{border:1px solid #497c9a;border-radius:999px;padding:7px 11px;display:inline-flex;align-items:center;gap:7px;cursor:grab;font-size:12px;max-width:100%;white-space:normal;text-align:left}
+.rp-palette-pill small{font-size:10px;opacity:.7}
+.rp-palette-pill:hover{border-color:#81c9f2}
+.rp-palette-drop{min-height:110px}
+.rp-palette-drop #rpResourceCards{margin-top:8px}
+#rpRunOrders .rp-run-group{min-height:105px}
+@media(max-width:850px){.rp-palette-wrap{grid-template-columns:minmax(0,1fr)}}
