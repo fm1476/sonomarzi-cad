@@ -29,6 +29,27 @@
 <div id="cadSharedBoard" hidden>
 <div class="cad-shared-session"><div class="cad-shared-session-identity"><span class="cad-shared-online-dot"></span> Signed in as <strong id="cadSharedSignedIn"></strong></div><div class="cad-shared-actions"><button id="cadSharedRefresh" class="cad-shared-btn" type="button">↻ Refresh</button><button id="cadSharedLogout" class="cad-shared-btn cad-shared-btn-muted" type="button">Sign out</button></div></div>
 <div id="cadSharedCounts" class="cad-shared-counts"></div>
+<div class="cad-shared-ops">
+<h4>Shared operations <span class="cad-shared-live-tag">TEST</span></h4>
+<form id="cadSharedCreateForm" class="cad-shared-create-form">
+<input id="cadSharedNewNumber" required maxlength="50" placeholder="Incident number (e.g. DEMO-1001)" aria-label="Incident number">
+<select id="cadSharedNewDiscipline" aria-label="Discipline"><option>LAW</option><option>FIRE</option><option>EMS</option></select>
+<input id="cadSharedNewType" required maxlength="100" placeholder="Incident type" aria-label="Incident type">
+<select id="cadSharedNewPriority" aria-label="Priority"><option value="1">Priority 1</option><option value="2">Priority 2</option><option value="3">Priority 3</option><option value="4">Priority 4</option></select>
+<input id="cadSharedNewLocation" required maxlength="250" placeholder="Incident location" aria-label="Incident location">
+<button type="submit" id="cadSharedCreate" class="cad-shared-btn cad-shared-btn-primary">Create shared incident</button>
+</form>
+<div class="cad-shared-assign-form">
+<label>Incident<select id="cadSharedTargetIncident" aria-label="Select shared incident"></select></label>
+<label>Available unit<select id="cadSharedTargetUnit" aria-label="Select available unit"></select></label>
+<button id="cadSharedAssign" type="button" class="cad-shared-btn">Assign unit</button>
+</div>
+<div class="cad-shared-assign-form">
+<label>Assigned unit<select id="cadSharedStatusUnit" aria-label="Select assigned unit"></select></label>
+<label>New status<select id="cadSharedNewStatus" aria-label="Unit status"><option value="ENROUTE">Enroute</option><option value="ONSCENE">On scene</option><option value="TRANSPORTING">Transporting</option><option value="AT_HOSPITAL">At hospital</option><option value="OUT_OF_SERVICE">Out of service</option></select></label>
+<button id="cadSharedChangeStatus" type="button" class="cad-shared-btn">Update status</button>
+</div>
+</div>
 <div class="cad-shared-tables"><h4>Incidents</h4><div class="cad-shared-scroll"><table><thead><tr><th>Incident</th><th>Status</th><th>Discipline</th><th>Created</th></tr></thead><tbody id="cadSharedIncidents"></tbody></table></div>
 <h4>Units</h4><div class="cad-shared-scroll"><table><thead><tr><th>Unit</th><th>Status</th><th>Resource type</th></tr></thead><tbody id="cadSharedUnits"></tbody></table></div>
 <h4>Unfilled response requirements</h4><div class="cad-shared-scroll"><table><thead><tr><th>Incident</th><th>Resource</th><th>Needed</th></tr></thead><tbody id="cadSharedShortages"></tbody></table></div></div>
@@ -234,7 +255,7 @@
 <script src="core/persistence.js?v=1"></script>
 <script src="core/supabase-client.js?v=1"></script>
 <script src="core/demo-login.js?v=2"></script>
-<script src="core/shared-demo-panel.js?v=4"></script>
+<script src="core/shared-demo-panel.js?v=5"></script>
 <script src="core/incident-commands.js?v=1"></script>
 <script src="core/unit-commands.js?v=3"></script>
 <script src="app.js?v=43"></script>
