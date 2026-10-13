@@ -244,6 +244,7 @@ function cadLocationHistory(i){
  if(!Array.isArray(i.locations)||!i.locations.length)i.locations=[cadLocationRecord(i,i.location,'PRIMARY','INITIAL',i.responseZoneReviewed?{ok:true,lat:i.responseZoneLookup?.lat,lon:i.responseZoneLookup?.lon,zones:{beat:i.beat,esz:i.esz}}:null)];
  return i.locations;
 }
+window.cadConfiguredTypes=discipline=>[...new Set([...(defaultConfig.types?.[discipline]||[]),...(config.types?.[discipline]||[])])];
 window.cadFindEventsByLocation=query=>{
  const q=String(query||'').trim().toLowerCase();if(!q)return [];
  return state.incidents.filter(i=>cadLocationHistory(i).some(l=>l.address.toLowerCase().includes(q))).map(i=>({id:i.id,type:i.type,status:i.status,currentLocation:i.location,locations:i.locations.filter(l=>l.address.toLowerCase().includes(q))}));
