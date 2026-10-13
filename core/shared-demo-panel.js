@@ -22,6 +22,7 @@
   const counts=$('cadSharedCounts');
   let snapshot={incidents:[],roster:[],assignments:[]};
   let refreshing=false;
+  let refreshAgain=false;
   let refreshTimer=null;
   let lastSignature='';
   const workspace=document.getElementById('cadSharedWorkspace');
@@ -134,7 +135,7 @@
   async function operate(button,work){
    if(!window.CadDemoLogin.current())return say('Sign in first.');
    button.disabled=true;
-   try{await work(window.CadDemoLogin.client(),window.CadDemoLogin.current().agencyId);await refresh()}
+   try{await work(window.CadDemoLogin.client(),window.CadDemoLogin.current().agencyId);await refresh({quiet:true})}
    catch(error){say(error.message+' — Refresh shared data and retry after reviewing current assignments.')}
    finally{button.disabled=false}
   }
@@ -165,7 +166,7 @@
    for(const item of items){const tr=document.createElement('tr');for(const field of fields)cell(tr,item[field]);host.appendChild(tr)}
   }
   async function refresh({quiet=false}={}){
-   if(refreshing)return;
+   if(refreshing){refreshAgain=true;return;}
    if(!window.CadDemoLogin.current()){if(!quiet)say('Sign in to load shared data.');return}
    refreshing=true;
    const client=window.CadDemoLogin.client();
@@ -184,7 +185,10 @@
     displayRows(shortages,missing,['incident_id','resource_type','missing_count']);
     text(counts,incidents.length+' incidents · '+roster.length+' units · '+missing.length+' resource shortages');
     if(!quiet||changed)say(changed?'Shared CAD updated from another dispatcher. Local workspace remains separate.':'Shared CAD snapshot loaded. Local workspace remains separate.');
-   }catch(error){say(error.message)}finally{refreshing=false}
+   }catch(error){say(error.message)}finally{
+    refreshing=false;
+    if(refreshAgain){refreshAgain=false;queueMicrotask(()=>refresh({quiet:true}));}
+   }
   }
   window.cadSharedRequestRefresh=()=>refresh({quiet:true});
   window.addEventListener('cad:shared-dispatch',event=>{
