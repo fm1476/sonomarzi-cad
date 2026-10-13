@@ -195,12 +195,24 @@ function renderMap(){
  $('#map').querySelectorAll('.marker').forEach(m=>m.remove());
  state.units.forEach(u=>{let m=document.createElement('div');m.className='marker '+u.discipline.toLowerCase();m.style.left=u.x+'%';m.style.top=u.y+'%';m.title=`${u.id} ${u.status}`;$('#map').appendChild(m)})
 }
-function populate(){
- $('#agency').innerHTML=config.agencies.map(a=>`<option>${a}</option>`).join('');
- updateTypes();
- $('#cfgAgencies').value=config.agencies.join('\n');$('#cfgLaw').value=config.types.LAW.join('\n');$('#cfgFire').value=config.types.FIRE.join('\n');$('#cfgEms').value=config.types.EMS.join('\n');
+function availableAgencies(){
+ const names=['Petaluma Police'];
+ const add=a=>{const n=String(a??'').trim();if(n&&!names.some(x=>x.toLowerCase()===n.toLowerCase()))names.push(n)};
+ for(const a of defaultConfig.agencies)add(a);
+ for(const a of config.agencies||[])add(a);
+ for(const a of state.incidents||[])add(a.agency);
+ for(const u of state.units||[])add(u.agency);
+ try{for(const a of window.CadAgencyMaster?.read(localStorage)?.agencies||[])add(a.name)}catch(e){console.warn('Agency master unavailable',e)}
+ return names;
 }
-function updateTypes(){let d=$('#discipline').value;$('#type').innerHTML=config.types[d].map(t=>`<option>${t}</option>`).join('')}
+function populate(){
+ const agency=$('#agency'),previous=agency.value;
+ agency.innerHTML=availableAgencies().map(a=>`<option value="${escapeCad(a)}">${escapeCad(a)}</option>`).join('');
+ agency.value=availableAgencies().includes(previous)?previous:'Petaluma Police';
+ updateTypes();
+ $('#cfgAgencies').value=(config.agencies||[]).join('\n');$('#cfgLaw').value=(config.types?.LAW||[]).join('\n');$('#cfgFire').value=(config.types?.FIRE||[]).join('\n');$('#cfgEms').value=(config.types?.EMS||[]).join('\n');
+}
+function updateTypes(){const d=$('#discipline').value;const types=[...new Set([...(defaultConfig.types[d]||[]),...(config.types?.[d]||[])])];$('#type').innerHTML=types.map(t=>`<option value="${escapeCad(t)}">${escapeCad(t)}</option>`).join('')}
 $('#discipline').onchange=updateTypes;
 $('#createCall').onclick=()=>{let id=`${String(new Date().getFullYear()).slice(-2)}-${String(++state.seq).padStart(6,'0')}`,i={id,caseNumber:$('#newCaseNumber').value.trim().slice(0,80),agency:$('#agency').value,discipline:$('#discipline').value,priority:$('#priority').value,type:($('#customIncidentType').value.trim()||$('#type').value),location:(window.cadCommonPlaces?.resolve($('#location').value)?.address||$('#location').value),caller:$('#caller').value,phone:$('#phone').value,narrative:[$('#narrative').value],status:'PENDING',units:[],events:[]};event(i,'CALL_CREATED');state.incidents.push(i);state.selected=id;save();if(document.getElementById('calltake')?.classList.contains('active'))window.cadCallTakeSelect?.(id);else show('dispatch');toast(`Created ${id}`)}
 $('nav [data-view]').forEach(b=>b.onclick=()=>show(b.dataset.view));
