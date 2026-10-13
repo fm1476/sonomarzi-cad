@@ -903,3 +903,22 @@ button.cad-station-card:hover,button.cad-station-card.is-selected{border-color:#
 .cad-response-area .cad-zone-override-actions button{background:#214a68;border:1px solid #426e8c;color:#eff7ff;border-radius:8px;padding:8px 12px;font-size:12px;font-weight:700;cursor:pointer}
 .cad-zone-override-body small{display:block;color:#9cb7ca;line-height:1.5}
 @media(max-width:600px){.cad-response-area{padding:13px}.cad-zone-grid{gap:5px}.cad-zone-tile{padding:9px}.cad-zone-tile span{font-size:9px}.cad-zone-tile strong{font-size:17px}.cad-zone-toolbar{align-items:stretch;flex-direction:column}.cad-zone-override{width:100%}}
+
+/* Local GIS dataset manager */
+.cad-response-area .cad-zone-secondary{border:1px solid #3c607c;background:#18364e;color:#d6eaf9;border-radius:9px;padding:10px 14px;font-size:12px;font-weight:750;cursor:pointer}
+.cad-response-area .cad-zone-secondary:hover{background:#224c69}
+.cad-gis-overlay{position:fixed;inset:0;z-index:100000;background:#020b15c9;display:flex;align-items:center;justify-content:center;padding:18px;backdrop-filter:blur(5px)}
+.cad-gis-dialog{width:min(680px,100%);max-height:90vh;overflow:auto;padding:24px;border-radius:18px;background:linear-gradient(145deg,#173047,#0e1f31);border:1px solid #42617c;box-shadow:0 25px 80px #0008;color:#eaf4ff}
+.cad-gis-dialog-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px}
+.cad-gis-dialog-head h3{margin:5px 0;font-size:23px;letter-spacing:-.4px;color:white}
+.cad-gis-dialog-head p{color:#a8c2d7;font-size:13px;margin:5px 0 18px}
+.cad-gis-dialog-head button{border:1px solid #3d5d77;background:#203b53;color:#fff;border-radius:9px;padding:8px 12px;cursor:pointer}
+.cad-gis-import{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:16px;background:#0c2032;border:1px solid #35536e;border-radius:12px}
+.cad-gis-import label{display:flex;flex-direction:column;gap:6px;font-size:12px;color:#afc9db;font-weight:700}
+.cad-gis-import input,.cad-gis-import select{min-width:0;box-sizing:border-box;width:100%;border:1px solid #486984;background:#0b1a29;color:#f0f7ff;border-radius:8px;padding:10px;font-size:13px}
+.cad-gis-import button{border:1px solid #329cda;background:#1477b8;color:white;font-weight:750;border-radius:9px;padding:10px 15px;cursor:pointer}
+.cad-gis-dataset{display:flex;justify-content:space-between;align-items:center;gap:12px;border-bottom:1px solid #35536e;padding:14px 2px}
+.cad-gis-dataset strong,.cad-gis-dataset small{display:block}.cad-gis-dataset small{margin-top:5px;color:#a2bdd0}
+.cad-gis-dataset button{background:#3c2733;border:1px solid #81556a;color:#f7ceda;border-radius:8px;padding:8px 12px;cursor:pointer}
+.cad-gis-disclaimer{font-size:12px;line-height:1.6;color:#a2bacb;margin:16px 0 0}
+@media(max-width:600px){.cad-gis-import{grid-template-columns:1fr}.cad-gis-dialog{padding:16px}}
