@@ -53,6 +53,7 @@ function renderStaff(){
 }
 
 function render(){
+ if(!el('cadMasterLinkExisting')){const b=document.createElement('button');b.id='cadMasterLinkExisting';b.type='button';b.textContent='Link Existing CAD Units to Agency Master';b.style.margin='8px';b.addEventListener('click',()=>{const result=window.cadLinkExistingMasterUnits?.();message.textContent=result?.ok?result.linked+' existing operational unit(s) linked. No duplicates created and statuses preserved.':'Link failed: '+(result?.error||'CAD integration unavailable');renderStaff()});list.before(b)}
  if(!el('cadMasterImportDemo')){const b=document.createElement('button');b.id='cadMasterImportDemo';b.type='button';b.textContent='Import Existing CAD Agencies & Units';b.style.margin='8px 0';b.addEventListener('click',()=>{if(confirm('Copy the current CAD agency names and unit designators into persistent Agency Master? Existing master records will be preserved. No personnel or staffing will be invented.'))importDemoRoster()});list.before(b)}
  list.innerHTML='<h4>Agencies ('+data.agencies.length+')</h4>'+(data.agencies.map(a=>'<div>'+esc(a.name)+' ('+esc(a.id)+') · '+esc(a.model)+'</div>').join('')||'<p>No configured agencies yet.</p>')+
  '<h4>Personnel ('+data.personnel.length+')</h4>'+(data.personnel.map(p=>'<div>'+esc(p.name)+' ('+esc(p.id)+') · '+esc(p.agencyId)+'</div>').join('')||'<p>No configured personnel yet.</p>')+
