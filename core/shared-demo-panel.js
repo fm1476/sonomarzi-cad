@@ -28,7 +28,7 @@
     const [incidents,roster,missing]=await Promise.all([
      client.listIncidents(agency),client.listUnits(agency),client.listOutstanding(agency)
     ]);
-    displayRows(tbody,incidents,['id','status','discipline','created_at']);
+    displayRows(tbody,incidents,['incident_number','status','discipline','created_at']);
     displayRows(units,roster,['call_sign','status','resource_type']);
     displayRows(shortages,missing,['incident_id','resource_type','missing_count']);
     text(counts,incidents.length+' incidents · '+roster.length+' units · '+missing.length+' resource shortages');
