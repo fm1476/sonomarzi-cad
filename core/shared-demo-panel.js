@@ -51,6 +51,7 @@
     $('cadSharedPassword').value='';
     loginPanel.hidden=true;board.hidden=false;
     text($('cadSharedSignedIn'),result.username);text(headerUser,result.username);toggle.classList.add('is-connected');
+    setOpen(false);
     await refresh();
    }catch(error){say(error.message)}finally{submit.disabled=false}
   });
