@@ -14,9 +14,25 @@
 <body>
 <header>
   <div class="cad-brand-and-tabs"><div class="cad-brand"><b>SONOMARZI CAD</b><span class="badge">POC</span></div><nav class="cad-header-tabs" aria-label="Main navigation"><button data-view="dispatch" class="active">Dispatch</button><button data-view="calltake">Call Taking</button><button data-view="config">Configuration</button></nav></div>
-  <div class="header-radio"><label for="radioIncident">Radio event <select id="radioIncident" aria-label="Radio event"></select></label><button id="voicePTT" class="voice-ptt header-ptt" type="button">🎙 Hold to Talk</button><span class="header-radio-indicator" id="headerRadioIndicator">READY</span></div><div id="clock"></div>
+  <div class="header-radio"><label for="radioIncident">Radio event <select id="radioIncident" aria-label="Radio event"></select></label><button id="voicePTT" class="voice-ptt header-ptt" type="button">🎙 Hold to Talk</button><span class="header-radio-indicator" id="headerRadioIndicator">READY</span></div><div class="cad-shared-header"><button id="cadSharedToggle" type="button" class="cad-shared-trigger" aria-expanded="false" aria-controls="cadSharedDemo"><span class="cad-shared-indicator"></span><span>Dispatcher</span><span id="cadSharedHeaderUser">Offline</span><span aria-hidden="true">⌄</span></button></div><div id="clock"></div>
   <div><span id="systemDot">●</span> SYSTEM NORMAL <button id="simulateBtn">Run Simulation</button></div>
 </header>
+<section id="cadSharedDemo" class="cad-shared-popover" hidden aria-label="Shared CAD connection">
+<div class="cad-shared-heading"><div><span class="cad-shared-eyebrow">MULTI-DISPATCHER</span><h3>Shared CAD connection</h3></div><button id="cadSharedClose" class="cad-shared-close" type="button" aria-label="Close dispatcher panel">×</button></div>
+<p class="cad-shared-description">Sign in to preview shared incidents, unit availability, and resource needs. Local CAD operations remain separate.</p>
+<div id="cadSharedLoginPanel"><form id="cadSharedLoginForm" class="cad-shared-form">
+<label>Dispatcher<select id="cadSharedUser"><option>cad1</option><option>cad2</option><option>cad3</option><option>cad4</option><option>cad5</option></select></label>
+<label>Password<input id="cadSharedPassword" type="password" required autocomplete="current-password"></label>
+<button id="cadSharedSignIn" class="cad-shared-btn cad-shared-btn-primary" type="submit">Connect to shared CAD <span aria-hidden="true">→</span></button>
+</form></div>
+<div id="cadSharedBoard" hidden>
+<div class="cad-shared-session"><div class="cad-shared-session-identity"><span class="cad-shared-online-dot"></span> Signed in as <strong id="cadSharedSignedIn"></strong></div><div class="cad-shared-actions"><button id="cadSharedRefresh" class="cad-shared-btn" type="button">↻ Refresh</button><button id="cadSharedLogout" class="cad-shared-btn cad-shared-btn-muted" type="button">Sign out</button></div></div>
+<div id="cadSharedCounts" class="cad-shared-counts"></div>
+<div class="cad-shared-tables"><h4>Incidents</h4><div class="cad-shared-scroll"><table><thead><tr><th>Incident</th><th>Status</th><th>Discipline</th><th>Created</th></tr></thead><tbody id="cadSharedIncidents"></tbody></table></div>
+<h4>Units</h4><div class="cad-shared-scroll"><table><thead><tr><th>Unit</th><th>Status</th><th>Resource type</th></tr></thead><tbody id="cadSharedUnits"></tbody></table></div>
+<h4>Unfilled response requirements</h4><div class="cad-shared-scroll"><table><thead><tr><th>Incident</th><th>Resource</th><th>Needed</th></tr></thead><tbody id="cadSharedShortages"></tbody></table></div></div>
+</div><p id="cadSharedStatus" class="cad-shared-status" role="status" aria-live="polite">Not connected. Local CAD demo remains available.</p>
+</section>
 
 
 <main id="dispatch" class="view active">
@@ -211,29 +227,13 @@
   <span>Hackathon demo controls. Reset restores the original sample incidents and unit lineup.</span>
   <button id="reset" type="button" aria-label="Reset all CAD demo data">↻ Reset Entire Demo</button>
 </footer>
-<details id="cadSharedDemo" style="margin:12px 18px;border:1px solid #58718b;border-radius:12px;padding:12px;background:#142033;color:#e8f0fa">
-<summary style="cursor:pointer;font-weight:750">MULTI-DISPATCHER DEMO · Shared CAD preview</summary>
-<p style="font-size:13px">Optional Supabase test connection. The current CAD workspace remains local. Shared data below is read-only until transactional dispatch integration is ready.</p>
-<div id="cadSharedLoginPanel">
-<form id="cadSharedLoginForm" style="display:flex;gap:8px;flex-wrap:wrap;align-items:end">
 
-<label>Dispatcher<select id="cadSharedUser"><option>cad1</option><option>cad2</option><option>cad3</option><option>cad4</option><option>cad5</option></select></label>
-<label>Password<input id="cadSharedPassword" type="password" required autocomplete="current-password"></label>
-<button id="cadSharedSignIn" type="submit">Connect to shared CAD</button>
-</form></div>
-<div id="cadSharedBoard" hidden>
-<div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap"><strong>Signed in: <span id="cadSharedSignedIn"></span></strong><button id="cadSharedRefresh" type="button">Refresh shared data</button><button id="cadSharedLogout" type="button">Sign out</button><span id="cadSharedCounts"></span></div>
-<div style="overflow:auto"><h4>Shared incidents</h4><table><thead><tr><th>ID</th><th>Status</th><th>Discipline</th><th>Created</th></tr></thead><tbody id="cadSharedIncidents"></tbody></table>
-<h4>Shared units</h4><table><thead><tr><th>Unit</th><th>Status</th><th>Resource type</th></tr></thead><tbody id="cadSharedUnits"></tbody></table>
-<h4>Outstanding response requirements</h4><table><thead><tr><th>Incident</th><th>Resource</th><th>Still needed</th></tr></thead><tbody id="cadSharedShortages"></tbody></table></div>
-</div><p id="cadSharedStatus" role="status" aria-live="polite">Not connected. Local CAD demo remains available.</p>
-</details>
 <div id="toast"></div>
 <script src="core/discipline.js?v=1"></script>
 <script src="core/persistence.js?v=1"></script>
 <script src="core/supabase-client.js?v=1"></script>
 <script src="core/demo-login.js?v=2"></script>
-<script src="core/shared-demo-panel.js?v=2"></script>
+<script src="core/shared-demo-panel.js?v=3"></script>
 <script src="core/incident-commands.js?v=1"></script>
 <script src="core/unit-commands.js?v=3"></script>
 <script src="app.js?v=43"></script>
