@@ -48,7 +48,6 @@
   const disciplineFilter=document.getElementById('cadSharedDiscipline');
   const areaFilter=document.getElementById('cadSharedArea');
   let selectedSharedIncident=null;
-  let areas=[];
   const boardText=(id,value)=>{const node=document.getElementById(id);if(node)node.textContent=value};
   const filteredIncident=i=>disciplineFilter.value==='ALL'||i.discipline===disciplineFilter.value;
   function boardRow(host,item,label,handler){
@@ -95,7 +94,10 @@
     select.value=u.status;line.appendChild(select);
     const btn=document.createElement('button');btn.className='cad-shared-btn';btn.textContent='Update';
     btn.addEventListener('click',()=>operate(btn,(client,agency)=>client.changeUnitStatus({agency,incident:i.id,unit:u.id,status:select.value,unitVersion:u.version})));
-    line.appendChild(btn);detail.appendChild(line);
+    line.appendChild(btn);
+    const clear=document.createElement('button');clear.className='cad-shared-btn';clear.textContent='Clear unit';
+    clear.addEventListener('click',()=>{if(!window.confirm('Clear '+u.call_sign+' from '+i.incident_number+'?'))return;operate(clear,(client,agency)=>client.clearUnit({agency,incident:i.id,unit:u.id,incidentVersion:i.version,unitVersion:u.version,disposition:'CLEARED'}))});
+    line.appendChild(clear);detail.appendChild(line);
    }
    if(i.status!=='CLOSED'){
     const line=document.createElement('div');line.className='cad-shared-board-assignment';
