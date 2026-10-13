@@ -23,6 +23,14 @@ const masterAgencies=()=>{
  try{const cfg=JSON.parse(localStorage.getItem('smcad-config-v1')||'{}');for(const a of cfg.agencies||[])add(typeof a==='string'?a:a.name)}catch{}
  return [DEFAULT_AGENCY,...names.filter(n=>n!==DEFAULT_AGENCY).sort()];
 };
+// Recover layouts created while the agency picker was empty in earlier builds.
+try{
+ const orphan=read('');
+ const target=read(DEFAULT_AGENCY);
+ if(!target.published&&!target.draft&&(orphan.published||orphan.draft)){
+  localStorage.setItem(key(DEFAULT_AGENCY),JSON.stringify(orphan));
+ }
+}catch(e){console.warn('Legacy form draft migration skipped',e)}
 const designer=$('cadFormDesigner'),open=$('cadOpenFormDesigner');
 if(!designer||!open)return;
 let agency=DEFAULT_AGENCY,draft=[],selected='',dragged='',dirty=false;
