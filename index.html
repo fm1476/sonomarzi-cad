@@ -133,6 +133,9 @@
       <label>Radio designator<input id="cadMasterDesignator" placeholder="3A12"></label>
       <label>Owning agency<select id="cadMasterAgencySelect"></select></label>
       <label>Discipline<select id="cadMasterDiscipline"><option>LAW</option><option>FIRE</option><option>EMS</option></select></label>
+      <label>Resource type<select id="cadMasterResourceType"></select></label>
+      <label>Minimum staffing<input id="cadMasterMinStaffing" type="number" min="0" max="30" value="1"></label>
+      <label>Required qualifications (comma-separated)<input id="cadMasterQualifications" placeholder="EMT, Driver Operator"></label>
       <label>Identification model<select id="cadMasterUnitModel"><option value="FIXED">Fixed beat</option><option value="PERSONNEL">Personnel ID</option><option value="APPARATUS">Apparatus</option><option value="HYBRID">Hybrid</option></select></label>
       <label>Associated person (optional)<select id="cadMasterPersonSelect"></select></label>
       <button type="button" id="cadMasterAddUnit">Add Unit</button>
@@ -212,7 +215,7 @@
 <script src="core/agency-master.js?v=1"></script>
 <script src="core/unit-activation.js?v=1"></script>
 <script src="core/unit-staffing.js?v=1"></script>
-<script src="agency-master-settings.js?v=3"></script>
+<script src="agency-master-settings.js?v=4"></script>
 
 <script src="board-layout.js?v=21.1"></script>
 <script src="incident-intelligence.js?v=18.3"></script>
@@ -228,7 +231,7 @@
 <script src="core/layer-intent.js?v=1"></script>
 <script src="map-layer-catalog.js?v=21.1"></script>
 <script src="map.js?v=20.8"></script>
-<script src="response-plan-designer.js?v=13"></script>
+<script src="response-plan-designer.js?v=14"></script>
 <script src="demo-tools.js?v=18"></script>
 <script src="extended-ops.js?v=18"></script>
 <script src="structured-command.js?v=19.6"></script>
