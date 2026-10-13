@@ -7,7 +7,7 @@ const root=document.getElementById('cadResponseDesigner');if(!root)return;
 const el=id=>document.getElementById(id);
 const save=()=>{localStorage.setItem(KEY,JSON.stringify(plans));localStorage.setItem(CREWS,JSON.stringify(crews))};
 const escape=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-let discipline='FIRE',zone='',zoneMap=null,zoneOverlay=null,zoneAbort=null;
+let discipline='FIRE',zone='',zoneMap=null,zoneOverlay=null,zoneAbort=null,mapObserver=null;
 const gis={FIRE:{url:'https://maps.cityofpetaluma.net/mapping/rest/services/Fire/FireWebApp_MIL/MapServer/11',field:'ESZ_NUM'},EMS:{url:'https://maps.cityofpetaluma.net/mapping/rest/services/Fire/FireWebApp_MIL/MapServer/11',field:'ESZ_NUM'},LAW:{url:'https://maps.cityofpetaluma.net/mapping/rest/services/EnerGov/EnerGov_Display/MapServer/10',field:null}};
 function render(){
  const zones=[...new Set(plans.filter(p=>p.discipline===discipline).map(p=>p.zone))];
@@ -20,6 +20,7 @@ function render(){
 }
 function initZoneMap(){
  if(!window.L){msg('Map library unavailable. Zone IDs can still be entered manually.');return}
+ if(mapObserver){mapObserver.disconnect();mapObserver=null}
  if(zoneMap){zoneMap.remove();zoneMap=null}
  zoneMap=L.map('rpZoneMap',{scrollWheelZoom:false}).setView([38.2324,-122.6367],12);
  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap contributors'}).addTo(zoneMap);
@@ -27,7 +28,13 @@ function initZoneMap(){
  const id=featureZone(f);layer.bindTooltip(id||'Unnamed area',{sticky:true});
  layer.on('click',()=>{if(!id)return;zone=id;el('rpZone').value=id;zoneOverlay.setStyle(x=>({color:zone===featureZone(x)?'#f7d66b':'#5cb3e6',weight:zone===featureZone(x)?3:1.2,fillColor:'#50a2d4',fillOpacity:.12}));showPlans();msg('Selected '+discipline+' zone '+id+'.')});
  }}).addTo(zoneMap);
- zoneMap.on('moveend',loadMapZones);setTimeout(()=>{zoneMap?.invalidateSize();loadMapZones()},150);
+ zoneMap.on('moveend',loadMapZones);
+ const host=el('rpZoneMap');let lastWidth=0,lastHeight=0;
+ function fixSize(){if(!zoneMap||!host||!host.isConnected)return;const box=host.getBoundingClientRect();if(box.width<100||box.height<100)return;if(Math.abs(box.width-lastWidth)<2&&Math.abs(box.height-lastHeight)<2)return;lastWidth=box.width;lastHeight=box.height;requestAnimationFrame(()=>{if(zoneMap&&host.isConnected)zoneMap.invalidateSize({pan:false,animate:false})})}
+ if(window.ResizeObserver){mapObserver=new ResizeObserver(fixSize);mapObserver.observe(host)}
+ const visibleObserver=new MutationObserver(fixSize);visibleObserver.observe(document.querySelector('[data-config-panel="master"]')||root,{attributes:true,attributeFilter:['hidden','style','class']});
+ const previousObserver=mapObserver;mapObserver={disconnect(){previousObserver?.disconnect();visibleObserver.disconnect()}};
+ setTimeout(fixSize,150);setTimeout(fixSize,650);
 }
 function featureZone(f){
  const p=f.properties||{},configured=gis[discipline].field;
