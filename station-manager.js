@@ -44,4 +44,14 @@ function drawDetails(){const f=facilities.find(x=>x.id===selected),home=document
 }
 window.CadFacilities={getAll:()=>structuredClone(facilities),coverage:id=>{const f=facilities.find(x=>x.id===id);return f?coverage(f):null},getMoveUps:()=>structuredClone(moves)};
 render();
+const section=document.querySelector('[data-config-panel="stations"]');
+const picker=document.getElementById('cadConfigSection');
+function revealStationPanel(){
+ if(!section||!picker)return;
+ const active=picker.value==='stations';
+ if(active){section.hidden=false;section.style.display='block';setTimeout(()=>{map?.invalidateSize({pan:false,animate:false});drawCards()},40)}
+ else{section.hidden=true;section.style.display=''}
+}
+picker?.addEventListener('change',()=>setTimeout(revealStationPanel,0));
+revealStationPanel();
 })();
