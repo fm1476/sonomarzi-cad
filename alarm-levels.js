@@ -50,22 +50,43 @@ function renderConfig(){
  '<label>Level name<input id="almName" list="almNames" placeholder="First Alarm"></label><datalist id="almNames">'+defaults.map(x=>'<option>'+esc(x)+'</option>').join('')+'</datalist>'+
  '<label>Sequence (1 = first)<input id="almRank" type="number" min="1" max="20" value="1"></label>'+
  '<label>Escalation mode<select id="almMode"><option value="ADDITIVE">Add resources</option><option value="TOTAL">Total target</option><option value="REPLACEMENT">Replacement recommendation (review only)</option></select></label></div>'+
- '<h5>Resources required at this level</h5><div id="almResources"></div><button id="almAddResource" type="button">+ Resource</button> <button id="almSave" type="button">Save Alarm Level</button> <button id="almCancel" type="button">Clear Editor</button><p id="almMessage" role="status"></p><div id="almList"></div>';
- const resources=[{type:'ENGINE',count:1}];
- function drawResources(){
-  $('almResources').innerHTML=resources.map((r,i)=>'<div class="cad-alarm-resource"><label>Type<input data-type="'+i+'" value="'+esc(r.type)+'" placeholder="ENGINE"></label><label>Quantity<input data-count="'+i+'" type="number" min="1" max="99" value="'+esc(r.count)+'"></label><button data-remove="'+i+'" type="button">Remove</button></div>').join('');
-  $('almResources').querySelectorAll('[data-type]').forEach(x=>x.oninput=()=>resources[Number(x.dataset.type)].type=x.value.toUpperCase().trim());
-  $('almResources').querySelectorAll('[data-count]').forEach(x=>x.oninput=()=>resources[Number(x.dataset.count)].count=Number(x.value));
-  $('almResources').querySelectorAll('[data-remove]').forEach(x=>x.onclick=()=>{resources.splice(Number(x.dataset.remove),1);drawResources()});
+ '<h5>Build the response — drag resources into the assignment</h5><div class="cad-alarm-builder"><div><strong>Resource palette</strong><p>Drag or click to add</p><div id="almPalette" class="cad-alarm-palette"></div></div><div class="cad-alarm-dropzone" id="almDropzone"><strong>Response assignment</strong><p>Drag tiles to reorder. Use + / − to adjust quantities.</p><div id="almResources"></div></div></div><button id="almAddResource" type="button">+ Resource</button> <button id="almSave" type="button">Save Alarm Level</button> <button id="almCancel" type="button">Clear Editor</button><p id="almMessage" role="status"></p><div id="almList"></div>';
+ const resources=[];
+ const typesByDisc={FIRE:['ENGINE','TRUCK','LADDER','RESCUE','BRUSH','CHIEF','TENDER','MEDIC','AMBULANCE'],EMS:['AMBULANCE','MEDIC','ENGINE','RESCUE','CHIEF','SUPERVISOR'],LAW:['PATROL','SUPERVISOR','TRAFFIC','K9','DETECTIVE','SWAT','MOTOR']};
+ const symbols={ENGINE:'🚒',TRUCK:'🪜',LADDER:'🪜',RESCUE:'🚑',BRUSH:'🌲',CHIEF:'⭐',TENDER:'💧',MEDIC:'🚑',AMBULANCE:'🚑',PATROL:'🚓',SUPERVISOR:'⭐',TRAFFIC:'🚦',K9:'🐕',DETECTIVE:'🔎',SWAT:'🛡️',MOTOR:'🏍️'};
+ function addType(type){const existing=resources.find(x=>x.type===type);if(existing)existing.count++;else resources.push({type,count:1});drawResources()}
+ function drawPalette(){
+  const disc=$('almDisc').value,masterTypes=master().units.filter(u=>u.discipline===disc).map(u=>u.resourceType).filter(Boolean);
+  const types=[...new Set([...(typesByDisc[disc]||[]),...masterTypes])];
+  $('almPalette').innerHTML=types.map(t=>'<button type="button" class="cad-alarm-palette-tile" draggable="true" data-palette="'+esc(t)+'"><span>'+esc(symbols[t]||'▣')+'</span>'+esc(t)+'</button>').join('');
+  $('almPalette').querySelectorAll('[data-palette]').forEach(btn=>{
+   btn.onclick=()=>addType(btn.dataset.palette);
+   btn.ondragstart=e=>{e.dataTransfer.setData('text/plain','palette:'+btn.dataset.palette);e.dataTransfer.effectAllowed='copy'}
+  });
  }
+ function drawResources(){
+  $('almResources').innerHTML=resources.map((r,i)=>'<div class="cad-alarm-tile" draggable="true" data-resource-index="'+i+'"><span class="cad-alarm-grip" title="Drag to reorder">⠿</span><span class="cad-alarm-symbol">'+esc(symbols[r.type]||'▣')+'</span><strong>'+esc(r.type)+'</strong><div class="cad-alarm-qty"><button type="button" data-dec="'+i+'" aria-label="Reduce '+esc(r.type)+'">−</button><span>'+esc(r.count)+'</span><button type="button" data-inc="'+i+'" aria-label="Increase '+esc(r.type)+'">+</button></div><button type="button" data-remove="'+i+'" aria-label="Remove '+esc(r.type)+'">×</button></div>').join('')||'<p class="cad-alarm-empty">Drop resource tiles here to build the assignment.</p>';
+  $('almResources').querySelectorAll('[data-inc]').forEach(x=>x.onclick=()=>{resources[Number(x.dataset.inc)].count=Math.min(99,resources[Number(x.dataset.inc)].count+1);drawResources()});
+  $('almResources').querySelectorAll('[data-dec]').forEach(x=>x.onclick=()=>{const i=Number(x.dataset.dec);resources[i].count=Math.max(1,resources[i].count-1);drawResources()});
+  $('almResources').querySelectorAll('[data-remove]').forEach(x=>x.onclick=()=>{resources.splice(Number(x.dataset.remove),1);drawResources()});
+  $('almResources').querySelectorAll('[data-resource-index]').forEach(tile=>{
+   tile.ondragstart=e=>{e.dataTransfer.setData('text/plain','reorder:'+tile.dataset.resourceIndex);e.dataTransfer.effectAllowed='move'};
+   tile.ondragover=e=>e.preventDefault();
+   tile.ondrop=e=>{e.preventDefault();e.stopPropagation();const value=e.dataTransfer.getData('text/plain');if(value.startsWith('palette:')){addType(value.slice(8));return}if(!value.startsWith('reorder:'))return;const from=Number(value.slice(8)),to=Number(tile.dataset.resourceIndex);if(!Number.isInteger(from)||from<0||from>=resources.length||from===to)return;resources.splice(to,0,resources.splice(from,1)[0]);drawResources()};
+  });
+ }
+ const drop=$('almDropzone');
+ drop.ondragover=e=>{e.preventDefault();drop.classList.add('is-over')};
+ drop.ondragleave=e=>{if(!drop.contains(e.relatedTarget))drop.classList.remove('is-over')};
+ drop.ondrop=e=>{e.preventDefault();drop.classList.remove('is-over');const value=e.dataTransfer.getData('text/plain');if(value.startsWith('palette:'))addType(value.slice(8))};
  function drawList(){
   $('almList').innerHTML='<h5>Configured alarm levels ('+configs.length+')</h5>'+configs.map(c=>'<div class="cad-alarm-entry"><strong>'+esc(c.agency)+' · '+esc(c.callType)+' · '+esc(c.name)+'</strong> · '+esc(c.mode)+' · Sequence '+c.rank+'<div>'+c.resources.map(r=>esc(r.count+' × '+r.type)).join(' · ')+'</div><button data-edit="'+esc(c.id)+'">Edit</button> <button data-delete="'+esc(c.id)+'">Delete</button></div>').join('')||'<p>No alarm levels configured yet.</p>';
   $('almList').querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>{const c=configs.find(x=>x.id===b.dataset.edit);if(!c)return;currentId=c.id;$('almAgency').value=c.agency;$('almDisc').value=c.discipline;$('almCallType').value=c.callType;$('almName').value=c.name;$('almRank').value=c.rank;$('almMode').value=c.mode;resources.splice(0,resources.length,...c.resources.map(x=>({...x})));drawResources();$('almMessage').textContent='Editing '+c.name});
   $('almList').querySelectorAll('[data-delete]').forEach(b=>b.onclick=()=>{if(!confirm('Delete this local alarm level?'))return;configs=configs.filter(x=>x.id!==b.dataset.delete);localStorage.setItem(KEY,JSON.stringify(configs));drawList()});
  }
  function updateTypes(){const cfg=read('smcad-config-v1',{});const d=$('almDisc').value;const types=[...new Set([...(cfg.types?.[d]||[]),...plans().filter(p=>p.discipline===d).map(p=>p.type)])];$('almCallTypes').innerHTML=types.map(x=>'<option>'+esc(x)+'</option>').join('')}
- $('almDisc').onchange=updateTypes;updateTypes();drawResources();drawList();
- $('almAddResource').onclick=()=>{resources.push({type:'ENGINE',count:1});drawResources()};
+ $('almDisc').onchange=()=>{updateTypes();drawPalette()};updateTypes();drawPalette();drawResources();drawList();
+ $('almAddResource').onclick=()=>addType((typesByDisc[$('almDisc').value]||['ENGINE'])[0]);
  $('almCancel').onclick=()=>{currentId='';renderConfig()};
  $('almSave').onclick=()=>{
   const c={id:currentId||crypto.randomUUID(),agency:$('almAgency').value,discipline:$('almDisc').value,callType:$('almCallType').value.trim(),name:$('almName').value.trim(),rank:Number($('almRank').value),mode:$('almMode').value,resources:resources.map(x=>({...x})),savedAt:new Date().toISOString()};
