@@ -4,12 +4,15 @@
 const state=()=>window.cadSafetyState?.()||{incidents:[]};
 const $=id=>document.getElementById(id);
 const safe=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-let selected=null;
+let selected=null,creating=false;
 const identity=()=>{let v=(localStorage.getItem('smcad-dispatcher-identity-v1')||'').trim();if(!v){v=(prompt('Call taker ID or initials for narrative attribution:')||'').trim().slice(0,24);if(v)localStorage.setItem('smcad-dispatcher-identity-v1',v)}return v||'Unidentified'};
 const field=(label,key,value,kind='text')=>'<label>'+label+'<input name="'+key+'" type="'+kind+'" value="'+safe(value)+'"></label>';
 function refresh(){
  const incidents=(state().incidents||[]).filter(i=>['PENDING','ACTIVE'].includes(i.status)),filter=$('cadCTFilter')?.value||'ALL';
- const shown=incidents.filter(i=>filter==='ALL'||i.status===filter);
+ const agency=$('cadCTAgency'),agencies=[...new Set(incidents.map(i=>i.agency).filter(Boolean))].sort(),previousAgency=agency.value;
+ agency.innerHTML='<option value="ALL">All agencies</option>'+agencies.map(a=>'<option value="'+safe(a)+'">'+safe(a)+'</option>').join('');agency.value=agencies.includes(previousAgency)?previousAgency:'ALL';
+ const discipline=$('cadCTDiscipline').value,priority=$('cadCTPriority').value,sort=$('cadCTSort').value;
+ const shown=incidents.filter(i=>(filter==='ALL'||i.status===filter)&&(agency.value==='ALL'||i.agency===agency.value)&&(discipline==='ALL'||i.discipline===discipline)&&(priority==='ALL'||i.priority===priority)).sort((a,b)=>sort==='agency'?String(a.agency).localeCompare(String(b.agency)):sort==='priority'?String(a.priority).localeCompare(String(b.priority)):sort==='oldest'?String(a.id).localeCompare(String(b.id)):String(b.id).localeCompare(String(a.id)));
  $('cadCTCount').textContent='('+incidents.length+')';
  $('cadCTQueue').innerHTML=shown.map(i=>'<button type="button" class="cad-ct-item '+(selected===i.id?'selected':'')+'" data-ct-id="'+safe(i.id)+'"><span class="cad-ct-id">'+safe(i.id)+'</span><span class="cad-ct-type">'+safe(i.type)+'</span><span class="cad-ct-place">'+safe(i.location)+'</span><span class="cad-ct-agency">'+safe(i.agency)+'</span><span class="cad-ct-status '+safe(i.status.toLowerCase())+'">'+safe(i.status)+'</span></button>').join('')||'<p class="cad-ct-empty">No matching open calls.</p>';
  if(!incidents.length){
@@ -19,8 +22,8 @@ function refresh(){
  $('cadCTQueue').append(message);
  message.querySelector('button').onclick=()=>{const count=window.cadRestoreMissingDemoCalls?.()||0;refresh();alert(count?count+' missing sample calls restored. Existing records preserved.':'All original sample call IDs are already present. No records changed.')};
 }
- $('cadCTQueue').querySelectorAll('[data-ct-id]').forEach(b=>b.onclick=()=>{selected=b.dataset.ctId;refresh()});
- const i=incidents.find(x=>x.id===selected),editor=$('cadCTEditor');if(!i){editor.hidden=true;$('cadCTEmpty').hidden=false;return}
+ $('cadCTQueue').querySelectorAll('[data-ct-id]').forEach(b=>b.onclick=()=>{selected=b.dataset.ctId;creating=false;refresh()});
+ const i=incidents.find(x=>x.id===selected),editor=$('cadCTEditor');const newForm=$('cadCTNewForm');newForm.hidden=!creating; if(!i||creating){editor.hidden=true;$('cadCTEmpty').hidden=creating||!!i;return}
  editor.hidden=false;$('cadCTEmpty').hidden=true;
  editor.innerHTML='<div class="cad-ct-heading"><div><h2>'+safe(i.id)+' · '+safe(i.type)+'</h2><p>'+safe(i.agency)+' · '+safe(i.status)+' · '+safe(i.discipline)+'</p></div><div class="cad-ct-toolbar">'+(i.status==='PENDING'?'<button type="button" id="cadCTActivate" class="primary">Activate Call</button>':'')+'<button type="button" id="cadCTClose">Close editor</button></div></div>'+
  '<form id="cadCTForm"><div class="cad-ct-fields">'+field('Location','location',i.location)+field('Caller','caller',i.caller)+field('Phone','phone',i.phone)+field('Priority','priority',i.priority)+field('Case number','caseNumber',i.caseNumber||'')+'</div><button type="submit" class="primary">Save call details</button></form>'+
@@ -36,7 +39,12 @@ function refresh(){
  narrative.querySelectorAll('[data-transcript-ref]').forEach(b=>b.onclick=()=>{const record=(i.radioTranscripts||[]).find(r=>r.id===b.dataset.transcriptRef);if(record){const body=narrative.querySelector('.voice-detail-content');body.innerHTML='<div class="voice-entry"><div class="meta">'+safe(record.time)+' | '+safe(record.source)+'</div>'+safe(record.text)+'</div>'}});
 }
 window.cadCallTakeRefresh=refresh;
-$('cadCTFilter')?.addEventListener('change',refresh);
+['cadCTFilter','cadCTAgency','cadCTDiscipline','cadCTPriority','cadCTSort'].forEach(id=>$(id)?.addEventListener('change',refresh));
+const newForm=$('cadCTNewForm');document.querySelector('#calltake .cad-ct-right')?.prepend(newForm);
+$('cadCTNew').onclick=()=>{selected=null;creating=true;refresh();$('agency')?.focus()};
+$('createCall')?.addEventListener('click',()=>{creating=false;selected=null;refresh()});
+newForm.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.matches('input')&&!e.isComposing){e.preventDefault();$('createCall')?.click()}});
+
 const split=$('cadCTSplit'),divider=$('cadCTDivider');let dragging=false;
 const applyWidth=percent=>{const width=Math.min(75,Math.max(25,percent));split.style.setProperty('--cad-ct-left-width',width+'%');localStorage.setItem('smcad-calltake-split-v1',String(width))};
 applyWidth(Number(localStorage.getItem('smcad-calltake-split-v1'))||48);
