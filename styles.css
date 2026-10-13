@@ -539,3 +539,21 @@ header nav.cad-header-tabs button{position:relative;z-index:102;pointer-events:a
 [data-config-panel="master"] #cadMasterList{margin-top:12px}
 @media(max-width:1050px){[data-config-panel="master"] .cad-master-form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:680px){[data-config-panel="master"] .cad-master-grid,[data-config-panel="master"] .cad-master-form-grid{grid-template-columns:minmax(0,1fr)}}
+
+
+/* Agency Master v2: viewport-independent density and responsive columns */
+#config [data-config-panel="master"]{width:100%;min-width:0;max-width:100%;gap:10px;font-size:clamp(12px,.78vw,14px);line-height:1.35}
+#config [data-config-panel="master"]>h3{font-size:clamp(17px,1.15vw,21px);margin:4px 0 0;line-height:1.25}
+#config [data-config-panel="master"]>p{font-size:12px;line-height:1.4;margin:0 0 4px;max-width:90ch;color:#abc1d2}
+#config [data-config-panel="master"] .cad-master-section{padding:12px 14px;border-radius:9px;min-width:0}
+#config [data-config-panel="master"] .cad-master-section h4{font-size:13px;margin:0 0 10px;padding:0 0 8px}
+#config [data-config-panel="master"] .cad-master-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:0;align-items:start;min-width:0}
+#config [data-config-panel="master"] .cad-master-form-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px 12px;margin:0 0 8px}
+#config [data-config-panel="master"] :is(.cad-master-grid,.cad-master-form-grid) label{display:flex;flex-direction:column;gap:3px;margin:0;font-size:11px;min-width:0}
+#config [data-config-panel="master"] :is(.cad-master-grid,.cad-master-form-grid) :is(input,select){width:100%;min-width:0;max-width:100%;height:34px;min-height:34px;padding:5px 9px;font-size:12px;box-sizing:border-box}
+#config [data-config-panel="master"] .cad-master-grid .cad-master-section>button{margin-top:10px}
+#config [data-config-panel="master"] .cad-master-section button{min-height:32px;padding:6px 11px;font-size:12px}
+#config [data-config-panel="master"] #cadMasterList{margin-top:8px;font-size:12px;line-height:1.5}
+#config [data-config-panel="master"] #cadMasterList h4{margin-top:10px;margin-bottom:5px}
+@media(max-width:1050px){#config [data-config-panel="master"] .cad-master-form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:700px){#config [data-config-panel="master"] .cad-master-grid,#config [data-config-panel="master"] .cad-master-form-grid{grid-template-columns:minmax(0,1fr)}}
