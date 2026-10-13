@@ -256,6 +256,24 @@ window.cadClassifyIncidentLocation=(id,locationId,classification,reason='')=>{
  entry.classificationHistory.push({from:old,to:classification,reason:String(reason),at:new Date().toISOString()});
  entry.role=classification;event(i,'LOCATION_RECLASSIFIED '+entry.address+' '+old+' TO '+classification+' REASON '+String(reason));save();return {ok:true};
 };
+function cadFormatPhone(raw){
+ const v=String(raw||'').trim();if(!v)return '';
+ if(v.startsWith('+'))return '+'+v.slice(1).replace(/[^0-9]/g,'').slice(0,15);
+ const digits=v.replace(/\D/g,'');
+ const local=digits.length===11&&digits[0]==='1'?digits.slice(1):digits;
+ if(local.length===10)return '('+local.slice(0,3)+') '+local.slice(3,6)+'-'+local.slice(6);
+ if(local.length>6&&local.length<10)return '('+local.slice(0,3)+') '+local.slice(3,6)+'-'+local.slice(6);
+ if(local.length>3&&local.length<=6)return '('+local.slice(0,3)+') '+local.slice(3);
+ return local;
+}
+function cadPhoneCanonical(raw){
+ const value=String(raw||'').trim(),digits=value.replace(/\D/g,'');
+ if(!value)return {ok:true,canonical:'',formatted:''};
+ if(value.startsWith('+'))return digits.length>=7&&digits.length<=15?{ok:true,canonical:'+'+digits,formatted:cadFormatPhone(value)}:{ok:false,message:'International numbers must have 7–15 digits after +.'};
+ if(digits.length===10)return {ok:true,canonical:'+1'+digits,formatted:cadFormatPhone(value)};
+ if(digits.length===11&&digits.startsWith('1'))return {ok:true,canonical:'+'+digits,formatted:cadFormatPhone(value)};
+ return {ok:false,message:'Enter a 10-digit U.S. number or an international number beginning with + and country code.'};
+}
 function cadCallerParts(i){if(i.callerFirstName!==undefined||i.callerLastName!==undefined)return [i.callerFirstName||'',i.callerLastName||''];const words=String(i.caller||'').trim().split(/\s+/);return words.length===2?words:[String(i.caller||''),'']}
 window.cadSaveCaller=(id,first,last,address,same,verified)=>{
  const i=state.incidents.find(x=>x.id===id);if(!i)return {ok:false};
@@ -321,6 +339,8 @@ function cadDispatchEdit(i){
  const location=field('Primary location',i.location);location.parentElement.style.gridColumn='1 / -1';
  const [firstName,lastName]=cadCallerParts(i);
  const callerFirst=field('Caller first name',firstName),callerLast=field('Caller last name',lastName),phone=field('Caller phone',i.phone);
+ phone.type='tel';phone.inputMode='tel';phone.autocomplete='tel';phone.placeholder='(707) 555-1212 or +44 20 7946 0958';
+ phone.value=cadFormatPhone(i.phone||'');phone.addEventListener('blur',()=>{const check=cadPhoneCanonical(phone.value);if(check.ok)phone.value=check.formatted});
  const callerLocation=field('Caller location',i.callerLocation||'');callerLocation.parentElement.style.gridColumn='1 / -1';
  const sameRow=document.createElement('label');sameRow.style.cssText='grid-column:1 / -1;display:flex;align-items:center;gap:10px;color:#c9e3f3;font-size:13px';
  const sameLocation=document.createElement('input');sameLocation.type='checkbox';sameLocation.checked=!!i.callerSameAsEvent;sameLocation.style.cssText='width:18px;height:18px;accent-color:#3198ee';
@@ -347,8 +367,11 @@ function cadDispatchEdit(i){
  actions.append(saveButton,cancel);form.append(actions);dialog.append(heading,form);document.body.append(dialog);
  saveButton.onclick=()=>{
   if(!type.value.trim()||!location.value.trim()){info.textContent='Incident type and location are required.';info.style.color='#ff9898';return}
-  const updated=window.cadUpdateIncidentFields(i.id,{type:type.value,priority:priority.value,agency:agency.value,discipline:discipline.value,phone:phone.value,narrative:note.value},'DISPATCH_EDITOR');
+  const checkedPhone=cadPhoneCanonical(phone.value);
+  if(!checkedPhone.ok){info.textContent=checkedPhone.message;info.style.color='#ff9898';phone.focus();return}
+  const updated=window.cadUpdateIncidentFields(i.id,{type:type.value,priority:priority.value,agency:agency.value,discipline:discipline.value,phone:checkedPhone.formatted,narrative:note.value},'DISPATCH_EDITOR');
   if(!updated.ok){info.textContent=updated.message;return}
+  i.callerPhoneCanonical=checkedPhone.canonical;
   if(location.value.trim()!==i.location)cadUpdateIncidentLocation(i,location.value.trim(),'DISPATCH_EDITOR',verified?.result);
   window.cadSaveCaller(i.id,callerFirst.value,callerLast.value,sameLocation.checked?location.value:callerLocation.value,sameLocation.checked,sameLocation.checked?verified?.result:callerVerified?.result);
   if(related.value.trim())window.cadAddIncidentLocation(i.id,related.value.trim(),'RELATED','DISPATCH_EDITOR',relatedVerified?.result||null);
