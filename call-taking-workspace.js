@@ -39,6 +39,7 @@ function refresh(){
  narrative.querySelectorAll('[data-transcript-ref]').forEach(b=>b.onclick=()=>{const record=(i.radioTranscripts||[]).find(r=>r.id===b.dataset.transcriptRef);if(record){const body=narrative.querySelector('.voice-detail-content');body.innerHTML='<div class="voice-entry"><div class="meta">'+safe(record.time)+' | '+safe(record.source)+'</div>'+safe(record.text)+'</div>'}});
 }
 window.cadCallTakeRefresh=refresh;
+window.cadCallTakeSelect=id=>{selected=id;creating=false;refresh()};
 ['cadCTFilter','cadCTAgency','cadCTDiscipline','cadCTPriority','cadCTSort'].forEach(id=>$(id)?.addEventListener('change',refresh));
 const newForm=$('cadCTNewForm');document.querySelector('#calltake .cad-ct-right')?.prepend(newForm);
 $('cadCTNew').onclick=()=>{selected=null;creating=true;refresh();$('agency')?.focus()};
