@@ -729,3 +729,21 @@ header :is(button,select){max-width:100%}
 .cad-alarm-entry{border:1px solid #34536d;border-radius:8px;padding:9px;margin:7px 0}
 .cad-alarm-incident{border:1px solid #34536d;border-radius:9px;padding:10px;margin:10px 0;display:grid;gap:8px}
 @media(max-width:600px){.cad-alarm-resource{grid-template-columns:minmax(0,1fr) minmax(80px,100px)}.cad-alarm-resource button{grid-column:1/-1}}
+
+/* Drag-and-drop visual alarm assignment composer */
+.cad-alarm-builder{display:grid;grid-template-columns:minmax(190px,.85fr) minmax(0,2fr);gap:12px;margin:12px 0}
+.cad-alarm-builder>div{border:1px solid #34536d;border-radius:10px;padding:12px;min-width:0}
+.cad-alarm-builder p{font-size:12px;opacity:.8;margin:5px 0 10px}
+.cad-alarm-palette{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:7px}
+.cad-alarm-palette-tile{display:flex;align-items:center;gap:7px;justify-content:flex-start;padding:9px;cursor:grab;border-radius:8px;min-width:0;font-size:12px}
+.cad-alarm-palette-tile span{font-size:20px}
+.cad-alarm-dropzone{min-height:180px;transition:border-color .15s,background .15s}
+.cad-alarm-dropzone.is-over{border-color:#64c9ff;background:rgba(67,151,205,.15)}
+#almResources{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,245px),1fr));gap:8px;align-items:start}
+.cad-alarm-tile{display:flex;align-items:center;gap:7px;border:1px solid #496e87;border-radius:9px;padding:8px;min-width:0;cursor:grab;background:rgba(48,100,135,.13)}
+.cad-alarm-tile>strong{font-size:12px;min-width:0;overflow:hidden;text-overflow:ellipsis;flex:1}
+.cad-alarm-symbol{font-size:20px}.cad-alarm-grip{opacity:.6}
+.cad-alarm-qty{display:flex;align-items:center;gap:5px;white-space:nowrap}
+.cad-alarm-qty button,.cad-alarm-tile>button{padding:3px 7px;min-width:24px}
+.cad-alarm-empty{grid-column:1/-1;padding:22px;text-align:center;border:1px dashed #496e87;border-radius:8px}
+@media(max-width:850px){.cad-alarm-builder{grid-template-columns:minmax(0,1fr)}}
