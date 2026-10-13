@@ -11,7 +11,7 @@ if(!key||passwords.some(p=>!p||p.length<12)||new Set(passwords).size!==5){
  console.error('Provide SUPABASE_SERVICE_ROLE_KEY and five distinct CAD_PASSWORD_1 through CAD_PASSWORD_5 values, each at least 12 characters.');process.exit(1);
 }
 async function api(path,method='GET',body){
- const response=await fetch(base+path,{method,headers:{apikey:key,Authorization:'Bearer '+key,'Content-Type':'application/json'},body:body===undefined?undefined:JSON.stringify(body),cache:'no-store'});
+ const response=await fetch(base+path,{method,headers:{apikey:key,Authorization:'Bearer '+key,'Content-Type':'application/json',Prefer:'resolution=merge-duplicates,return=representation'},body:body===undefined?undefined:JSON.stringify(body),cache:'no-store'});
  const data=await response.json().catch(()=>null);
  if(!response.ok)throw Error('Supabase provisioning failed ('+response.status+'): '+(data?.message||data?.msg||data?.error||'Unknown error'));
  return data;
