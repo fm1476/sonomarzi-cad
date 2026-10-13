@@ -16,7 +16,24 @@ const partyRows=(i,kind,fields)=>((i[kind]||[]).map((p,n)=>{
  const secondary=kind==='vehicles'?[p.color,p.year].filter(Boolean).join(' · '):[p.phone,p.location].filter(Boolean).join(' · ');
  return '<div class="cad-ct-record"><div class="cad-ct-record-title"><div><strong>'+safe(label||(kind==='vehicles'?'New vehicle':'New person')+' '+(n+1))+'</strong><small>'+safe(secondary||(Object.values(p).some(Boolean)?'Details recorded':'Details not entered'))+'</small></div><div class="cad-ct-record-actions"><button type="button" data-ct-edit="'+kind+':'+n+'">Edit</button><button type="button" data-ct-remove="'+kind+':'+n+'">Remove</button></div></div><div class="cad-ct-fields" data-ct-fields="'+kind+':'+n+'" '+(editingEntity===kind+':'+n?'':'hidden')+'>'+rowFields(fields,p,kind+'.'+n)+'</div></div>';
  }).join(''));
-const extraEditor=i=>'<details class="cad-ct-section" open><summary>Event Information</summary><div class="cad-ct-fields">'+field('Location *','location',i.location)+field('Priority','priority',i.priority)+field('Case number','caseNumber',i.caseNumber||'')+rowFields(extraFields,i,'event')+'</div></details>'+
+const configuredEventFields=i=>{
+ const defs=window.cadEventFormFields?.(i.agency);
+ if(!Array.isArray(defs))return field('Location *','location',i.location)+field('Priority','priority',i.priority)+field('Case number','caseNumber',i.caseNumber||'')+rowFields(extraFields.filter(([k])=>!['primaryDisposition','additionalDisposition','closingComments'].includes(k)),i,'event');
+ const builtins=new Set(['location','priority','caseNumber',...extraFields.map(x=>x[0])]);
+ const fields=defs.filter(f=>f.visible!==false&&f.id!=='primaryDisposition'&&f.id!=='additionalDisposition'&&f.id!=='closingComments');
+ const existing=new Set(fields.map(f=>f.id));
+ for(const id of ['location','priority','type'])if(!existing.has(id))fields.unshift({id,label:id,type:'text'});
+ return fields.map(f=>{
+  const name=f.custom?'custom.'+f.id:['location','priority','caseNumber'].includes(f.id)?f.id:'event.'+f.id;
+  const value=f.custom?i.customFields?.[f.id]:i[f.id];
+  const label=escField(f.label||f.id)+(f.required?' *':'');
+  const required=f.required?' required':'';
+  const control=f.type==='textarea'?'<textarea name="'+name+'"'+required+'>'+escField(value)+'</textarea>':f.type==='select'?'<select name="'+name+'"'+required+'><option value="">Select…</option>'+(f.options||[]).map(o=>'<option value="'+escField(o)+'" '+(o===value?'selected':'')+'>'+escField(o)+'</option>').join('')+'</select>':f.type==='checkbox'?'<input type="checkbox" name="'+name+'" value="true" '+(value?'checked':'')+'>':'<input type="'+(f.type==='date'?'date':'text')+'" name="'+name+'" value="'+escField(value||'')+'"'+required+'>';
+  return '<label class="cad-ct-config-field '+(f.width==='full'?'wide':'')+'">'+label+control+'</label>';
+ }).join('');
+};
+const escField=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const extraEditor=i=>'<details class="cad-ct-section" open><summary>Event Information</summary><div class="cad-ct-fields">'+configuredEventFields(i)+'</div></details>'+
 '<details class="cad-ct-section"><summary>Reporting Parties ('+(i.reportingParties||[]).length+')</summary>'+partyRows(i,'reportingParties',personFields)+'<button type="button" data-ct-add="reportingParties">+ Add Reporting Party</button></details>'+
 '<details class="cad-ct-section"><summary>Involved Persons ('+(i.involvedPersons||[]).length+')</summary>'+partyRows(i,'involvedPersons',personFields)+'<button type="button" data-ct-add="involvedPersons">+ Add Involved Person</button></details>'+
 '<details class="cad-ct-section"><summary>Vehicles ('+(i.vehicles||[]).length+')</summary>'+partyRows(i,'vehicles',vehicleFields)+'<button type="button" data-ct-add="vehicles">+ Add Vehicle</button></details>'+
@@ -46,8 +63,10 @@ function refresh(){
  editor.querySelectorAll('.cad-ct-section').forEach((d,n)=>{d.open=expandAfterRefresh!==null?n===expandAfterRefresh:previousOpen.length?previousOpen.includes(n):n===0});expandAfterRefresh=null;
  $('cadCTClose').onclick=()=>{selected=null;refresh()};
  $('cadCTActivate')?.addEventListener('click',()=>{if(i.status!=='PENDING')return;i.status='ACTIVE';window.cadCallTakeEvent?.(i,'CALL_ACTIVATED_FROM_CALL_TAKING');window.cadCallTakeSave?.()});
- $('cadCTForm').onsubmit=e=>{e.preventDefault();const f=new FormData(e.currentTarget);let changes=[];for(const key of ['location','priority','caseNumber']){const value=String(f.get(key)||'').trim();if(value!==String(i[key]||'')){i[key]=value;changes.push(key)}}
-for(const [key] of extraFields){const value=String(f.get((['primaryDisposition','additionalDisposition','closingComments'].includes(key)?'closure.':'event.')+key)||'').trim();if(value!==String(i[key]||'')){i[key]=value;changes.push(key)}}
+ $('cadCTForm').onsubmit=e=>{e.preventDefault();const f=new FormData(e.currentTarget);let changes=[];for(const key of ['location','priority','caseNumber']){if(!f.has(key))continue;const value=String(f.get(key)||'').trim();if(value!==String(i[key]||'')){i[key]=value;changes.push(key)}}
+const layout=window.cadEventFormFields?.(i.agency);
+if(Array.isArray(layout)){for(const def of layout){if(!def.custom)continue;const value=def.type==='checkbox'?f.has('custom.'+def.id):String(f.get('custom.'+def.id)||'').trim();(i.customFields||={});if(value!==i.customFields[def.id]){i.customFields[def.id]=value;changes.push('custom.'+def.id)}}}
+for(const [key] of extraFields){const name=(['primaryDisposition','additionalDisposition','closingComments'].includes(key)?'closure.':'event.')+key;if(!f.has(name))continue;const value=String(f.get(name)||'').trim();if(value!==String(i[key]||'')){i[key]=value;changes.push(key)}}
 for(const kind of ['reportingParties','involvedPersons','vehicles']){const fields=kind==='vehicles'?vehicleFields:personFields;for(let n=0;n<(i[kind]||[]).length;n++)for(const [key] of fields){const value=String(f.get(kind+'.'+n+'.'+key)||'').trim();if(value!==String(i[kind][n][key]||'')){i[kind][n][key]=value;changes.push(kind+'.'+key)}}}if(changes.length){editingEntity=null;i.callTakeNewInfoAt=new Date().toISOString();i.callTakeUpdateFields=changes;window.cadCallTakeEvent?.(i,'CALL_TAKER_UPDATED '+changes.join(','));window.cadCallTakeSave?.();const status=$('cadCTSaveStatus');if(status)status.textContent='Saved ✓'}else{$('cadCTSaveStatus').textContent='No changes to save'}};
  editor.querySelectorAll('[data-ct-add]').forEach(b=>b.onclick=()=>{const kind=b.dataset.ctAdd;editingEntity=kind+':'+((i[kind]||[]).length);expandAfterRefresh={reportingParties:1,involvedPersons:2,vehicles:3}[kind];(i[kind]||=[]).push({});window.cadCallTakeSave?.();});
  editor.querySelectorAll('[data-ct-edit]').forEach(b=>b.onclick=()=>{editingEntity=b.dataset.ctEdit;expandAfterRefresh={reportingParties:1,involvedPersons:2,vehicles:3}[editingEntity.split(':')[0]];refresh();editor.querySelector('[data-ct-fields="'+editingEntity+'"] input')?.focus()});
