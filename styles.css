@@ -787,3 +787,20 @@ header :is(button,select){max-width:100%}
 @media(max-width:600px){#cadAlarmManager .cad-alarm-palette,.rp-palette{grid-template-columns:repeat(2,minmax(0,1fr))}}
 
 .cad-resource-type-manager{border:1px solid #34536d;border-radius:12px;padding:16px;margin:14px 0;background:#102338}.cad-rt-toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:end;margin:10px 0}.cad-rt-toolbar label{display:grid;gap:5px;flex:1;min-width:160px}.cad-rt-toolbar input,.cad-rt-toolbar select{width:100%;box-sizing:border-box}.cad-rt-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px}.cad-rt-card{display:flex;align-items:center;gap:8px;background:#183148;border:1px solid #355a78;border-radius:9px;padding:10px}.cad-rt-card strong{flex:1;font-size:12px}.cad-rt-icon{font-size:20px}.cad-rt-card button,.cad-rt-toolbar button{background:#1b354b;color:#eaf3fc;border:1px solid #426b87;border-radius:8px;padding:7px;cursor:pointer}
+
+/* Searchable vector icon library */
+.cad-icon-dialog{background:#102235;color:#eaf4fc;border:1px solid #3c607a;border-radius:16px;width:min(900px,94vw);max-height:86vh;padding:22px;box-shadow:0 22px 80px #0009}
+.cad-icon-dialog::backdrop{background:#030b15b9;backdrop-filter:blur(4px)}
+.cad-icon-heading{display:flex;align-items:start;justify-content:space-between;gap:12px}
+.cad-icon-heading h3{margin:0 0 6px}.cad-icon-heading p{margin:0 0 16px;color:#abc4d7}
+.cad-icon-heading button,.cad-icon-tabs button{background:#1a344a;border:1px solid #355875;border-radius:9px;color:#e9f4fc;padding:8px 12px;cursor:pointer}
+#cadIconSearch{width:100%;box-sizing:border-box;background:#0b1b2b;color:#eaf4fc;border:1px solid #3c607a;border-radius:9px;padding:12px;margin:0 0 14px}
+.cad-icon-tabs{display:flex;gap:7px;flex-wrap:wrap;margin:8px 0 14px}
+.cad-icon-tabs button.active{background:#176e9e;border-color:#52a9d9}
+.cad-icon-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:9px;overflow-y:auto;max-height:52vh}
+.cad-icon-choice{background:#183148;color:#eaf4fc;border:1px solid #365b79;border-radius:11px;padding:14px 8px;min-height:96px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;cursor:pointer}
+.cad-icon-choice:hover,.cad-icon-choice.selected{background:#224963;border-color:#74c4ec}
+.cad-icon-choice span{font-size:12px;text-align:center}
+.cad-vehicle-icon{display:block;flex:none}
+.cad-rt-pick-icon{display:flex;align-items:center;gap:10px;justify-content:center;min-height:46px}
+.cad-rt-card .cad-rt-icon .cad-vehicle-icon{width:45px;height:31px}
