@@ -45,3 +45,15 @@
 .cad-shared-assign-form label{font-size:11px;color:#b9cde1;display:flex;flex-direction:column;gap:5px;min-width:0}
 .cad-shared-assign-form button{grid-column:1/-1}
 @media(max-width:430px){.cad-shared-create-form,.cad-shared-assign-form{grid-template-columns:1fr}}
+
+.cad-shared-workspace{margin:8px 0 12px;background:#112237;border:1px solid #375a78;border-radius:11px;padding:10px 13px;color:#eaf2ff}
+.cad-shared-workspace[hidden]{display:none!important}
+.cad-shared-workspace-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:11px}
+.cad-shared-workspace-heading strong{letter-spacing:.8px;font-size:11px}
+.cad-shared-workspace-heading #cadSharedWorkspaceUpdated{color:#91aec8;margin-left:12px}
+.cad-shared-workspace-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:9px}
+.cad-shared-workspace-grid h4{font-size:10px;letter-spacing:.9px;color:#8fb2d1;margin:0 0 6px;text-transform:uppercase}
+.cad-shared-workspace-list{max-height:105px;overflow:auto;display:flex;flex-wrap:wrap;align-content:start;gap:5px}
+.cad-shared-workspace-item{background:#203951;border:1px solid #35546e;border-radius:7px;padding:5px 8px;font-size:11px;color:#e1f0ff;white-space:nowrap}
+.cad-shared-workspace-empty{font-size:11px;color:#8ea9c1}
+@media(max-width:760px){.cad-shared-workspace-grid{grid-template-columns:1fr}.cad-shared-workspace-list{max-height:76px}}
