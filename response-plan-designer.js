@@ -75,6 +75,49 @@ const RESOURCE_TYPES={
  EMS:['AMBULANCE','MEDIC','ENGINE','RESCUE','CHIEF','SUPERVISOR','OTHER'],
  LAW:['PATROL','SUPERVISOR','TRAFFIC','K9','DETECTIVE','SWAT','MOTOR','OTHER']
 };
+/* Read-only response plan test bench. No incident or unit state is changed. */
+function testPlan(plan){
+ const master=(()=>{try{return window.CadAgencyMaster?.read(localStorage)||{units:[]}}catch{return {units:[]}}})();
+ const roster=window.cadSafetyState?.().units||[];
+ const chosen=new Set(),usedCrew=new Set(),rows=[];
+ const infer=u=>{
+  const id=String(u.id||'').toUpperCase();
+  if(u.discipline==='LAW')return /K9/.test(id)?'K9':/MOTOR|M[0-9]/.test(id)?'MOTOR':'PATROL';
+  if(/^E[0-9]/.test(id))return 'ENGINE';
+  if(/^T[0-9]/.test(id))return 'TRUCK';
+  if(/^R[0-9]/.test(id))return 'RESCUE';
+  if(/^B[0-9]/.test(id))return 'BRUSH';
+  if(/^M[0-9]/.test(id))return 'AMBULANCE';
+  if(/^C[0-9]/.test(id))return 'CHIEF';
+  return null;
+ };
+ const candidates=roster.filter(u=>u.discipline===plan.discipline).map(u=>{
+  const definition=(master.units||[]).find(m=>m.id===u.id||m.designator===u.id);
+  const group=crews.find(g=>g.units.some(id=>id.toUpperCase()===String(u.id).toUpperCase()));
+  return {...u,resourceType:definition?.resourceType||infer(u),crewId:group?.id||null,definition};
+ });
+ for(const request of plan.resources){
+  const matches=[],rejected=[];const need=Number(request.count)||0;
+  for(const u of candidates.filter(x=>x.resourceType===request.type)){
+   const reason=chosen.has(u.id)?'Already selected':String(u.status).toUpperCase()!=='AVAILABLE'?'Status: '+u.status:u.crewId&&usedCrew.has(u.crewId)?'Shared crew committed':null;
+   if(reason){rejected.push({id:u.id,reason});continue}
+   if(matches.length>=need)continue;
+   chosen.add(u.id);if(u.crewId)usedCrew.add(u.crewId);
+   matches.push(u.id);
+  }
+  rows.push({type:request.type,need,selected:matches,rejected,short:Math.max(0,need-matches.length)});
+ }
+ return rows;
+}
+function drawTest(plan){
+ const host=el('rpTestResults');if(!host)return;
+ const rows=testPlan(plan),short=rows.reduce((n,r)=>n+r.short,0);
+ host.innerHTML='<h4>Simulation results — '+(short?'Resource shortfall':'All requested types matched')+'</h4>'+
+ '<p>Read-only demo roster check. No units dispatched. Unit types without a master definition are inferred from designators for demo purposes. Staffing qualifications, travel time, and actual geographic closest-unit calculations are not verified.</p>'+
+ rows.map(r=>'<div style="border:1px solid #36536c;border-radius:8px;padding:10px;margin:8px 0"><strong>'+escape(r.type)+' · '+r.selected.length+'/'+r.need+'</strong> — '+(r.selected.length?'Selected: '+escape(r.selected.join(', ')):'No eligible units selected')+
+ (r.short?' <strong style="color:#ffb17c">Short '+r.short+'</strong>':'')+
+ (r.rejected.length?'<div style="font-size:12px;color:#a9bfd0">Excluded: '+r.rejected.map(x=>escape(x.id+' ('+x.reason+')')).join('; ')+'</div>':'')+'</div>').join('');
+}
 function edit(id){
  const p=plans.find(x=>x.id===id);
  const defaults=discipline==='LAW'?[{type:'PATROL',count:2},{type:'SUPERVISOR',count:1}]:discipline==='EMS'?[{type:'AMBULANCE',count:1},{type:'ENGINE',count:1}]:[{type:'ENGINE',count:2},{type:'TRUCK',count:1},{type:'CHIEF',count:1}];
@@ -85,7 +128,7 @@ function edit(id){
  '<label>Response level<select id="rpLevel"><option>First Alarm</option><option>Working Fire</option><option>Second Alarm</option><option>Standard</option></select></label>'+
  '<label>Selection method<select id="rpMethod"><option>HYBRID</option><option>CLOSEST</option><option>RUN_CARD</option></select></label>'+
  '<h4>Response resources</h4><p>Choose resource types, set quantities, and use the arrows to establish dispatch order.</p>'+
- '<div id="rpResourceCards"></div><button id="rpAddResource" type="button">+ Add Resource</button>'+
+ '<div id="rpResourceCards"></div><button id="rpAddResource" type="button">+ Add Resource</button><button id="rpTest" type="button" style="margin-left:8px">Test Response Plan</button><div id="rpTestResults" role="status" aria-live="polite"></div>'+
  '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:18px"><button id="rpDraft" type="button">Save Draft</button><button id="rpPublish" type="button">Publish Locally</button></div><p id="rpSaveFeedback" role="status" aria-live="polite" style="margin-top:10px;font-weight:700"></p>';
  el('rpLevel').value=p?.level||'Standard';el('rpMethod').value=p?.method||'HYBRID';
  function drawResources(){
@@ -104,6 +147,7 @@ function edit(id){
  }
  drawResources();
  el('rpAddResource').onclick=()=>{resources.push({type:options[0],count:1});drawResources()};
+ el('rpTest').onclick=()=>{const requested=resources.map(r=>({...r,count:Number(r.count)}));if(!requested.length||requested.some(r=>!r.type||!Number.isInteger(r.count)||r.count<1))return msg('Enter valid resources before testing.');drawTest({discipline,resources:requested})};
  function commit(status){
   const type=el('rpType').value.trim();
   if(!type||!resources.length||resources.some(r=>!r.type||!Number.isInteger(r.count)||r.count<1||r.count>99))return msg('Enter a call type and at least one resource with a quantity from 1 to 99.');
