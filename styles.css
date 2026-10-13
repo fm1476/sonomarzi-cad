@@ -426,3 +426,6 @@ header nav.cad-header-tabs button{position:relative;z-index:102;pointer-events:a
 #calltake .cad-ct-left .panel{margin:0}
 #calltake .cad-ct-right .cad-ct-editor{margin:0}
 @media(max-width:850px){#calltake .cad-ct-split{display:flex;flex-direction:column;gap:12px}#calltake .cad-ct-divider{display:none}}
+
+#calltake .cad-ct-recovery{padding:12px;border:1px solid #416c89;border-radius:8px;background:#102e44;color:#b9d9ea;font-size:12px}
+#calltake .cad-ct-recovery button{padding:8px 11px;border-radius:6px;background:#174f76;border:1px solid #4e9ac4;color:#effaff;cursor:pointer}
