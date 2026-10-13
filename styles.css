@@ -715,3 +715,7 @@ header :is(button,select){max-width:100%}
 #rpTestResults .rp-scenario-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,175px),1fr));gap:8px;margin:10px 0}
 #rpTestResults .rp-scenario-grid label{display:flex;flex-direction:column;gap:4px;min-width:0;margin:0}
 #rpTestResults .rp-scenario-grid select{width:100%;min-width:0;box-sizing:border-box}
+
+#rpTestResults .rp-scenario-unit{border:1px solid #34536d;border-radius:8px;padding:9px;display:grid;gap:7px;min-width:0}
+#rpTestResults .rp-scenario-unit>strong{font-size:13px}
+#rpTestResults .rp-scenario-unit input{width:100%;min-width:0;max-width:100%;box-sizing:border-box}
