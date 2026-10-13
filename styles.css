@@ -822,3 +822,24 @@ header :is(button,select){max-width:100%}
 .cad-rt-card button[data-edit]{grid-column:3;grid-row:2;justify-self:start}
 .cad-rt-card button[data-remove]{grid-column:3;grid-row:2;justify-self:end}
 @media(max-width:390px){.cad-rt-card{grid-template-columns:10px 42px minmax(0,1fr)}.cad-rt-card button{padding:6px 7px;font-size:11px}}
+
+/* Shared crew drag-and-drop workspace */
+.rp-crew-workspace{display:grid;grid-template-columns:minmax(240px,.85fr) minmax(0,1.5fr);gap:14px;margin:14px 0}
+.rp-crew-library,.rp-crew-board{min-width:0;background:linear-gradient(150deg,#11293e,#0d2032);border:1px solid #33536d;border-radius:14px;padding:16px}
+.rp-crew-library h4,.rp-crew-board h4{margin:0 0 8px;color:#eaf4fd}
+.rp-crew-library p{color:#a9c4d7;font-size:12px;margin:0 0 14px}
+.rp-crew-pills{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 18px}
+button.rp-crew-pill,.rp-crew-assigned{display:inline-flex;align-items:center;gap:7px;min-height:42px;background:#1b3851;color:#edf7ff;border:1px solid #456b86;border-radius:10px;padding:7px 11px;font-size:12px}
+button.rp-crew-pill{cursor:grab}
+button.rp-crew-pill:hover{border-color:#80c8f0;background:#28516f}
+.rp-crew-pill .cad-vehicle-icon,.rp-crew-assigned .cad-vehicle-icon{width:37px;height:25px}
+.rp-crew-board-header,.rp-crew-card-header{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.rp-crew-board-header button,.rp-crew-card button{background:#1e4664;border:1px solid #4c7b9b;color:#eef7ff;border-radius:8px;padding:7px 10px;cursor:pointer}
+.rp-crew-card{border:1px dashed #4b7592;border-radius:12px;padding:14px;margin:12px 0;min-height:125px;background:#142e43;transition:border-color .15s,background .15s}
+.rp-crew-card.rp-crew-selected{border-style:solid;border-color:#65bfe9}
+.rp-crew-card.rp-crew-hover{background:#204861;border-color:#8cd8ff}
+.rp-crew-card small{color:#a9c4d7}
+.rp-crew-assigned button{min-width:22px;min-height:22px;padding:1px 5px;border-radius:6px}
+.rp-crew-personnel{border-top:1px solid #34536d;padding-top:10px;margin-top:12px}
+.rp-crew-personnel strong{font-size:12px;color:#bad7e9}
+@media(max-width:900px){.rp-crew-workspace{grid-template-columns:minmax(0,1fr)}}
