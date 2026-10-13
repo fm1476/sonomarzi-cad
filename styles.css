@@ -443,3 +443,12 @@ header nav.cad-header-tabs button{position:relative;z-index:102;pointer-events:a
 #config .cad-master-section input[type=file]{padding:9px;border:1px dashed #54758e;border-radius:8px}
 #config .cad-master-section input[type=file]::file-selector-button{background:#204e72;color:#e9f6ff;border:1px solid #427eac;border-radius:6px;padding:7px 12px;margin-right:10px;cursor:pointer}
 #config #cadMasterMessage:not(:empty){padding:10px 12px;margin:9px 0;border-left:3px solid #56b8ec;background:#10354c;border-radius:5px}
+
+/* Call Taking queue filters and single right-side master event editor */
+#calltake [hidden]{display:none!important}
+#calltake .cad-ct-filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(115px,1fr));gap:8px;padding:10px 12px;border-bottom:1px solid #27475c}
+#calltake .cad-ct-filters label{display:flex;flex-direction:column;gap:5px;font-size:11px;color:#a8c5d8}
+#calltake .cad-ct-filters select{width:100%;min-width:0;background:#0b1e30;color:#e5f4ff;border:1px solid #3a607b;border-radius:6px;padding:7px}
+#calltake #cadCTNewForm{margin:0;flex:1;min-width:0}
+#calltake .cad-ct-right{min-height:400px}
+#calltake .cad-ct-heading>button{align-self:center;white-space:nowrap}
