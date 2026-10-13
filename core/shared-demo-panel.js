@@ -5,6 +5,12 @@
   const root=document.getElementById('cadSharedDemo');
   if(!root||!window.CadDemoLogin)return;
   const $=id=>root.querySelector('#'+id);
+  const toggle=document.getElementById('cadSharedToggle');
+  const headerUser=document.getElementById('cadSharedHeaderUser');
+  const setOpen=open=>{root.hidden=!open;toggle.setAttribute('aria-expanded',String(open))};
+  toggle.addEventListener('click',()=>setOpen(root.hidden));
+  $('cadSharedClose').addEventListener('click',()=>setOpen(false));
+  document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!root.hidden)setOpen(false)});
   const status=$('cadSharedStatus');
   const say=message=>{status.textContent=message};
   const form=$('cadSharedLoginForm');
@@ -44,7 +50,7 @@
     const result=await window.CadDemoLogin.login($('cadSharedUser').value,$('cadSharedPassword').value);
     $('cadSharedPassword').value='';
     loginPanel.hidden=true;board.hidden=false;
-    text($('cadSharedSignedIn'),result.username);
+    text($('cadSharedSignedIn'),result.username);text(headerUser,result.username);toggle.classList.add('is-connected');
     await refresh();
    }catch(error){say(error.message)}finally{submit.disabled=false}
   });
@@ -52,7 +58,7 @@
   $('cadSharedLogout').addEventListener('click',()=>{
    window.CadDemoLogin.logout();
    tbody.replaceChildren();units.replaceChildren();shortages.replaceChildren();
-   board.hidden=true;loginPanel.hidden=false;
+   board.hidden=true;loginPanel.hidden=false;text(headerUser,'Offline');toggle.classList.remove('is-connected');
    say('Signed out of shared CAD. Local demo remains available.');
   });
  }
