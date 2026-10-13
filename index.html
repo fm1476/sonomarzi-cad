@@ -6,19 +6,60 @@
 <meta name="theme-color" content="#0b1220"/>
 <title>SonoMarzi CAD POC</title>
 <link rel="stylesheet" href="styles.css?v=25.1"/>
+<link rel="stylesheet" href="core/shared-demo-panel.css?v=4"/>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-</head>
+<style>
+.cad-alarm-chip{display:inline-flex;align-items:center;margin:3px 0 3px 8px;padding:3px 9px;border-radius:999px;background:#7b341d;color:#fff1db;border:1px solid #df874b;font-size:11px;font-weight:800;letter-spacing:.3px;white-space:nowrap;vertical-align:middle}
+.cad-alarm-chip-header{font-size:12px;padding:5px 11px;background:#923c22}
+</style></head>
 <body>
 <header>
   <div class="cad-brand-and-tabs"><div class="cad-brand"><b>SONOMARZI CAD</b><span class="badge">POC</span></div><nav class="cad-header-tabs" aria-label="Main navigation"><button data-view="dispatch" class="active">Dispatch</button><button data-view="calltake">Call Taking</button><button data-view="config">Configuration</button></nav></div>
-  <div class="header-radio"><label for="radioIncident">Radio event <select id="radioIncident" aria-label="Radio event"></select></label><button id="voicePTT" class="voice-ptt header-ptt" type="button">🎙 Hold to Talk</button><span class="header-radio-indicator" id="headerRadioIndicator">READY</span></div><div id="clock"></div>
+  <div class="header-radio"><label for="radioIncident">Radio event <select id="radioIncident" aria-label="Radio event"></select></label><button id="voicePTT" class="voice-ptt header-ptt" type="button">🎙 Hold to Talk</button><span class="header-radio-indicator" id="headerRadioIndicator">READY</span></div><div class="cad-shared-header"><button id="cadSharedToggle" type="button" class="cad-shared-trigger" aria-expanded="false" aria-controls="cadSharedDemo"><span class="cad-shared-indicator"></span><span>Dispatcher</span><span id="cadSharedHeaderUser">Offline</span><span aria-hidden="true">⌄</span></button></div><div id="clock"></div>
   <div><span id="systemDot">●</span> SYSTEM NORMAL <button id="simulateBtn">Run Simulation</button></div>
 </header>
+<section id="cadSharedDemo" class="cad-shared-popover" hidden aria-label="Shared CAD connection">
+<div class="cad-shared-heading"><div><span class="cad-shared-eyebrow">MULTI-DISPATCHER</span><h3>Shared CAD connection</h3></div><button id="cadSharedClose" class="cad-shared-close" type="button" aria-label="Close dispatcher panel">×</button></div>
+<p class="cad-shared-description">Sign in to preview shared incidents, unit availability, and resource needs. Local CAD operations remain separate.</p>
+<div id="cadSharedLoginPanel"><form id="cadSharedLoginForm" class="cad-shared-form">
+<label>Dispatcher<select id="cadSharedUser"><option>cad1</option><option>cad2</option><option>cad3</option><option>cad4</option><option>cad5</option></select></label>
+<label>Password<input id="cadSharedPassword" type="password" required autocomplete="current-password"></label>
+<button id="cadSharedSignIn" class="cad-shared-btn cad-shared-btn-primary" type="submit">Connect to shared CAD <span aria-hidden="true">→</span></button>
+</form></div>
+<div id="cadSharedBoard" hidden>
+<div class="cad-shared-session"><div class="cad-shared-session-identity"><span class="cad-shared-online-dot"></span> Signed in as <strong id="cadSharedSignedIn"></strong></div><div class="cad-shared-actions"><button id="cadSharedRefresh" class="cad-shared-btn" type="button">↻ Refresh</button><button id="cadSharedLogout" class="cad-shared-btn cad-shared-btn-muted" type="button">Sign out</button></div></div>
+<div id="cadSharedCounts" class="cad-shared-counts"></div>
+<div class="cad-shared-ops">
+<h4>Shared operations <span class="cad-shared-live-tag">TEST</span></h4>
+<form id="cadSharedCreateForm" class="cad-shared-create-form">
+<input id="cadSharedNewNumber" required maxlength="50" placeholder="Incident number (e.g. DEMO-1001)" aria-label="Incident number">
+<select id="cadSharedNewDiscipline" aria-label="Discipline"><option>LAW</option><option>FIRE</option><option>EMS</option></select>
+<input id="cadSharedNewType" required maxlength="100" placeholder="Incident type" aria-label="Incident type">
+<select id="cadSharedNewPriority" aria-label="Priority"><option value="1">Priority 1</option><option value="2">Priority 2</option><option value="3">Priority 3</option><option value="4">Priority 4</option></select>
+<input id="cadSharedNewLocation" required maxlength="250" placeholder="Incident location" aria-label="Incident location">
+<button type="submit" id="cadSharedCreate" class="cad-shared-btn cad-shared-btn-primary">Create shared incident</button>
+</form>
+<div class="cad-shared-assign-form">
+<label>Incident<select id="cadSharedTargetIncident" aria-label="Select shared incident"></select></label>
+<label>Available unit<select id="cadSharedTargetUnit" aria-label="Select available unit"></select></label>
+<button id="cadSharedAssign" type="button" class="cad-shared-btn">Assign unit</button>
+</div>
+<div class="cad-shared-assign-form">
+<label>Assigned unit<select id="cadSharedStatusUnit" aria-label="Select assigned unit"></select></label>
+<label>New status<select id="cadSharedNewStatus" aria-label="Unit status"><option value="ENROUTE">Enroute</option><option value="ONSCENE">On scene</option><option value="TRANSPORTING">Transporting</option><option value="AT_HOSPITAL">At hospital</option><option value="OUT_OF_SERVICE">Out of service</option></select></label>
+<button id="cadSharedChangeStatus" type="button" class="cad-shared-btn">Update status</button>
+</div>
+</div>
+<div class="cad-shared-tables"><h4>Incidents</h4><div class="cad-shared-scroll"><table><thead><tr><th>Incident</th><th>Status</th><th>Discipline</th><th>Created</th></tr></thead><tbody id="cadSharedIncidents"></tbody></table></div>
+<h4>Units</h4><div class="cad-shared-scroll"><table><thead><tr><th>Unit</th><th>Status</th><th>Resource type</th></tr></thead><tbody id="cadSharedUnits"></tbody></table></div>
+<h4>Unfilled response requirements</h4><div class="cad-shared-scroll"><table><thead><tr><th>Incident</th><th>Resource</th><th>Needed</th></tr></thead><tbody id="cadSharedShortages"></tbody></table></div></div>
+</div><p id="cadSharedStatus" class="cad-shared-status" role="status" aria-live="polite">Not connected. Local CAD demo remains available.</p>
+</section>
 
 
 <main id="dispatch" class="view active">
   <section class="cad-workspace-toolbar" aria-label="Saved CAD workspaces"><strong>WORKSPACE</strong><select id="cadWorkspaceSelect" aria-label="Choose a saved workspace"></select><button id="cadWorkspaceLoad" type="button">Load</button><button id="cadWorkspaceNew" type="button">Save New</button><button id="cadWorkspaceUpdate" type="button">Update</button><button id="cadWorkspaceRename" type="button">Rename</button><button id="cadWorkspaceDelete" type="button">Delete</button><button id="cadWorkspaceReset" type="button">Reset Layout</button><label class="cad-external-launch">Other monitor <select id="cadExternalPanel" aria-label="Select panel for a separate monitor"><option value="">Choose pane…</option></select></label><button id="cadExternalOpen" type="button" title="Open selected pane as separate browser window">Open Window ↗</button><button id="cadOpenSavedWindows" type="button" title="Reopen saved separate-monitor windows">Restore Windows</button><span id="cadWorkspaceStatus" role="status" aria-live="polite">Workspace layout stored on this browser.</span></section>
-  <section class="grid">
+<section class="grid">
     <article class="panel" data-panel="pending">
       <h2><span class="panel-drag" draggable="true" title="Drag to move this panel" aria-label="Drag panel">⠿</span> Pending Calls <span id="pendingCount"></span></h2>
       <div class="board-controls" data-board="pending"><select data-setting="agency"><option value="ALL">All agencies</option></select><select data-setting="discipline"><option value="ALL">All disciplines</option><option value="LAW">Law</option><option value="FIRE">Fire</option><option value="EMS">EMS</option></select><select data-setting="sort"><option value="priority">Priority</option><option value="event">Event number</option><option value="type">Call type</option><option value="location">Location</option><option value="agency">Agency</option></select><label><input type="checkbox" data-setting="group"> Group by agency</label></div><div class="board-columns" data-columns="pending"></div>
@@ -100,8 +141,11 @@
       <label>Case Number (optional)<input id="newCaseNumber" placeholder="e.g. 26-000123"/></label><label>Priority<select id="priority"><option>P1</option><option selected>P2</option><option>P3</option><option>P4</option></select></label>
       <label>Call for Service<select id="type"></select></label><label>Other CFS (optional)<input id="customIncidentType" placeholder="e.g. Unwanted Subject (optional)"/></label>
       <label class="span2">Location<input id="location" autocomplete="off" placeholder="Enter incident location"/></label>
-      <label>Caller<input id="caller" autocomplete="off" placeholder="Caller name"/></label>
-      <label>Phone<input id="phone" autocomplete="off" placeholder="Callback number"/></label>
+      <label>Caller first name<input id="callerFirstName" autocomplete="given-name" placeholder="First name"/></label>
+      <label>Caller last name<input id="callerLastName" autocomplete="family-name" placeholder="Last name"/></label>
+      <label>Caller phone<input id="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="(707) 555-1212 or +44…"/></label>
+      <label class="span2">Caller location<input id="newCallerLocation" autocomplete="off" placeholder="Where is the caller?"/></label>
+      <label class="span2" style="display:flex;align-items:center;gap:9px"><input id="newCallerSameAsEvent" type="checkbox" style="width:18px;height:18px"/>Caller is at the same location as the event</label>
       <label class="span2">Narrative<textarea id="narrative" placeholder="Enter initial call narrative"></textarea></label>
     </div>
     <button id="createCall" class="primary">Create Call</button>
@@ -205,9 +249,16 @@
   <span>Hackathon demo controls. Reset restores the original sample incidents and unit lineup.</span>
   <button id="reset" type="button" aria-label="Reset all CAD demo data">↻ Reset Entire Demo</button>
 </footer>
+
 <div id="toast"></div>
 <script src="core/discipline.js?v=1"></script>
-<script src="app.js?v=34"></script>
+<script src="core/persistence.js?v=1"></script>
+<script src="core/supabase-client.js?v=7"></script>
+<script src="core/demo-login.js?v=2"></script>
+<script src="core/shared-demo-panel.js?v=22"></script>
+<script src="core/incident-commands.js?v=1"></script>
+<script src="core/unit-commands.js?v=3"></script>
+<script src="app.js?v=56"></script>
 <script src="core/agency-phrases.js?v=1"></script>
 <script src="core/intent-catalog.js?v=1"></script>
 <script src="core/command-gate.js?v=1"></script>
@@ -220,20 +271,20 @@
 <script src="resource-types.js?v=4"></script>
 <script src="agency-master-settings.js?v=7"></script>
 
-<script src="board-layout.js?v=21.1"></script>
+<script src="board-layout.js?v=25"></script>
 <script src="incident-intelligence.js?v=18.3"></script>
 <script src="core/voice-text.js?v=1"></script>
 <script src="core/radio-incomplete.js?v=1"></script>
 <script src="core/radio-status-repair.js?v=1"></script>
 <script src="voice.js?v=21.3"></script>
-<script src="call-taking-workspace.js?v=15"></script>
+<script src="call-taking-workspace.js?v=16"></script>
 <script src="form-designer.js?v=3"></script>
-<script src="operations.js?v=18"></script>
+<script src="operations.js?v=20"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="core/gis-query.js?v=1"></script>
 <script src="core/layer-intent.js?v=1"></script>
-<script src="map-layer-catalog.js?v=21.1"></script>
-<script src="map.js?v=20.8"></script>
+<script src="map-layer-catalog.js?v=21.2"></script>
+<script src="map.js?v=20.9"></script>
 <script>
 /* Configuration section selector: includes dynamically added configuration panels. */
 (()=>{
@@ -339,16 +390,16 @@ window.CadIncidentZones={async lookup(location,discipline){
 }};
 </script>
 <script src="station-manager.js?v=6"></script><script src="response-plan-designer.js?v=29"></script>
-<script src="alarm-levels.js?v=4"></script>
+<script src="alarm-levels.js?v=6"></script>
 <script src="demo-tools.js?v=18"></script>
 <script src="extended-ops.js?v=18"></script>
 <script src="structured-command.js?v=19.6"></script>
-<script src="command-intelligence.js?v=20.3"></script>
+<script src="command-intelligence.js?v=23"></script>
 <script src="voice-incident-creation.js?v=19.0"></script>
 <script src="self-initiated.js?v=20.6"></script>
-<script src="event-clear.js?v=19.8"></script>
+<script src="event-clear.js?v=26.8"></script>
 <script src="common-places.js?v=20.0"></script>
-<script src="drag-dispatch.js?v=18"></script>
+<script src="drag-dispatch.js?v=19"></script>
 <script src="workspaces.js?v=18"></script>
 
 <script src="pane-layout.js?v=18"></script>
@@ -367,7 +418,22 @@ window.CadIncidentZones={async lookup(location,discipline){
  const unitPattern=id=>new RegExp('(?:^|[^A-Z0-9])'+String(id).replace(/[.*+?^\x24{}()|[\]\\]/g,'\\\x24&')+'(?=$|[^A-Z0-9])','i');
  window.cadBeforeVoiceProcess=(spoken,source)=>{
   const text=String(spoken||'').trim();
-  const correction=text.match(/\\b(?:copy[,.]?\\s+)?(?:true\\s+location\\s+is\\s+(?:at\\s+)?|(?:update|correct|change)\\s+(?:the\\s+)?location\\s+to\\s+)(.+)$/i);
+  const reportVoice=message=>{const output=document.getElementById('voiceInterpretation');if(output)output.textContent=message;return true};
+  const priorityCommand=text.match(/\b(?:copy[,.]?\s*)?(?:change|update|set)\s+(?:the\s+)?priority\s+(?:to\s+)?(?:p(?:riority)?\s*)?([1-5])\b/i);
+  const typeCommand=text.match(/\b(?:copy[,.]?\s*)?(?:change|update|set)\s+(?:the\s+)?(?:call\s+type|cfs\s+type|incident\s+type)\s+to\s+(.+)$/i);
+  const noteCommand=text.match(/\b(?:copy[,.]?\s*)?(?:add\s+(?:to\s+)?narrative|narrative\s+(?:add|update))\s*[,:]?\s+(.+)$/i);
+  if(priorityCommand||typeCommand||noteCommand){
+   const state=window.cadSafetyState?.(),incident=state?.incidents?.find(i=>i.id===state.selected&&i.status!=='CLOSED');
+   if(!incident)return reportVoice('Select an active or pending event before updating it.');
+   let updates={},description='';
+   if(priorityCommand){updates.priority='P'+priorityCommand[1];description='priority to '+updates.priority}
+   if(typeCommand){const requested=typeCommand[1].trim().replace(/[.!]+$/,'');const configured=[...(window.cadConfiguredTypes?.(incident.discipline)||[])];const match=configured.find(x=>x.toLowerCase()===requested.toLowerCase());if(configured.length&&!match)return reportVoice('Unrecognized CFS type. Select a configured type in the event editor.');updates.type=match||requested;description='CFS type to '+updates.type}
+   if(noteCommand){updates.narrative=noteCommand[1].trim();description='narrative: '+updates.narrative}
+   if(!window.confirm('Event '+incident.id+': '+description+'?'))return reportVoice('Update canceled.');
+   const result=window.cadUpdateIncidentFields?.(incident.id,updates,'VOICE');
+   return reportVoice(result?.message||'Unable to update event.');
+  }
+  const correction=text.match(/\b(?:copy[,.]?\s+)?(?:true\s+location\s+is\s+(?:at\s+)?|(?:update|correct|change)\s+(?:the\s+)?location\s+to\s+)(.+)$/i);
   if(correction){
    const state=window.cadSafetyState?.(),incident=state?.incidents?.find(i=>i.id===state.selected&&i.status!=='CLOSED');
    const output=document.getElementById('voiceInterpretation');

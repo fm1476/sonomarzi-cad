@@ -64,6 +64,7 @@ function report(ok,msg){
 }
 function assignments(unit){return state.incidents.filter(i=>i.status!=='CLOSED'&&i.units.includes(unit.id));}
 function add(unitId,eventId){
+ if(window.cadSharedIsActive?.()){window.dispatchEvent(new CustomEvent('cad:shared-unit-operation',{detail:{unitId,eventId,action:'assign'}}));return;}
  const unit=state.units.find(u=>u.id===unitId),incident=state.incidents.find(i=>i.id===eventId);
  if(!unit||!incident||incident.status==='CLOSED')return report(false,'Unit or active/pending incident not found.');
  const existing=assignments(unit),other=existing.filter(i=>i.id!==incident.id);
@@ -75,6 +76,7 @@ function add(unitId,eventId){
  save();report(true,`${unitId} DISPATCHED to ${target.id} ${target.type}${resolved.linked?' (linked to '+incident.id+')':''}.`);
 }
 function release(unitId){
+ if(window.cadSharedIsActive?.()){window.dispatchEvent(new CustomEvent('cad:shared-unit-operation',{detail:{unitId,action:'clear'}}));return;}
  const unit=state.units.find(u=>u.id===unitId);if(!unit)return report(false,'Unit not found.');
  const active=assignments(unit);
  if(active.length>1)return report(false,`${unitId} has multiple assignments. Resolve manually.`);

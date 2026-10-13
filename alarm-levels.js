@@ -98,29 +98,51 @@ function renderConfig(){
 }
 function renderIncident(incident){
  if(!incident||incident.status==='CLOSED')return '';
- const levels=matching(incident).filter(c=>c.rank>(matching(incident).find(x=>x.name===incident.alarmLevel)?.rank??-1));
- if(!levels.length)return '';
- return '<div class="cad-alarm-incident"><strong>Alarm Level: '+esc(incident.alarmLevel||'Not set')+'</strong><label>Propose escalation<select id="cadAlarmTarget"><option value="">Choose level…</option>'+levels.map(c=>'<option value="'+esc(c.id)+'">'+esc(c.name)+'</option>').join('')+'</select></label><button id="cadAlarmPreview" type="button">Preview Additional Response</button><div id="cadAlarmProposal" role="status"></div></div>';
+ const levels=matching(incident),current=levels.find(c=>c.name===incident.alarmLevel);
+ if(!levels.length)return '<div class="cad-alarm-incident"><strong>Alarm Level</strong><p>No alarm levels configured for this agency and call type. Configure levels in the Alarm Level Manager.</p></div>';
+ return '<div class="cad-alarm-incident" style="padding:14px;border:1px solid #3b607b;border-radius:12px;background:#112d43;margin:12px 0">'+
+ '<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><div><strong>Alarm Level</strong><div style="color:#b9d4e6;font-size:13px;margin-top:4px">Current: '+esc(incident.alarmLevel||'Not set')+'</div></div>'+
+ '<button id="cadAlarmNext" type="button" '+(levels.some(c=>c.rank>(current?.rank??-1))?'':'disabled')+' style="padding:9px 12px">↑ Next Alarm</button></div>'+
+ '<div style="display:flex;gap:10px;align-items:end;flex-wrap:wrap;margin-top:12px"><label style="flex:1;min-width:160px">Change alarm level<select id="cadAlarmTarget" style="width:100%;margin-top:5px"><option value="">Select level…</option>'+levels.map(c=>'<option value="'+esc(c.id)+'" '+(c.id===current?.id?'selected':'')+'>'+esc(c.name)+'</option>').join('')+'</select></label><button id="cadAlarmPreview" type="button" style="padding:10px 14px">Review Change</button></div><div id="cadAlarmProposal" role="status" aria-live="polite"></div></div>';
 }
 function bindIncident(incident){
- const btn=$('cadAlarmPreview');if(!btn)return;
- btn.onclick=()=>{
-  const result=calculate(incident,$('cadAlarmTarget').value),host=$('cadAlarmProposal');preview=null;
-  if(result.error){host.textContent=result.error;return}
-  const {entry,needs,plan}=result;
-  const warning=entry.mode==='REPLACEMENT'?'Replacement is a recommendation only; no existing units are removed.':'';
-  host.innerHTML='<p><strong>'+esc(entry.name)+'</strong> · '+esc(entry.mode)+'</p><p>Additional resources: '+(needs.map(r=>esc(r.count+' '+r.type)).join(', ')||'No additional resources required')+'</p><p>Matching published response plan: '+(plan?esc(plan.zone+' / '+plan.type):'None found — unit recommendation cannot be calculated yet')+'</p><p>'+esc(warning)+'</p><p>No apparatus will be dispatched automatically. This action only records an alarm level change.</p><button id="cadAlarmConfirm" type="button">Confirm Alarm Level (No Dispatch)</button>';
-  preview={incidentId:incident.id,levelId:entry.id};
+ const btn=$('cadAlarmPreview'),next=$('cadAlarmNext'),select=$('cadAlarmTarget'),host=$('cadAlarmProposal');
+ if(!btn||!select||!host)return;
+ const showProposal=()=>{
+  const live=window.cadSafetyState?.().incidents?.find(i=>i.id===incident.id);
+  if(!live||live.status==='CLOSED'){host.textContent='Event is no longer active.';return}
+  const levels=matching(live),entry=levels.find(c=>c.id===select.value),current=levels.find(c=>c.name===live.alarmLevel);
+  if(!entry){host.textContent='Select an alarm level.';return}
+  if(current?.id===entry.id){host.textContent='This alarm level is already in effect.';return}
+  const lowering=!!current&&entry.rank<current.rank;
+  const result=lowering?null:calculate(live,entry.id);
+  if(result?.error){host.textContent=result.error;return}
+  const plan=resolve(live,entry.name),needs=result?.needs||[];
+  host.innerHTML='<div style="margin-top:12px;padding:12px;border-radius:9px;background:#193a52;border:1px solid #426a85"><strong>'+esc(current?.name||'Not set')+' → '+esc(entry.name)+'</strong><p style="margin:7px 0">'+(lowering?'De-escalation: review assigned units and response requirements manually. No units will be recalled or cleared.':'Recommended additional resources: '+(needs.map(r=>esc(r.count+' × '+r.type)).join(', ')||'None identified'))+'</p><p style="margin:7px 0">Published response plan: '+(plan?esc(plan.zone+' / '+plan.type):'None matched')+'</p><p style="margin:7px 0;color:#b9d4e6">No units will be dispatched, recalled, or reassigned automatically.</p><button id="cadAlarmConfirm" type="button" class="primary">Confirm '+(lowering?'Reduction':'Alarm Change')+'</button></div>';
   $('cadAlarmConfirm').onclick=()=>{
-   if(!preview||preview.incidentId!==incident.id||preview.levelId!==entry.id)return;
-   if(!confirm('Record escalation to '+entry.name+'? This does NOT dispatch units.'))return;
-   const state=window.cadSafetyState?.();const live=state?.incidents?.find(i=>i.id===incident.id);
-   if(!live||live.status==='CLOSED')return host.textContent='Incident is no longer eligible.';
-   const again=calculate(live,entry.id);if(again.error)return host.textContent=again.error;
-   live.alarmLevel=entry.name;live.alarmHistory??=[];live.alarmHistory.push({level:entry.name,mode:entry.mode,time:new Date().toISOString(),needs:again.needs});
-   live.events??=[];live.events.push(new Date().toLocaleTimeString('en-US',{hour12:false})+' ALARM_LEVEL_CHANGED '+entry.name+' (NO DISPATCH)');
-   window.cadCallTakeSave?.();preview=null;
+   const state=window.cadSafetyState?.(),now=state?.incidents?.find(i=>i.id===incident.id),valid=matching(now||{}).find(c=>c.id===entry.id);
+   if(!now||now.status==='CLOSED'||!valid||now.alarmLevel!==live.alarmLevel){host.textContent='Event changed. Review again before confirming.';return}
+   const direction=lowering?'REDUCED':'CHANGED';
+   if(!confirm('Change '+now.id+' alarm level from '+(now.alarmLevel||'Not set')+' to '+entry.name+'? No units will be dispatched or recalled.'))return;
+   const prior=now.alarmLevel||null;
+   now.alarmLevel=entry.name;now.alarmHistory??=[];
+   now.alarmHistory.push({from:prior,to:entry.name,level:entry.name,mode:entry.mode,direction,at:new Date().toISOString(),needs:needs.map(x=>({...x})),source:'DISPATCH_QUICK_CONTROL'});
+   now.events??=[];now.events.push(new Date().toLocaleTimeString('en-US',{hour12:false})+' ALARM_LEVEL_'+direction+' '+(prior||'Not set')+' -> '+entry.name+' (NO DISPATCH)');
+   window.cadCallTakeSave?.();
+   const updated=window.cadSafetyState?.().incidents?.find(i=>i.id===incident.id);
+   if(updated)incident.alarmLevel=updated.alarmLevel;
+   host.textContent='Alarm level changed to '+entry.name+'. No unit status was changed.';
+   window.cadCallTakeRefresh?.();
+   document.querySelectorAll('[data-view="dispatch"]').forEach(()=>{});
+   window.cadRefreshDisplay?.();
+   select.value=entry.id;
   };
+ };
+ btn.onclick=showProposal;
+ if(next)next.onclick=()=>{
+  const levels=matching(incident),current=levels.find(c=>c.name===incident.alarmLevel);
+  const target=levels.find(c=>c.rank>(current?.rank??-1));
+  if(!target)return;select.value=target.id;showProposal();
  };
 }
 window.CadAlarmLevels={renderConfig,renderIncident,bindIncident,calculate};

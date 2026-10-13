@@ -1,0 +1,74 @@
+/* CAD dispatcher connection: match the existing dark operations UI. */
+.cad-shared-header{display:flex;align-items:center;min-width:0}
+.cad-shared-trigger{display:flex;align-items:center;gap:8px;white-space:nowrap;padding:9px 13px!important;background:#1b2d43!important;border:1px solid #45617c!important;border-radius:10px!important;color:#e6f2ff!important;font:600 12px/1.2 inherit;cursor:pointer;transition:background .15s,border-color .15s}
+.cad-shared-trigger:hover,.cad-shared-trigger[aria-expanded=true]{background:#25405c!important;border-color:#62a6d3!important}
+.cad-shared-trigger #cadSharedHeaderUser{color:#8daac5;font-weight:700}
+.cad-shared-trigger.is-connected #cadSharedHeaderUser{color:#a8edc7}
+.cad-shared-indicator{width:8px;height:8px;flex:none;border-radius:50%;background:#8c9eb0;box-shadow:0 0 0 3px #334456}
+.is-connected .cad-shared-indicator{background:#37d38b;box-shadow:0 0 0 3px #245a48}
+.cad-shared-popover{position:fixed;right:16px;top:76px;z-index:99990;width:min(560px,calc(100vw - 32px));max-height:calc(100vh - 92px);overflow:auto;padding:20px;background:#122137;color:#eaf2ff;border:1px solid #47627f;border-radius:16px;box-shadow:0 20px 60px #0009;font-family:inherit}
+.cad-shared-popover[hidden]{display:none!important}
+.cad-shared-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.cad-shared-eyebrow{font-size:10px;letter-spacing:1.6px;font-weight:800;color:#76c6f0}
+.cad-shared-heading h3{font-size:19px;margin:4px 0 0;letter-spacing:-.3px}
+.cad-shared-close{background:transparent!important;color:#aec4d9!important;border:1px solid #41566c!important;border-radius:9px!important;width:32px;height:32px;padding:0!important;font-size:23px;line-height:1;cursor:pointer}
+.cad-shared-description{color:#a9bed4;font-size:12px;line-height:1.55;margin:12px 0 18px}
+.cad-shared-form{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.cad-shared-form label{display:flex;flex-direction:column;gap:6px;color:#b9cde1;font-size:11px;font-weight:700}
+.cad-shared-form select,.cad-shared-form input{width:100%;min-width:0;box-sizing:border-box;background:#0b1728!important;border:1px solid #425a73!important;border-radius:9px!important;color:#eef6ff!important;font-size:13px!important;padding:11px!important;min-height:40px;outline:none}
+.cad-shared-form select:focus,.cad-shared-form input:focus{border-color:#62b6e9!important;box-shadow:0 0 0 2px #62b6e930}
+.cad-shared-btn{background:#1e354e!important;color:#dcecff!important;border:1px solid #456481!important;border-radius:9px!important;padding:9px 13px!important;font-size:12px!important;font-weight:750!important;cursor:pointer;line-height:1.3!important;min-height:36px}
+.cad-shared-btn:hover{background:#2b4b6c!important;border-color:#69a8d5!important}
+.cad-shared-btn-primary{grid-column:1/-1;background:#1474ae!important;border-color:#3c9ad1!important;color:white!important;padding:12px 15px!important}
+.cad-shared-btn-primary:hover{background:#1687c8!important}
+.cad-shared-btn:disabled{opacity:.55;cursor:wait}
+.cad-shared-btn-muted{background:#17283b!important}
+.cad-shared-session{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.cad-shared-session-identity{font-size:12px;color:#c0d4e6}
+.cad-shared-online-dot{display:inline-block;background:#35d38d;width:8px;height:8px;border-radius:50%;margin-right:5px}
+.cad-shared-actions{display:flex;gap:8px}
+.cad-shared-counts{font-size:12px;color:#b6d3eb;background:#1a3049;padding:12px;border-radius:10px;margin:16px 0}
+.cad-shared-tables h4{font-size:12px;text-transform:uppercase;letter-spacing:.7px;color:#9fbdd6;margin:17px 0 8px}
+.cad-shared-scroll{max-height:190px;overflow:auto;border:1px solid #354c65;border-radius:10px}
+.cad-shared-tables table{width:100%;border-collapse:collapse;font-size:12px}
+.cad-shared-tables th{position:sticky;top:0;background:#1d334b;color:#c4dbef;text-align:left;font-size:11px;font-weight:750;padding:10px}
+.cad-shared-tables td{border-top:1px solid #2c4258;padding:9px 10px;color:#e5eff8}
+.cad-shared-status{margin:15px 0 0;font-size:11px;line-height:1.5;color:#9db5cb}
+@media(max-width:680px){.cad-shared-popover{top:62px;right:8px;width:calc(100vw - 16px);padding:14px;max-height:calc(100vh - 74px)}.cad-shared-form{grid-template-columns:1fr}.cad-shared-header{order:2}.cad-shared-trigger{padding:7px 9px!important}}
+
+.cad-shared-ops{margin:15px 0;padding:14px;border:1px solid #37536f;background:#14263b;border-radius:12px}
+.cad-shared-ops h4{margin:0 0 12px;font-size:12px;letter-spacing:.6px;color:#c2dcef}
+.cad-shared-live-tag{background:#255f76;color:#d3f4ff;border-radius:5px;padding:3px 6px;font-size:9px;vertical-align:middle}
+.cad-shared-create-form,.cad-shared-assign-form{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.cad-shared-create-form input,.cad-shared-create-form select,.cad-shared-assign-form select{min-width:0;width:100%;box-sizing:border-box;background:#0b1728!important;border:1px solid #425a73!important;border-radius:8px!important;color:#eaf3ff!important;padding:9px!important;font-size:12px!important;min-height:36px}
+.cad-shared-create-form input#cadSharedNewLocation,.cad-shared-create-form button{grid-column:1/-1}
+.cad-shared-assign-form label{font-size:11px;color:#b9cde1;display:flex;flex-direction:column;gap:5px;min-width:0}
+.cad-shared-assign-form button{grid-column:1/-1}
+@media(max-width:430px){.cad-shared-create-form,.cad-shared-assign-form{grid-template-columns:1fr}}
+
+.cad-shared-workspace{margin:8px 0 12px;background:#112237;border:1px solid #375a78;border-radius:11px;padding:10px 13px;color:#eaf2ff}
+.cad-shared-workspace[hidden]{display:none!important}
+.cad-shared-workspace-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:11px}
+.cad-shared-workspace-heading strong{letter-spacing:.8px;font-size:11px}
+.cad-shared-workspace-heading #cadSharedWorkspaceUpdated{color:#91aec8;margin-left:12px}
+.cad-shared-workspace-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:9px}
+.cad-shared-workspace-grid h4{font-size:10px;letter-spacing:.9px;color:#8fb2d1;margin:0 0 6px;text-transform:uppercase}
+.cad-shared-workspace-list{max-height:105px;overflow:auto;display:flex;flex-wrap:wrap;align-content:start;gap:5px}
+.cad-shared-workspace-item{background:#203951;border:1px solid #35546e;border-radius:7px;padding:5px 8px;font-size:11px;color:#e1f0ff;white-space:nowrap}
+.cad-shared-workspace-empty{font-size:11px;color:#8ea9c1}
+@media(max-width:760px){.cad-shared-workspace-grid{grid-template-columns:1fr}.cad-shared-workspace-list{max-height:76px}}
+
+.cad-shared-operational[hidden],section.grid[hidden]{display:none!important}
+.cad-shared-operational{margin:8px 0 14px}
+.cad-shared-operational-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:10px 14px;border-radius:10px;background:#14283d;border:1px solid #345b79;color:#dfefff;font-size:12px}
+.cad-shared-operational-toolbar strong{letter-spacing:.9px;margin-right:auto}
+.cad-shared-operational-toolbar label{display:flex;align-items:center;gap:7px;font-size:11px}
+.cad-shared-operational-toolbar select,.cad-shared-board-assignment select{background:#0c1c2d;border:1px solid #48637c;color:#eef6ff;border-radius:7px;padding:7px;font-size:12px}
+.cad-shared-operational-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:10px}
+.cad-shared-operational-grid .panel{min-width:0;min-height:180px}
+.cad-shared-board-row{display:block;width:100%;text-align:left;background:#1b354d;color:#e4f1ff;border:1px solid #34536b;border-radius:8px;padding:10px;margin:6px 0;font-size:12px;cursor:pointer}
+.cad-shared-board-row:hover{background:#284966;border-color:#6ca3ce}
+.cad-shared-board-heading{font-size:14px;font-weight:700;margin-bottom:12px;color:#e6f5ff}
+.cad-shared-board-assignment{display:flex;align-items:center;gap:9px;margin:8px 0;flex-wrap:wrap;color:#d7e8fa;font-size:12px}
+.cad-shared-board-assignment span{min-width:100px}
+@media(max-width:760px){.cad-shared-operational-grid{grid-template-columns:1fr}}

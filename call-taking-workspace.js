@@ -61,7 +61,16 @@ const configuredEventFields=i=>{
  }).join('');
 };
 const escField=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const extraEditor=i=>'<details class="cad-ct-section" open><summary>Event Information</summary><div class="cad-ct-fields">'+configuredEventFields(i)+'</div></details>'+
+const callerFields=i=>{
+ const full=String(i.caller||'').trim().split(/\s+/),first=i.callerFirstName!==undefined?i.callerFirstName:full.length===2?full[0]:i.caller||'',last=i.callerLastName!==undefined?i.callerLastName:full.length===2?full[1]:'';
+ return '<details class="cad-ct-section"><summary>Caller Information</summary><div class="cad-ct-fields">'+
+ field('First name','callerFirstName',first)+field('Last name','callerLastName',last)+
+ '<label>Phone<input type="tel" name="callerPhone" autocomplete="tel" placeholder="(707) 555-1212 or +44…" value="'+safe(i.phone||'')+'"></label>'+
+ '<label class="wide">Caller location<input name="callerLocation" autocomplete="off" value="'+safe(i.callerLocation||'')+'"></label>'+
+ '<label class="wide" style="display:flex;align-items:center;gap:8px"><input type="checkbox" name="callerSameAsEvent" '+(i.callerSameAsEvent?'checked':'')+'>Caller is at the same location as the event</label>'+
+ '</div></details>';
+};
+const extraEditor=i=>'<details class="cad-ct-section" open><summary>Event Information</summary><div class="cad-ct-fields">'+configuredEventFields(i)+'</div></details>'+callerFields(i)+
 '<details class="cad-ct-section"><summary>Reporting Parties ('+(i.reportingParties||[]).length+')</summary>'+partyRows(i,'reportingParties',personFields)+'<button type="button" data-ct-add="reportingParties">+ Add Reporting Party</button></details>'+
 '<details class="cad-ct-section"><summary>Involved Persons ('+(i.involvedPersons||[]).length+')</summary>'+partyRows(i,'involvedPersons',personFields)+'<button type="button" data-ct-add="involvedPersons">+ Add Involved Person</button></details>'+
 '<details class="cad-ct-section"><summary>Vehicles ('+(i.vehicles||[]).length+')</summary>'+partyRows(i,'vehicles',vehicleFields)+'<button type="button" data-ct-add="vehicles">+ Add Vehicle</button></details>'+
@@ -92,7 +101,23 @@ function refresh(){
  $('cadCTClose').onclick=()=>{selected=null;refresh()};
  $('cadCTActivate')?.addEventListener('click',()=>{if(i.status!=='PENDING')return;i.status='ACTIVE';window.cadCallTakeEvent?.(i,'CALL_ACTIVATED_FROM_CALL_TAKING');window.cadCallTakeSave?.()});
  setupGeoValidation($('cadCTForm'),i);
- $('cadCTForm').onsubmit=e=>{e.preventDefault();const f=new FormData(e.currentTarget);let changes=[];for(const key of ['location','priority','caseNumber']){if(!f.has(key))continue;const value=String(f.get(key)||'').trim();if(value!==String(i[key]||'')){i[key]=value;changes.push(key)}}
+ const callerAddress=$('cadCTForm').querySelector('[name="callerLocation"]'),same=$('cadCTForm').querySelector('[name="callerSameAsEvent"]'),eventAddress=$('cadCTForm').querySelector('[name="location"]');
+ let callerVerified=null;
+ window.cadAddressPicker?.(callerAddress,()=>i.discipline,v=>{callerVerified=v});
+ const syncCaller=()=>{callerAddress.readOnly=same.checked;if(same.checked){callerAddress.value=eventAddress?.value||i.location;callerVerified=null}callerAddress.style.opacity=same.checked?'.75':'1'};
+ same.addEventListener('change',syncCaller);eventAddress?.addEventListener('input',()=>{if(same.checked)syncCaller()});syncCaller();
+ const phoneInput=$('cadCTForm').querySelector('[name="callerPhone"]');
+ phoneInput.addEventListener('blur',()=>{const v=window.cadPhoneNormalize?.(phoneInput.value);if(v?.ok)phoneInput.value=v.formatted});
+
+ $('cadCTForm').onsubmit=e=>{e.preventDefault();const f=new FormData(e.currentTarget);let changes=[];
+ const checkedPhone=window.cadPhoneNormalize?.(f.get('callerPhone')||'');
+ if(checkedPhone&&!checkedPhone.ok){$('cadCTSaveStatus').textContent=checkedPhone.message;phoneInput.focus();return}
+ const first=String(f.get('callerFirstName')||''),last=String(f.get('callerLastName')||'');
+ const callerAddressValue=same.checked?String(eventAddress?.value||i.location):String(f.get('callerLocation')||'');
+ const callerChanged=first.trim()!==String(i.callerFirstName??'').trim()||last.trim()!==String(i.callerLastName??'').trim()||callerAddressValue.trim()!==String(i.callerLocation||'').trim()||same.checked!==!!i.callerSameAsEvent;
+ if(callerChanged){const result=window.cadSaveCaller?.(i.id,first,last,callerAddressValue,same.checked,callerVerified?.result||null);if(result?.ok)changes.push('callerInformation')}
+ if(checkedPhone&&checkedPhone.formatted!==String(i.phone||'')){window.cadUpdateIncidentFields?.(i.id,{phone:checkedPhone.formatted},'CALL_TAKING');i.callerPhoneCanonical=checkedPhone.canonical;changes.push('callerPhone')}
+for(const key of ['location','priority','caseNumber']){if(!f.has(key))continue;const value=String(f.get(key)||'').trim();if(value!==String(i[key]||'')){if(key==='location'){window.cadUpdateIncidentLocation?.(i.id,value,'CALL_TAKING',null)}else{i[key]=value}changes.push(key)}}
 const layout=window.cadEventFormFields?.(i.agency);
 if(Array.isArray(layout)){for(const def of layout){if(!def.custom)continue;const value=def.type==='checkbox'?f.has('custom.'+def.id):String(f.get('custom.'+def.id)||'').trim();(i.customFields||={});if(value!==i.customFields[def.id]){i.customFields[def.id]=value;changes.push('custom.'+def.id)}}}
 for(const [key] of extraFields){const name=(['primaryDisposition','additionalDisposition','closingComments'].includes(key)?'closure.':'event.')+key;if(!f.has(name))continue;const value=String(f.get(name)||'').trim();if(value!==String(i[key]||'')){i[key]=value;changes.push(key)}}

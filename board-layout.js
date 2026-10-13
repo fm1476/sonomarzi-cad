@@ -45,11 +45,11 @@ function initialize(){document.querySelectorAll('.board-controls').forEach(bar=>
  });}
 const itemHTML=(type,item)=>{
  if(type!=='units'){
- const components={event:`<span class="prio ${String(item.priority).toLowerCase()}">${escapeCad(item.priority)}<div class="meta">${escapeCad(item.id)}</div></span>`,call:`<span><b>${escapeCad(item.type)}</b><div>${(()=>{const place=window.cadCommonPlaces?.resolve(item.location);const name=item.commonPlaceName||place?.name;return name?`<span class="cad-board-common-place">${escapeCad(name)}</span><span class="cad-board-street-address">${escapeCad(item.location)}</span>`:escapeCad(item.location)})()}</div><div class="meta">${escapeCad(item.agency)} • <strong class="cad-discipline cad-discipline-${String(item.discipline).toLowerCase()}">${escapeCad(item.discipline)}</strong></div>${item.linkedFrom?`<div class="meta cad-linked-note">↳ Linked from ${escapeCad(item.linkedFrom)}</div>`:''}${typeof cadIncidentFamily==='function' && state.incidents.some(other=>other.id!==item.id&&cadIncidentFamily(other).id===cadIncidentFamily(item).id)?`<span class="cad-linked-board-label">🔗 LINKED ${escapeCad(item.discipline)}</span>`:''}</span>`,units:`<span>${(item.units||[]).length?(item.units||[]).map(id=>`<span class="cad-unit-chip status-${String(state.units.find(u=>u.id===id)?.status||'UNKNOWN').toLowerCase().replace(/[^a-z0-9]+/g,'-')}" draggable="true" data-drag-unit="${escapeCad(id)}" title="Drag to another incident or Units Status">${escapeCad(id)}</span>`).join(' '):'—'}<div class="meta">${item.caseNumber?'Case '+escapeCad(item.caseNumber):'No case number'}</div></span>`};
+ const components={event:`<span class="prio ${String(item.priority).toLowerCase()}">${escapeCad(item.priority)}<div class="meta">${escapeCad(item.id)}</div></span>`,call:`<span><b>${escapeCad(item.type)}</b>${item.alarmLevel?`<span class="cad-alarm-chip">${escapeCad(item.alarmLevel)}</span>`:''}<div>${(()=>{const place=window.cadCommonPlaces?.resolve(item.location);const name=item.commonPlaceName||place?.name;return name?`<span class="cad-board-common-place">${escapeCad(name)}</span><span class="cad-board-street-address">${escapeCad(item.location)}</span>`:escapeCad(item.location)})()}</div><div class="meta">${escapeCad(item.agency)} • <strong class="cad-discipline cad-discipline-${String(item.discipline).toLowerCase()}">${escapeCad(item.discipline)}</strong></div>${item.linkedFrom?`<div class="meta cad-linked-note">↳ Linked from ${escapeCad(item.linkedFrom)}</div>`:''}${typeof cadIncidentFamily==='function' && state.incidents.some(other=>other.id!==item.id&&cadIncidentFamily(other).id===cadIncidentFamily(item).id)?`<span class="cad-linked-board-label">🔗 LINKED ${escapeCad(item.discipline)}</span>`:''}</span>`,units:`<span>${(item.units||[]).length?(item.units||[]).map(id=>`<span class="cad-unit-chip status-${String(state.units.find(u=>u.id===id)?.status||'UNKNOWN').toLowerCase().replace(/[^a-z0-9]+/g,'-')}" draggable="true" data-drag-unit="${escapeCad(id)}" title="Drag to another incident or Units Status">${escapeCad(id)}</span>`).join(' '):'—'}<div class="meta">${item.caseNumber?'Case '+escapeCad(item.caseNumber):'No case number'}</div></span>`};
  return `<div class="row board-flex ${state.selected===item.id?'selected':''}" data-id="${escapeCad(item.id)}">${opts[type].columns.map(f=>components[f]).join('')}</div>`;
  }
  const unitStatusClass=`status-${String(item.status).toLowerCase().replace(/[^a-z0-9]+/g,'-')}`;
- const components={id:`<span class="cad-unit-chip board-unit-pill ${unitStatusClass}" draggable="false" title="${escapeCad(item.id)} • ${escapeCad(String(item.status).replace(/_/g,' '))}">${escapeCad(item.id)}</span>`,agency:`<span>${escapeCad(item.agency)}<div class="meta">${escapeCad(item.discipline)}</div></span>`,location:`<span class="cad-board-location" title="${escapeCad(item.location||'Not reported')}">${escapeCad(item.location||'Not reported')}</span>`,status:`<span class="status ${unitStatusClass}">${escapeCad(String(item.status).replace(/_/g,' '))}</span>`};
+ const components={id:`<span class="cad-unit-chip board-unit-pill ${unitStatusClass}" data-unit-id="${escapeCad(item.id)}" draggable="false" title="${escapeCad(item.id)} • ${escapeCad(String(item.status).replace(/_/g,' '))}">${escapeCad(item.id)}</span>`,agency:`<span>${escapeCad(item.agency)}<div class="meta">${escapeCad(item.discipline)}</div></span>`,location:`<span class="cad-board-location" title="${escapeCad(item.location||'Not reported')}">${escapeCad(item.location||'Not reported')}</span>`,status:`<span class="status ${unitStatusClass}">${escapeCad(String(item.status).replace(/_/g,' '))}</span>`};
  return `<div class="unit board-flex cad-unit-grid" style="grid-template-columns:${unitGrid()}" draggable="true" data-drag-unit="${escapeCad(item.id)}" title="Drag to Pending/Active incident to dispatch, or Units board to make available">${opts.units.columns.map(f=>components[f]).join('')}</div>`;
 };
 function groupHTML(type,items,by){const groups=new Map();for(const item of items){const key=item[by]||'Unassigned';if(!groups.has(key))groups.set(key,[]);groups.get(key).push(item)}return [...groups].sort((a,b)=>alpha(a[0],b[0])).map(([name,rows])=>`<div class="board-group">${escapeCad(name)} <span>(${rows.length})</span></div>`+rows.map(i=>itemHTML(type,i)).join('')).join('')}
@@ -69,6 +69,61 @@ function initPanelDrag(){const grid=document.querySelector('#dispatch .grid');if
  for(const id of ids){const p=grid.querySelector(`[data-panel="${id}"]`);if(p)grid.appendChild(p)}
  let dragged=null;grid.querySelectorAll('.panel-drag').forEach(handle=>{const panel=handle.closest('[data-panel]');handle.addEventListener('dragstart',e=>{dragged=panel;e.dataTransfer.setData('text/plain','panel:'+panel.dataset.panel);e.dataTransfer.effectAllowed='move'});handle.addEventListener('dragend',()=>{dragged=null})});
  grid.querySelectorAll('[data-panel]').forEach(panel=>{panel.addEventListener('dragover',e=>{if(dragged&&dragged!==panel)e.preventDefault()});panel.addEventListener('drop',e=>{if(!dragged||dragged===panel)return;e.preventDefault();grid.insertBefore(dragged,panel);localStorage.setItem(orderKey,JSON.stringify([...grid.querySelectorAll('[data-panel]')].map(p=>p.dataset.panel)));renderMap();dragged=null})});}
+// Context menu is delegated so it survives every shared CAD board refresh.
+const unitMenu=document.createElement('div');
+unitMenu.id='cadUnitContextMenu';
+unitMenu.setAttribute('role','menu');
+unitMenu.style.cssText='position:fixed;z-index:99999;min-width:200px;max-height:75vh;overflow:auto;background:#10283e;color:#f1f6fc;border:1px solid #47708f;border-radius:12px;padding:8px;box-shadow:0 12px 36px #0009;display:none';
+document.body.appendChild(unitMenu);
+const unitMenuStyle=document.createElement('style');
+unitMenuStyle.textContent=`
+#cadUnitContextMenu button[role="menuitem"]{transition:background-color .12s ease,box-shadow .12s ease,transform .12s ease;outline-offset:2px}
+#cadUnitContextMenu button[role="menuitem"]:hover,#cadUnitContextMenu button[role="menuitem"]:focus-visible{background:#287fc3!important;box-shadow:inset 3px 0 0 #a6ddff,0 0 0 1px #80c7ff;transform:translateX(2px)}
+#cadUnitContextMenu button[role="menuitem"]:active{background:#135a94!important;transform:translateX(0)}
+#cadUnitContextMenu button[aria-current="true"]{border-left:3px solid #6cd6ad!important;padding-left:9px!important}
+`;
+document.head.appendChild(unitMenuStyle);
+
+function closeUnitMenu(){unitMenu.style.display='none';unitMenu.replaceChildren();}
+document.addEventListener('click',e=>{if(!unitMenu.contains(e.target))closeUnitMenu()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeUnitMenu()});
+document.addEventListener('contextmenu',e=>{
+ const chip=e.target.closest('.cad-unit-chip');
+ if(!chip)return;
+ const unitId=chip.dataset.unitId||chip.dataset.dragUnit||chip.closest('.unit[data-id]')?.dataset.id;
+ const u=state.units.find(x=>x.id===unitId);
+ if(!u)return;
+ e.preventDefault();e.stopImmediatePropagation();closeUnitMenu();
+ const assigned=state.incidents.filter(i=>i.status!=='CLOSED'&&i.units.includes(unitId));
+ const title=document.createElement('strong');title.textContent=u.id+' · '+u.status.replaceAll('_',' ');
+ title.style.cssText='display:block;padding:7px 9px 10px';unitMenu.append(title);
+ const statuses=[['DISPATCHED','Dispatched'],['ENROUTE','Enroute'],['ONSCENE','On scene'],['TRANSPORTING','Transporting'],['AT_HOSPITAL','At hospital'],['CLEAR','Clear / Available']];
+ if(!window.cadSharedIsActive?.())statuses.splice(3,0,['CODE4','Code 4'],['AVAILABLE_ON_SCENE','Available on scene']);
+ if(!assigned.length){
+  const note=document.createElement('div');note.textContent='No active incident assignment. Assign this unit to a call before changing its dispatch status.';note.style.cssText='padding:8px;max-width:260px;color:#c0d1e0';unitMenu.append(note);
+ }
+ for(const [value,label] of assigned.length?statuses:[]){
+  if(value==='AT_HOSPITAL'&&u.discipline!=='EMS')continue;
+  const button=document.createElement('button');button.type='button';button.setAttribute('role','menuitem');button.textContent=(value===u.status?'✓ ':'')+label;if(value===u.status)button.setAttribute('aria-current','true');
+  button.style.cssText='display:block;width:100%;text-align:left;padding:9px 12px;margin:2px 0;background:#183b55;color:#fff;border:0;border-radius:7px;cursor:pointer';
+  button.onclick=()=>{
+   closeUnitMenu();
+   const code={DISPATCHED:'D',ENROUTE:'E',ONSCENE:'OS',TRANSPORTING:'T',AT_HOSPITAL:'AH',CLEAR:'C',CODE4:'C4',AVAILABLE_ON_SCENE:'AOS'}[value];
+   const command=document.getElementById('command'),execute=document.getElementById('executeCadCommand');
+   if(!command||!execute)return;
+   // Dispatch is not a status-only operation; do not duplicate assignments.
+   if(value==='DISPATCHED'&&assigned.length){window.alert('Unit is already assigned. Select another status.');return;}
+   command.value=code+' '+u.id+' #'+assigned[0].id;
+   const feedback=document.getElementById('cadCommandResults');
+   if(feedback)feedback.textContent='Updating '+u.id+' → '+label+'…';
+   execute.click();
+  };
+  unitMenu.append(button);
+ }
+ unitMenu.style.display='block';
+ unitMenu.style.left=Math.max(8,Math.min(e.clientX,window.innerWidth-unitMenu.offsetWidth-8))+'px';
+ unitMenu.style.top=Math.max(8,Math.min(e.clientY,window.innerHeight-unitMenu.offsetHeight-8))+'px';
+},true);
 initialize();initPanelDrag();
 // app.js initially renders before this module loads; repaint once enhanced boards are installed.
 if(typeof window.render==='function')window.render();
