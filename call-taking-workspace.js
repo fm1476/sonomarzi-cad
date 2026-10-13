@@ -7,6 +7,34 @@ const safe=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'
 let selected=null,creating=false,expandAfterRefresh=null,editingEntity=null;
 const identity=()=>{let v=(localStorage.getItem('smcad-dispatcher-identity-v1')||'').trim();if(!v){v=(prompt('Call taker ID or initials for narrative attribution:')||'').trim().slice(0,24);if(v)localStorage.setItem('smcad-dispatcher-identity-v1',v)}return v||'Unidentified'};
 const field=(label,key,value,kind='text')=>'<label>'+label+'<input name="'+key+'" type="'+kind+'" value="'+safe(value)+'"></label>';
+const geoField=()=>'<div class="cad-ct-geo" style="margin:8px 0 14px;padding:12px;border:1px solid #335875;border-radius:10px;background:#102b40"><div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap"><strong>Location validation &amp; response area</strong><button type="button" data-ct-geo-validate style="border:1px solid #64a8df;border-radius:8px;padding:8px 12px;background:#153d5d;color:#eaf6ff;cursor:pointer">Validate location</button></div><div data-ct-geo-result role="status" aria-live="polite" style="margin-top:9px;color:#b9d5e7;font-size:13px">Enter an address, then validate to identify the response area.</div></div>';
+const setupGeoValidation=(form,incident)=>{
+ const input=form.querySelector('[name="location"]');if(!input)return;
+ const holder=document.createElement('div');holder.innerHTML=geoField();const panel=holder.firstElementChild;
+ input.closest('label')?.insertAdjacentElement('afterend',panel);
+ const status=panel.querySelector('[data-ct-geo-result]'),button=panel.querySelector('[data-ct-geo-validate]');
+ window.cadAddressPicker?.(input,()=>incident?.discipline||'LAW',v=>{if(v)form.dataset.cadGeoValidation=JSON.stringify(v);else delete form.dataset.cadGeoValidation});
+ const showCurrent=()=>{if(!incident)return;const area=incident.discipline==='LAW'?incident.beat:incident.esz;if(area&&incident.responseZoneLookup&&incident.responseZoneLookup.original===incident.discipline+'|'+input.value.trim())status.textContent='✓ '+(incident.discipline==='LAW'?'Police Beat ':'Fire/EMS ESZ ')+area+' · GIS matched';};
+ showCurrent();
+ input.addEventListener('input',()=>{delete form.dataset.cadGeoValidation;status.textContent='Address changed. Validate the new location before using a response plan.';status.style.color='#f3c983'});
+ button.onclick=async()=>{
+  const location=input.value.trim();if(!location){status.textContent='Enter a location first.';return}
+  const discipline=incident?.discipline||form.querySelector('[name="discipline"]')?.value||'LAW';
+  button.disabled=true;button.textContent='Validating…';status.textContent='Checking address and geographic response boundaries…';
+  try{
+   const result=await window.CadIncidentZones.lookup(location,discipline);
+   if(input.value.trim()!==location){status.textContent='Address changed during validation. Validate again.';return}
+   if(!result.ok)throw Error(result.message||'Location could not be verified');
+   const required=discipline==='LAW'?'beat':'esz',area=result.zones?.[required];
+   if(!area)throw Error('No '+required+' boundary found for this location');
+   const confirmed=window.confirm('GIS address: '+result.address+'\\n'+(required==='beat'?'Police Beat ':'Fire/EMS ESZ ')+area+'\\n\\nUse this validated address and response area?');
+   if(!confirmed){status.textContent='Location candidate not confirmed. No response area applied.';return}
+   status.style.color='#a5e9bd';status.textContent='✓ Validated '+result.address+' · '+(required==='beat'?'Police Beat ':'Fire/EMS ESZ ')+area+'. Save event details to apply.';
+   form.dataset.cadGeoValidation=JSON.stringify({location,discipline,result});
+  }catch(err){delete form.dataset.cadGeoValidation;status.style.color='#f3a6a6';status.textContent='Needs review: '+err.message}
+  finally{button.disabled=false;button.textContent='Validate location'}
+ };
+};
 const extraFields=[['locationNotes','Location notes'],['type','Call for service'],['additionalCfs','Additional CFS'],['origin','Origin'],['dispatchStatus','Dispatch status'],['labels','Labels'],['primaryDisposition','Primary disposition'],['additionalDisposition','Additional disposition'],['closingComments','Closing comments']];
 const personFields=[['firstName','First name'],['lastName','Last name'],['middleInitial','M.I.'],['phone','Phone'],['extension','Ext.'],['dob','Date of birth'],['location','Location'],['notes','Notes']];
 const vehicleFields=[['plate','Plate #'],['state','State'],['vin','VIN'],['color','Color'],['make','Make'],['model','Model'],['year','Year'],['insurance','Insurance carrier'],['involvement','Involvement type'],['notes','Notes']];
@@ -63,11 +91,12 @@ function refresh(){
  editor.querySelectorAll('.cad-ct-section').forEach((d,n)=>{d.open=expandAfterRefresh!==null?n===expandAfterRefresh:previousOpen.length?previousOpen.includes(n):n===0});expandAfterRefresh=null;
  $('cadCTClose').onclick=()=>{selected=null;refresh()};
  $('cadCTActivate')?.addEventListener('click',()=>{if(i.status!=='PENDING')return;i.status='ACTIVE';window.cadCallTakeEvent?.(i,'CALL_ACTIVATED_FROM_CALL_TAKING');window.cadCallTakeSave?.()});
+ setupGeoValidation($('cadCTForm'),i);
  $('cadCTForm').onsubmit=e=>{e.preventDefault();const f=new FormData(e.currentTarget);let changes=[];for(const key of ['location','priority','caseNumber']){if(!f.has(key))continue;const value=String(f.get(key)||'').trim();if(value!==String(i[key]||'')){i[key]=value;changes.push(key)}}
 const layout=window.cadEventFormFields?.(i.agency);
 if(Array.isArray(layout)){for(const def of layout){if(!def.custom)continue;const value=def.type==='checkbox'?f.has('custom.'+def.id):String(f.get('custom.'+def.id)||'').trim();(i.customFields||={});if(value!==i.customFields[def.id]){i.customFields[def.id]=value;changes.push('custom.'+def.id)}}}
 for(const [key] of extraFields){const name=(['primaryDisposition','additionalDisposition','closingComments'].includes(key)?'closure.':'event.')+key;if(!f.has(name))continue;const value=String(f.get(name)||'').trim();if(value!==String(i[key]||'')){i[key]=value;changes.push(key)}}
-for(const kind of ['reportingParties','involvedPersons','vehicles']){const fields=kind==='vehicles'?vehicleFields:personFields;for(let n=0;n<(i[kind]||[]).length;n++)for(const [key] of fields){const value=String(f.get(kind+'.'+n+'.'+key)||'').trim();if(value!==String(i[kind][n][key]||'')){i[kind][n][key]=value;changes.push(kind+'.'+key)}}}if(changes.length){editingEntity=null;i.callTakeNewInfoAt=new Date().toISOString();i.callTakeUpdateFields=changes;window.cadCallTakeEvent?.(i,'CALL_TAKER_UPDATED '+changes.join(','));window.cadCallTakeSave?.();const status=$('cadCTSaveStatus');if(status)status.textContent='Saved ✓'}else{$('cadCTSaveStatus').textContent='No changes to save'}};
+for(const kind of ['reportingParties','involvedPersons','vehicles']){const fields=kind==='vehicles'?vehicleFields:personFields;for(let n=0;n<(i[kind]||[]).length;n++)for(const [key] of fields){const value=String(f.get(kind+'.'+n+'.'+key)||'').trim();if(value!==String(i[kind][n][key]||'')){i[kind][n][key]=value;changes.push(kind+'.'+key)}}}if(changes.includes('location')||e.currentTarget.dataset.cadGeoValidation){const validated=(()=>{try{return JSON.parse(e.currentTarget.dataset.cadGeoValidation||'null')}catch{return null}})();i.esz=null;i.beat=null;i.responseZone=null;i.responseZoneReviewed=false;i.responseZoneLookup=null;i.responseZoneSource=null;i.responseZoneError=null;if(validated&&validated.location===i.location&&validated.discipline===i.discipline){const r=validated.result;i.esz=r.zones.esz||null;i.beat=r.zones.beat||null;i.responseZone=i.discipline==='LAW'?i.beat:i.esz;i.responseZoneSource='GIS_POINT_LOOKUP';i.responseZoneReviewed=true;i.responseZoneLookup={address:r.address,lat:r.lat,lon:r.lon,at:new Date().toISOString(),original:i.discipline+'|'+i.location,source:r.source};window.cadCallTakeEvent?.(i,'LOCATION_VALIDATED_RESPONSE_AREA '+i.responseZone)}}if(changes.length){editingEntity=null;i.callTakeNewInfoAt=new Date().toISOString();i.callTakeUpdateFields=changes;window.cadCallTakeEvent?.(i,'CALL_TAKER_UPDATED '+changes.join(','));window.cadCallTakeSave?.();const status=$('cadCTSaveStatus');if(status)status.textContent='Saved ✓'}else{$('cadCTSaveStatus').textContent='No changes to save'}};
  editor.querySelectorAll('[data-ct-add]').forEach(b=>b.onclick=()=>{const kind=b.dataset.ctAdd;editingEntity=kind+':'+((i[kind]||[]).length);expandAfterRefresh={reportingParties:1,involvedPersons:2,vehicles:3}[kind];(i[kind]||=[]).push({});window.cadCallTakeSave?.();});
  editor.querySelectorAll('[data-ct-edit]').forEach(b=>b.onclick=()=>{editingEntity=b.dataset.ctEdit;expandAfterRefresh={reportingParties:1,involvedPersons:2,vehicles:3}[editingEntity.split(':')[0]];refresh();editor.querySelector('[data-ct-fields="'+editingEntity+'"] input')?.focus()});
  editor.querySelectorAll('[data-ct-remove]').forEach(b=>b.onclick=()=>{const [kind,index]=b.dataset.ctRemove.split(':');expandAfterRefresh={reportingParties:1,involvedPersons:2,vehicles:3}[kind];i[kind]?.splice(Number(index),1);editingEntity=null;window.cadCallTakeSave?.()});

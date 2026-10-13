@@ -18,7 +18,16 @@ function kind(u){const id=String(u.id||'').toUpperCase();if(u.discipline==='EMS'
 function symbol(u){const id=String(u.id||'').toUpperCase(),k=kind(u);if(k==='ems')return '✚';if(k==='fire')return /^T\d/.test(id)?'🚒':/^B\d/.test(id)?'◆':/^R\d/.test(id)?'⛑':'🚒';if(k==='sheriff')return '★';return '⬟'}
 function demoPoint(u){const x=Number(u.x)||50,y=Number(u.y)||50;return [center[0]+(50-y)*.00048,center[1]+(x-50)*.00067]}
 function assignedIncident(unit){return (state.incidents||[]).find(i=>(i.units||[]).includes(unit.id)&&i.status!=='CLOSED')}
-function unitIcon(u){const k=kind(u),hex=color(u.status);return L.divIcon({className:'cad-map-unit-wrap',html:`<span class="cad-map-unit cad-map-${k}" style="--cad-status:${hex}" title="${esc(u.id)} — ${esc(u.status)}"><span class="cad-map-unit-symbol">${symbol(u)}</span><span class="cad-map-unit-id">${esc(u.id)}</span></span>`,iconSize:[62,27],iconAnchor:[31,13]})}
+function unitIcon(u){
+ const k=kind(u),hex=color(u.status);
+ let iconHtml=symbol(u);
+ try{
+  const m=window.CadAgencyMaster?.read(localStorage),def=m?.units?.find(x=>x.id===u.masterUnitId)||m?.units?.find(x=>x.designator===u.id&&m.agencies.some(a=>a.id===x.agencyId&&a.name===u.agency));
+  const iconId=window.CadResourceTypes?.iconFor(u.agency,u.discipline,def?.resourceType);
+  if(iconId&&window.CadVehicleIcons?.items.some(x=>x.id===iconId))iconHtml=window.CadVehicleIcons.svg(iconId);
+ }catch(e){}
+ return L.divIcon({className:'cad-map-unit-wrap',html:`<span class="cad-map-unit cad-map-${k}" style="--cad-status:${hex}" title="${esc(u.id)} — ${esc(u.status)}"><span class="cad-map-unit-symbol">${iconHtml}</span><span class="cad-map-unit-id">${esc(u.id)}</span></span>`,iconSize:[62,27],iconAnchor:[31,13]});
+}
 function incidentIcon(i){const p=String(i.priority||'P3').toUpperCase(),k=String(i.discipline||'LAW').toLowerCase();const glyph=k==='FIRE'?'🔥':k==='EMS'?'✚':k==='fire'?'🔥':k==='ems'?'✚':'!';return L.divIcon({className:'cad-map-call-wrap',html:`<span class="cad-map-call cad-map-call-${k} cad-map-call-${p.toLowerCase()}"><b>${glyph}</b><small>${esc(p)} · ${esc(i.id.slice(-4))}</small></span>`,iconSize:[68,27],iconAnchor:[34,13]})}
 function setResult(text){const el=document.getElementById('cadMapAnswer');if(el)el.textContent=text}
 function persist(){localStorage.setItem(configKey,JSON.stringify(settings))}

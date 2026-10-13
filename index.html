@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
 <meta name="theme-color" content="#0b1220"/>
 <title>SonoMarzi CAD POC</title>
-<link rel="stylesheet" href="styles.css?v=22.7"/>
+<link rel="stylesheet" href="styles.css?v=25.1"/>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 </head>
 <body>
@@ -113,12 +113,12 @@
   <section class="panel config">
     <h2>Agency Configuration</h2>
     <p>Changes below affect this browser immediately and persist locally.</p>
-    <label>Configuration section<select id="cadConfigSection" aria-label="Choose configuration section"><option value="master">Agencies &amp; Units</option><option value="cfs">Calls for Service</option><option value="self">Self-Initiated CFS</option><option value="places">Common Places</option><option value="phrases">Voice Phrases</option><option value="general">General &amp; Other Settings</option><option value="designer">Workspace &amp; Form Designer</option></select></label>
+    <label>Configuration section<select id="cadConfigSection" aria-label="Choose configuration section"><option value="master">Agencies &amp; Units</option><option value="response">Response Plan Designer</option><option value="stations">Stations &amp; Facilities</option><option value="cfs">Calls for Service</option><option value="self">Self-Initiated CFS</option><option value="places">Common Places</option><option value="phrases">Voice Phrases</option><option value="general">General &amp; Other Settings</option><option value="designer">Workspace &amp; Form Designer</option></select></label>
     <div data-config-panel="designer" hidden><div class="cad-designer-entry"><div><h3>Workspace &amp; Form Designer</h3><p>Design the agency-wide Call Taking event form. Draft changes are private to this browser until published locally.</p></div><button type="button" class="primary" id="cadOpenFormDesigner">Open Designer ↗</button></div><div id="cadFormDesigner" hidden></div></div>
     <div data-config-panel="master" hidden>
       <h3>Agency Master Configuration</h3>
       <p>Permanent browser-local definitions, separate from resettable demonstration incidents and live unit statuses. Select Activate in CAD on a unit definition to add it to the live demo roster without replacing existing units.</p>
-      <div class="cad-master-section"><h4>Add Agency</h4>
+      <div class="cad-master-grid"><div class="cad-master-section"><h4>Add Agency</h4>
       <label>Agency ID<input id="cadMasterAgencyId" placeholder="PETPD"></label>
       <label>Agency name<input id="cadMasterAgencyName" placeholder="Petaluma Police"></label>
       <label>Default unit identification model<select id="cadMasterAgencyModel"><option value="HYBRID">Hybrid</option><option value="FIXED">Fixed beat</option><option value="PERSONNEL">Personnel ID</option><option value="APPARATUS">Apparatus</option></select></label>
@@ -128,21 +128,26 @@
       <label>Display name<input id="cadMasterPersonName" placeholder="Deputy Smith"></label>
       <label>Home agency<select id="cadMasterPersonnelAgency"></select></label>
       <button type="button" id="cadMasterAddPerson">Add Personnel</button>
-      </div><div class="cad-master-section"><h4>Add Unit Definition</h4>
+      </div></div><div class="cad-master-section"><h4>Add Unit Definition</h4><div class="cad-master-form-grid">
       <label>Internal unit ID<input id="cadMasterUnitId" placeholder="petpd-3a12"></label>
       <label>Radio designator<input id="cadMasterDesignator" placeholder="3A12"></label>
       <label>Owning agency<select id="cadMasterAgencySelect"></select></label>
       <label>Discipline<select id="cadMasterDiscipline"><option>LAW</option><option>FIRE</option><option>EMS</option></select></label>
+      <label>Resource type<select id="cadMasterResourceType"></select></label>
+      <label>Minimum staffing<input id="cadMasterMinStaffing" type="number" min="0" max="30" value="1"></label>
+      <label>Required qualifications (comma-separated)<input id="cadMasterQualifications" placeholder="EMT, Driver Operator"></label>
       <label>Identification model<select id="cadMasterUnitModel"><option value="FIXED">Fixed beat</option><option value="PERSONNEL">Personnel ID</option><option value="APPARATUS">Apparatus</option><option value="HYBRID">Hybrid</option></select></label>
       <label>Associated person (optional)<select id="cadMasterPersonSelect"></select></label>
-      <button type="button" id="cadMasterAddUnit">Add Unit</button>
+      </div><button type="button" id="cadMasterAddUnit">Add Unit</button>
       <div id="cadMasterMessage" role="status" aria-live="polite"></div>
       <div id="cadMasterList"></div>
-      </div><div class="cad-master-section"><h4>Configuration Backup</h4>
+      </div>
+      <div class="cad-master-section"><h4>Configuration Backup</h4>
       <button type="button" id="cadMasterExport">Export Agency Master JSON</button>
       <label>Import Agency Master JSON<input type="file" id="cadMasterImport" accept=".json,application/json"></label>
       </div>
     </div>
+    <div data-config-panel="stations" hidden><div class="cad-master-section" id="cadStationManager"></div></div><div data-config-panel="response" hidden><div class="cad-master-section" id="cadResponseDesigner"></div></div>
     <div data-config-panel="general" hidden>
     <label>Agencies<textarea id="cfgAgencies"></textarea></label>
     </div>
@@ -202,16 +207,19 @@
 </footer>
 <div id="toast"></div>
 <script src="core/discipline.js?v=1"></script>
-<script src="app.js?v=22.3"></script>
+<script src="app.js?v=34"></script>
 <script src="core/agency-phrases.js?v=1"></script>
 <script src="core/intent-catalog.js?v=1"></script>
 <script src="core/command-gate.js?v=1"></script>
 <script src="core/action-plan.js?v=1"></script>
 <script src="agency-phrase-settings.js?v=1"></script>
 <script src="core/agency-master.js?v=1"></script>
-<script src="core/unit-activation.js?v=1"></script>
+<script src="core/unit-activation.js?v=2"></script>
 <script src="core/unit-staffing.js?v=1"></script>
-<script src="agency-master-settings.js?v=3"></script>
+<script src="vehicle-icon-library.js?v=1"></script>
+<script src="resource-types.js?v=4"></script>
+<script src="agency-master-settings.js?v=7"></script>
+
 <script src="board-layout.js?v=21.1"></script>
 <script src="incident-intelligence.js?v=18.3"></script>
 <script src="core/voice-text.js?v=1"></script>
@@ -224,8 +232,114 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="core/gis-query.js?v=1"></script>
 <script src="core/layer-intent.js?v=1"></script>
-<script src="map-layer-catalog.js?v=20.8"></script>
+<script src="map-layer-catalog.js?v=21.1"></script>
 <script src="map.js?v=20.8"></script>
+<script>
+/* Configuration section selector: includes dynamically added configuration panels. */
+(()=>{
+ const picker=document.getElementById('cadConfigSection');
+ const panels=[...document.querySelectorAll('#config [data-config-panel]')];
+ if(!picker)return;
+ const apply=()=>{
+  const key=picker.value;
+  for(const panel of panels)panel.hidden=panel.dataset.configPanel!==key;
+  if(key==='stations')window.CadStationManagerRefresh?.();
+ };
+ picker.addEventListener('change',()=>{apply();requestAnimationFrame(apply)});
+ apply();
+})();
+</script>
+<script>
+window.CadLocalAreas={
+ lookup(lat,lon){
+ let layers={};try{layers=JSON.parse(localStorage.getItem('smcad-response-geojson-v1')||'{}')}catch{}
+ const zones={};const ring=(pts,x,y)=>{let inside=false;for(let a=0,b=pts.length-1;a<pts.length;b=a++){const p=pts[a],q=pts[b];if((p[1]>y)!==(q[1]>y)&&x<(q[0]-p[0])*(y-p[1])/(q[1]-p[1])+p[0])inside=!inside}return inside};
+ for(const [kind,layer] of Object.entries(layers)){const values=new Set();for(const f of layer.features||[]){const g=f.geometry;const polygons=g?.type==='Polygon'?[g.coordinates]:g?.type==='MultiPolygon'?g.coordinates:[];if(polygons.some(p=>p.length&&ring(p[0],lon,lat)&&!p.slice(1).some(h=>ring(h,lon,lat)))){const v=f.properties?.[layer.field];if(v!=null)values.add(String(v))}}if(values.size>1)return {ok:false,message:'Overlapping local zones'};if(values.size)zones[kind]=[...values][0]}return {ok:true,zones}
+ },
+ summary(){let layers={};try{layers=JSON.parse(localStorage.getItem('smcad-response-geojson-v1')||'{}')}catch{}return Object.fromEntries(Object.entries(layers).map(([k,v])=>[k,{count:v.features?.length||0,field:v.field,updatedAt:v.updatedAt||null}]))},
+ remove(kind){if(!['esz','beat'].includes(kind))throw Error('Unknown dataset');const key='smcad-response-geojson-v1';let layers={};try{layers=JSON.parse(localStorage.getItem(key)||'{}')}catch{}delete layers[kind];localStorage.setItem(key,JSON.stringify(layers))},
+ install(kind,geojson,field){
+ if(!['esz','beat'].includes(kind)||geojson?.type!=='FeatureCollection'||!Array.isArray(geojson.features)||!geojson.features.length)throw Error('Invalid GeoJSON');
+ if(geojson.features.length>10000||!geojson.features.every(f=>['Polygon','MultiPolygon'].includes(f.geometry?.type)))throw Error('Expected polygon features');
+ if(!geojson.features.every(f=>f.properties?.[field]!=null&&String(f.properties[field]).trim()))throw Error('One or more polygons have no zone ID');
+ const key='smcad-response-geojson-v1';let layers={};try{layers=JSON.parse(localStorage.getItem(key)||'{}')}catch{}layers[kind]={field,features:geojson.features,updatedAt:new Date().toISOString()};localStorage.setItem(key,JSON.stringify(layers));return geojson.features.length
+ }
+};
+</script>
+<script>
+window.CadLocalGISAdmin={
+ open(){
+  if(document.getElementById('cadLocalGISDialog'))return;
+  const overlay=document.createElement('div');overlay.id='cadLocalGISDialog';overlay.className='cad-gis-overlay';
+  overlay.innerHTML='<div class="cad-gis-dialog" role="dialog" aria-modal="true" aria-label="Local GIS datasets"><div class="cad-gis-dialog-head"><div><div class="cad-eyebrow">GIS DATA MANAGEMENT</div><h3>Response area datasets</h3><p>Import approved GeoJSON polygons for local ESZ and beat lookup.</p></div><button type="button" id="cadGisClose" aria-label="Close">✕</button></div><div class="cad-gis-import"><label>Dataset type<select id="cadGisKind"><option value="esz">Fire / EMS ESZ</option><option value="beat">Police beat</option></select></label><label>Zone attribute<input id="cadGisField" value="ESZ_NUM" spellcheck="false"></label><label>GeoJSON file<input type="file" id="cadGisFile" accept=".geojson,.json,application/geo+json,application/json"></label><button id="cadGisImport" type="button">Import dataset</button></div><div id="cadGisDatasetList"></div><p class="cad-gis-disclaimer">Local browser storage only. Import from approved agency GIS exports. Not a production GIS publication workflow.</p></div>';
+  document.body.appendChild(overlay);
+  const el=id=>document.getElementById(id);
+  const render=()=>{const data=window.CadLocalAreas.summary();el('cadGisDatasetList').innerHTML=['esz','beat'].map(k=>{const d=data[k];return '<div class="cad-gis-dataset"><div><strong>'+(k==='esz'?'Fire / EMS ESZ':'Police beat')+'</strong><small>'+(d?d.count+' polygons · '+d.field+' · '+new Date(d.updatedAt).toLocaleString():'No dataset installed')+'</small></div>'+(d?'<button type="button" data-remove="'+k+'">Remove</button>':'')+'</div>'}).join('');el('cadGisDatasetList').querySelectorAll('[data-remove]').forEach(b=>b.onclick=()=>{if(confirm('Remove locally stored '+b.dataset.remove+' dataset?')){window.CadLocalAreas.remove(b.dataset.remove);render()}})};
+  el('cadGisClose').onclick=()=>overlay.remove();
+  overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove()});
+  el('cadGisKind').onchange=()=>{el('cadGisField').value=el('cadGisKind').value==='esz'?'ESZ_NUM':'PD_BEAT'};
+  const sync=document.createElement('button');sync.type='button';sync.className='cad-gis-sync';sync.textContent='Import Petaluma ESZ + police beats from GIS';el('cadGisDatasetList').before(sync);
+  sync.onclick=async()=>{
+   if(!confirm('Download and install the current public Petaluma ESZ and police beat polygons into this browser? This is a prototype import, not an approved production GIS publication.'))return;
+   sync.disabled=true;sync.textContent='Downloading public GIS layers…';
+   const layers=[['esz','https://maps.cityofpetaluma.net/mapping/rest/services/Fire/FireWebApp_MIL/MapServer/11','ESZ_NUM'],['beat','https://maps.cityofpetaluma.net/mapping/rest/services/Police/DistrictPolicing_Public_MIL1/FeatureServer/1','PD_BEAT']];
+   const reports=[];
+   for(const [kind,url,field] of layers){
+    try{
+     const endpoint=new URL(url+'/query');endpoint.searchParams.set('where','1=1');endpoint.searchParams.set('outFields',field);endpoint.searchParams.set('returnGeometry','true');endpoint.searchParams.set('outSR','4326');endpoint.searchParams.set('f','geojson');endpoint.searchParams.set('resultRecordCount','10000');
+     const response=await fetch(endpoint);if(!response.ok)throw Error('HTTP '+response.status);
+     const data=await response.json();if(data.error)throw Error(data.error.message);
+     if(data.exceededTransferLimit)throw Error('Service truncated results; no dataset installed');
+     const count=window.CadLocalAreas.install(kind,data,field);reports.push(kind.toUpperCase()+': '+count+' polygons imported');
+    }catch(error){reports.push(kind.toUpperCase()+': failed ('+error.message+')')}
+   }
+   render();sync.disabled=false;sync.textContent='Import Petaluma ESZ + police beats from GIS';alert(reports.join('\\n'));
+  };
+  el('cadGisImport').onclick=async()=>{const file=el('cadGisFile').files[0];if(!file)return alert('Select a GeoJSON file.');if(file.size>8*1024*1024)return alert('File exceeds 8 MB local prototype limit.');try{const geojson=JSON.parse(await file.text());const count=window.CadLocalAreas.install(el('cadGisKind').value,geojson,el('cadGisField').value.trim());render();alert('Imported '+count+' polygons to this browser.')}catch(error){alert('Import failed: '+error.message)}};
+  render();
+ }
+};
+window.CadLocalAreas.loadBundled=async function(){
+ const key='smcad-response-geojson-v1';
+ for(const [kind,path,field] of [['esz','data/petaluma-fire-esz.geojson','ESZ_NUM'],['beat','data/petaluma-police-beats.geojson','PD_BEAT']]){
+  let existing={};try{existing=JSON.parse(localStorage.getItem(key)||'{}')}catch{}
+  if(existing[kind])continue;
+  try{const res=await fetch(path,{cache:'no-cache'});if(!res.ok)continue;this.install(kind,await res.json(),field)}
+  catch(err){console.warn('Bundled GIS '+kind+' not installed:',err.message)}
+ }
+};
+window.CadLocalAreas.loadBundled();
+window.CadIncidentZones={async lookup(location,discipline){
+ const original=String(location||'').trim();if(!original)return {ok:false,message:'Enter incident location first.'};
+ const address=/petaluma/i.test(original)?original:original+', Petaluma, California';
+ const endpoint=new URL('https://geocode-api.arcgis.com/arcgis/rest/services/World/GeocodeServer/findAddressCandidates');
+ // ArcGIS geocode-api requires a token. Use the public World Geocoding endpoint for this local demo.
+ endpoint.hostname='geocode.arcgis.com';
+ endpoint.searchParams.set('SingleLine',address);endpoint.searchParams.set('f','json');endpoint.searchParams.set('maxLocations','3');
+ const response=await fetch(endpoint);if(!response.ok)throw Error('Geocoder HTTP '+response.status);
+ const data=await response.json();if(data.error)throw Error(data.error.message);
+ const candidates=(data.candidates||[]).filter(c=>c.location&&Number(c.score)>=90);
+ if(candidates.length!==1)return {ok:false,message:'No unique high-confidence address candidate. Verify the location manually.'};
+ const point=candidates[0].location;const zones={};
+ const local=window.CadLocalAreas?.lookup(point.y,point.x);
+ if(local&&!local.ok)return {ok:false,message:local.message||'Conflicting local GIS boundaries; review the dataset.'};
+ if(local?.ok&&local.zones?.[discipline==='LAW'?'beat':'esz'])return {ok:true,original,address:candidates[0].address,lat:point.y,lon:point.x,zones:local.zones,source:'LOCAL_GEOJSON'};
+ for(const [name,url,field] of [['esz','https://maps.cityofpetaluma.net/mapping/rest/services/Fire/FireWebApp_MIL/MapServer/11','ESZ_NUM'],['beat','https://maps.cityofpetaluma.net/mapping/rest/services/Police/DistrictPolicing_Public_MIL1/FeatureServer/1','PD_BEAT']]){
+  const query=new URL(url+'/query');
+  for(const [key,value] of Object.entries({geometry:JSON.stringify({x:point.x,y:point.y,spatialReference:{wkid:4326}}),geometryType:'esriGeometryPoint',spatialRel:'esriSpatialRelIntersects',inSR:'4326',outFields:field,returnGeometry:'false',f:'json'}))query.searchParams.set(key,value);
+  const result=await fetch(query);if(!result.ok)throw Error(name+' GIS HTTP '+result.status);
+  const payload=await result.json();if(payload.error)throw Error(name+' GIS: '+payload.error.message);
+  const values=[...new Set((payload.features||[]).map(f=>String(f.attributes?.[field]??'').trim()).filter(Boolean))];
+  if(values.length>1)return {ok:false,message:'Multiple '+name+' areas intersect the point. Review manually.'};
+  if(values.length===1)zones[name]=values[0];
+ }
+ if(!zones.esz&&!zones.beat)return {ok:false,message:'No response areas returned. Verify jurisdiction and location.'};
+ if((discipline==='LAW'&&!zones.beat)||(discipline!=='LAW'&&!zones.esz))return {ok:false,message:'No '+discipline+' response area returned. Verify jurisdiction.'};
+ return {ok:true,original,address:candidates[0].address,lat:point.y,lon:point.x,zones};
+}};
+</script>
+<script src="station-manager.js?v=6"></script><script src="response-plan-designer.js?v=29"></script>
+<script src="alarm-levels.js?v=4"></script>
 <script src="demo-tools.js?v=18"></script>
 <script src="extended-ops.js?v=18"></script>
 <script src="structured-command.js?v=19.6"></script>
@@ -240,10 +354,58 @@
 <script src="pane-layout.js?v=18"></script>
 <script src="multi-monitor.js?v=18"></script>
 <script src="ask-cad-voice.js?v=18"></script>
-<script src="free-workspace.js?v=21.1"></script>
+<script src="free-workspace.js?v=22"></script>
 <script src="officer-safety.js?v=3"></script>
 <script src="header-navigation.js?v=1"></script>
 <script src="dispatch-new-info.js?v=2"></script>
 <script src="new-call-picker.js?v=2"></script>
+<script>
+/* Supplemental resource voice preview. Never auto-dispatch from unverified speech. */
+(()=>{
+ const previous=window.cadBeforeVoiceProcess;
+ const normalize=s=>String(s||'').toUpperCase().replace(/[^A-Z0-9]+/g,' ').trim();
+ const unitPattern=id=>new RegExp('(?:^|[^A-Z0-9])'+String(id).replace(/[.*+?^\x24{}()|[\]\\]/g,'\\\x24&')+'(?=$|[^A-Z0-9])','i');
+ window.cadBeforeVoiceProcess=(spoken,source)=>{
+  const text=String(spoken||'').trim();
+  const correction=text.match(/\\b(?:copy[,.]?\\s+)?(?:true\\s+location\\s+is\\s+(?:at\\s+)?|(?:update|correct|change)\\s+(?:the\\s+)?location\\s+to\\s+)(.+)$/i);
+  if(correction){
+   const state=window.cadSafetyState?.(),incident=state?.incidents?.find(i=>i.id===state.selected&&i.status!=='CLOSED');
+   const output=document.getElementById('voiceInterpretation');
+   const report=msg=>{if(output)output.textContent=msg;return true};
+   if(!incident)return report('Select an active or pending event before updating its location.');
+   const address=correction[1].trim().replace(/[.!]+$/,'');
+   if(!address)return report('No new location recognized.');
+   if(!window.confirm('Update event '+incident.id+' location from '+incident.location+' to '+address+'?'))return report('Location change canceled.');
+   const id=incident.id;
+   report('Updating '+id+' location; GIS verification in progress…');
+   window.CadIncidentZones.lookup(address,incident.discipline).then(result=>{
+    const latest=window.cadSafetyState?.().incidents?.find(i=>i.id===id);
+    if(!latest||latest.status==='CLOSED')return report('Event no longer available. Location unchanged.');
+    const r=window.cadUpdateIncidentLocation?.(id,address,'VOICE',result?.ok?result:null);
+    report((r?.message||'Location update failed')+(result?.ok?'':' · GIS not verified')+'. Advise assigned units of location changes.');
+   }).catch(()=>{const r=window.cadUpdateIncidentLocation?.(id,address,'VOICE',null);report((r?.message||'Update failed')+' · GIS validation unavailable.');});
+   return true;
+  }
+
+  if(!/\b(?:requesting|request|needs?|send|start)\s+(?:an?\s+)?(?:additional|more|backup)\s+(?:units?|officers?|resources?)\b/i.test(text))return previous?.(spoken,source)===true;
+  const state=window.cadSafetyState?.();
+  const output=document.getElementById('voiceInterpretation');
+  const report=message=>{if(output)output.textContent=message;return true};
+  if(!state)return report('CAD state unavailable. No dispatch action taken.');
+  const matched=state.units.filter(u=>unitPattern(u.id).test(text));
+  if(matched.length!==1)return report('Specify one requesting unit. No dispatch action taken.');
+  const unit=matched[0];
+  const candidates=state.incidents.filter(i=>i.status!=='CLOSED'&&(i.units||[]).includes(unit.id));
+  if(candidates.length!==1)return report('Unable to uniquely identify the incident for '+unit.id+'. No dispatch action taken.');
+  const incident=candidates[0];
+  const stated=text.match(/\b(?:at|for)\s+(\d+\s+[\w\s.]+?)(?=\s*(?:[,.]|$))/i);
+  if(stated&&!normalize(incident.location).includes(normalize(stated[1])))return report('Location mismatch for '+incident.id+'. Verify manually. No dispatch action taken.');
+  state.selected=incident.id;
+  if(typeof render==='function')render();
+  const preview=window.CadPlanDispatch?.preview(incident);
+  return report(preview?.ok?'SUPPLEMENTAL REQUEST '+incident.id+': '+preview.units.join(', ')+' recommended. Confirm manually in incident details.':'SUPPLEMENTAL REQUEST '+incident.id+': '+(preview?.message||'No verified response plan.'));
+ };
+})();
+</script>
 </body>
 </html>

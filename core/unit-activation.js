@@ -8,5 +8,18 @@ function activate(master,state,unitId){
  const unit={id:def.designator,agency:agency.name,agencyId:agency.id,discipline:def.discipline,status:'AVAILABLE',location:'',x:50,y:50,masterUnitId:def.id};
  return {...state,units:[...state.units,unit]};
 }
-return Object.freeze({activate});
+function linkExisting(master,state){
+ const units=(state.units||[]).map(u=>{
+  if(u.masterUnitId)return u;
+  const matches=(master.units||[]).filter(def=>{
+   const agency=master.agencies.find(a=>a.id===def.agencyId);
+   return agency&&agency.name.toLowerCase()===String(u.agency||'').toLowerCase()&&def.designator.toLowerCase()===String(u.id||'').toLowerCase()&&def.discipline===u.discipline;
+  });
+  if(matches.length!==1)return u;
+  return {...u,agencyId:matches[0].agencyId,masterUnitId:matches[0].id};
+ });
+ const linked=units.filter((u,i)=>u.masterUnitId&&!state.units[i].masterUnitId).length;
+ return {state:{...state,units},linked};
+}
+return Object.freeze({activate,linkExisting});
 });
