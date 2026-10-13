@@ -59,7 +59,7 @@
    if(!sharedBoard)return;
    const connected=!!window.CadDemoLogin.current();
    sharedBoard.hidden=!connected;
-   if(localGrid)localGrid.hidden=connected;
+   if(localGrid)localGrid.hidden=false;
    if(!connected)return;
    const visible=snapshot.incidents.filter(filteredIncident);
    const pending=visible.filter(i=>i.status==='PENDING');
