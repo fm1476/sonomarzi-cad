@@ -213,25 +213,17 @@ function renderDetail(){
 }
 // Shared event closure transaction. Requires disposition regardless of entry path.
 window.cadCloseEvent=function(incident,disposition,source='MANUAL'){
- const d=String(disposition||'').trim();
- if(!incident)return {ok:false,message:'Event not found.'};
- if(incident.status==='CLOSED')return {ok:false,message:`${incident.id} is already closed.`};
- if(!d)return {ok:false,message:'A disposition is required to clear an event.'};
- if(d.length>500)return {ok:false,message:'Disposition must be 500 characters or less.'};
- const released=[];
- for(const id of [...incident.units]){
-  const u=state.units.find(x=>x.id===id);
-  if(u){u.status='AVAILABLE';u.location='Available';released.push(id);}
- }
- incident.units=[];
- incident.status='CLOSED';incident.disposition=d;
- incident.closedAt=new Date().toISOString();
- incident.dispositions ||= [];
- incident.dispositions.push({time:now(),value:d,source,scope:'EVENT'});
- event(incident,`EVENT_CLEARED ${source} DISPO: ${d} | RELEASED: ${released.join(', ')||'none'}`);
- state.selected=incident.id;
- save();
- return {ok:true,message:`${incident.id} closed (${d}). ${released.length} unit(s) released.`};
+ const result=window.CadUnitCommands.closeEvent({state,incident,disposition,source,event,now});
+ if(result.ok){state.selected=incident.id;save();}
+ return result;
+};
+window.cadSetUnitStatus=function(unitId,status,incidentId=null,source='MANUAL'){
+ const unit=state.units.find(u=>u.id===unitId);
+ const incident=incidentId?state.incidents.find(i=>i.id===incidentId):null;
+ if(incidentId&&!incident)return {ok:false,message:'Event not found'};
+ const result=window.CadUnitCommands.setStatus({state,unit,status,incident,event,source});
+ if(result.ok&&result.message!=='Status unchanged')save();
+ return result;
 };
 
 function cadLocationRecord(i,address,role,source,verified){
