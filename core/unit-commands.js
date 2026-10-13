@@ -56,5 +56,40 @@
   if(!incident.units.length){incident.status=d?'CLOSED':'PENDING';event(incident,d?`INCIDENT_CLOSED DISPO: ${d}`:'INCIDENT_RETURNED_PENDING NO_DISPOSITION')}
   return {ok:true,message:`${unit.id} cleared. Event ${incident.id} ${incident.status}${d?' | Dispo: '+d:''}.`};
  }
- window.CadUnitCommands=Object.freeze({assign,assignPlan,clear});
+ const statuses=new Set(['AVAILABLE','DISPATCHED','ENROUTE','ONSCENE','TRANSPORTING','AT_HOSPITAL','CLEAR','OUT_OF_SERVICE']);
+ function setStatus({state,unit,status,incident=null,event,source='MANUAL'}){
+  const next=String(status||'').toUpperCase();
+  if(!unit||!statuses.has(next))return {ok:false,message:'Invalid unit or status'};
+  const assignments=(state.incidents||[]).filter(i=>i.status!=='CLOSED'&&(i.units||[]).includes(unit.id));
+  if(incident&&!assignments.some(i=>i.id===incident.id))return {ok:false,message:'Unit not assigned to selected event'};
+  if(['DISPATCHED','ENROUTE','ONSCENE','TRANSPORTING','AT_HOSPITAL'].includes(next)&&!assignments.length)return {ok:false,message:'Operational status requires an assigned incident'};
+  if(next==='AVAILABLE'&&assignments.length)return {ok:false,message:'Clear unit from active incidents before marking available'};
+  const previous=unit.status;
+  if(previous===next)return {ok:true,message:'Status unchanged'};
+  unit.status=next;
+  if(next==='AVAILABLE')unit.location='Available';
+  for(const i of assignments)event(i,'UNIT_STATUS '+unit.id+' '+previous+' TO '+next+' VIA '+source);
+  return {ok:true,message:unit.id+' status '+next};
+ }
+ function closeEvent({state,incident,disposition,source='MANUAL',event,now}){
+  const d=String(disposition||'').trim();
+  if(!incident)return {ok:false,message:'Event not found.'};
+  if(incident.status==='CLOSED')return {ok:false,message:incident.id+' is already closed.'};
+  if(!d)return {ok:false,message:'A disposition is required to clear an event.'};
+  if(d.length>500)return {ok:false,message:'Disposition must be 500 characters or less.'};
+  const released=[];
+  for(const id of [...(incident.units||[])]){
+   const unit=state.units.find(u=>u.id===id);
+   if(unit){
+    const other=(state.incidents||[]).some(i=>i.id!==incident.id&&i.status!=='CLOSED'&&(i.units||[]).includes(id));
+    if(!other){unit.status='AVAILABLE';unit.location='Available';released.push(id)}
+   }
+  }
+  incident.units=[];incident.status='CLOSED';incident.disposition=d;
+  incident.closedAt=new Date().toISOString();incident.dispositions ||= [];
+  incident.dispositions.push({time:now(),value:d,source,scope:'EVENT'});
+  event(incident,'EVENT_CLEARED '+source+' DISPO: '+d+' | RELEASED: '+(released.join(', ')||'none'));
+  return {ok:true,message:incident.id+' closed ('+d+'). '+released.length+' unit(s) released.'};
+ }
+ window.CadUnitCommands=Object.freeze({assign,assignPlan,clear,setStatus,closeEvent});
 })();
