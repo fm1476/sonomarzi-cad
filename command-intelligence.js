@@ -68,12 +68,12 @@ async function executeShared(raw){
   for(const chunk of chunks){
    try{
     let command=chunk;
-    const prefix=command.match(/^#([\\w-]+)\\s*:\\s*(.*)$/);
+    const prefix=command.match(/^#([\w-]+)\s*:\s*(.*)$/);
     if(prefix){contextRef='#'+prefix[1];command=prefix[2];if(!command){messages.push(ok('Context set to '+contextRef));continue;}}
-    const m=command.match(/^(DE|AOS|C4|OS|AH|RT|D|E|C|A|T)\\b\\s*(.*)$/i);
+    const m=command.match(/^(DE|AOS|C4|OS|AH|RT|D|E|C|A|T)\b\s*(.*)$/i);
     if(!m)throw Error('Unsupported shared command: '+command+'. Use D, DE, E, OS, T, AH, A or C; RT for notes.');
     const code=m[1].toUpperCase(),rest=m[2];
-    const refMatch=rest.match(/#([\\w-]+)/);
+    const refMatch=rest.match(/#([\w-]+)/);
     const ref=refMatch?'#'+refMatch[1]:contextRef;
     if(code==='RT'){
      if(!ref)throw Error('RT requires an incident reference, e.g. RT #4526 narrative.');
@@ -83,7 +83,7 @@ async function executeShared(raw){
      await window.cadSharedCommand('note',{incidentId:target.incident.id,text:note});
      messages.push(ok('Narrative added to '+target.incident.id));continue;
     }
-    const unitIds=rest.replace(refMatch?.[0]||'','').split(/[\\s,]+/).filter(Boolean);
+    const unitIds=rest.replace(refMatch?.[0]||'','').split(/[\s,]+/).filter(Boolean);
     if(!unitIds.length)throw Error('Specify a unit.');
     for(const id of unitIds){
      const u=unit(id.toUpperCase());if(!u){messages.push(fail('Unknown unit '+id));continue;}
