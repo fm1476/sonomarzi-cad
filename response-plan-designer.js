@@ -10,6 +10,10 @@ const escape=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':
 let discipline='FIRE',zone='',zoneMap=null,zoneOverlay=null,zoneAbort=null,mapObserver=null;
 const gis={FIRE:{url:'https://maps.cityofpetaluma.net/mapping/rest/services/Fire/FireWebApp_MIL/MapServer/11',field:'ESZ_NUM'},EMS:{url:'https://maps.cityofpetaluma.net/mapping/rest/services/Fire/FireWebApp_MIL/MapServer/11',field:'ESZ_NUM'},LAW:{url:'https://maps.cityofpetaluma.net/mapping/rest/services/EnerGov/EnerGov_Display/MapServer/10',field:null}};
 function render(){
+ // Tear down Leaflet before replacing its container. Discipline switches must recreate a fresh map.
+ zoneAbort?.abort();zoneAbort=null;
+ if(mapObserver){mapObserver.disconnect();mapObserver=null}
+ if(zoneMap){zoneMap.off();zoneMap.remove();zoneMap=null;zoneOverlay=null}
  const zones=[...new Set(plans.filter(p=>p.discipline===discipline).map(p=>p.zone))];
  root.innerHTML='<h4>Response Plan Designer</h4><p>Local draft/publish prototype. Does not affect live dispatch.</p><label>Discipline<select id="rpDisc"><option>FIRE</option><option>EMS</option><option>LAW</option></select></label><label>Response zone / police beat<input id="rpZone" placeholder="Click a polygon on the map, or enter a zone ID" value="'+escape(zone)+'"></label><div id="rpZoneMap" style="height:370px;min-height:300px;border:1px solid #34536d;border-radius:10px;margin:12px 0;overflow:hidden" aria-label="Select response zone on map"></div><p id="rpMapStatus">Loading response area map…</p><button id="rpOpen" type="button">Open Zone</button><button id="rpNew" type="button">New Plan</button><div id="rpPlans"></div><div id="rpEditor"></div><h4>Shared Crew Groups</h4><p>Apparatus sharing a crew cannot be recommended as independently staffed resources.</p><label>Group name<input id="rpCrewName" placeholder="Station 1 primary crew"></label><label>Apparatus (comma separated)<input id="rpCrewUnits" placeholder="E1, R1, BR1"></label><button id="rpAddCrew" type="button">Add Shared Crew</button><div id="rpCrews"></div><p id="rpMessage" role="status"></p>';
  el('rpDisc').value=discipline;el('rpDisc').onchange=e=>{discipline=e.target.value;zone='';render()};
@@ -20,8 +24,6 @@ function render(){
 }
 function initZoneMap(){
  if(!window.L){msg('Map library unavailable. Zone IDs can still be entered manually.');return}
- if(mapObserver){mapObserver.disconnect();mapObserver=null}
- if(zoneMap){zoneMap.remove();zoneMap=null}
  zoneMap=L.map('rpZoneMap',{scrollWheelZoom:false}).setView([38.2324,-122.6367],12);
  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap contributors'}).addTo(zoneMap);
  zoneOverlay=L.geoJSON(null,{style:f=>({color:zone===featureZone(f)?'#f7d66b':'#5cb3e6',weight:zone===featureZone(f)?3:1.2,fillColor:'#50a2d4',fillOpacity:.12}),onEachFeature:(f,layer)=>{
@@ -35,6 +37,7 @@ function initZoneMap(){
  const visibleObserver=new MutationObserver(fixSize);visibleObserver.observe(document.querySelector('[data-config-panel="master"]')||root,{attributes:true,attributeFilter:['hidden','style','class']});
  const previousObserver=mapObserver;mapObserver={disconnect(){previousObserver?.disconnect();visibleObserver.disconnect()}};
  setTimeout(fixSize,150);setTimeout(fixSize,650);
+ setTimeout(()=>{if(zoneMap&&host.isConnected){zoneMap.invalidateSize({pan:false,animate:false});loadMapZones()}},250);
 }
 function featureZone(f){
  const p=f.properties||{},configured=gis[discipline].field;
