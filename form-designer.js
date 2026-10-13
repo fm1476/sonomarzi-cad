@@ -45,5 +45,7 @@ function render(){
  bind('cadFdOptions','options',v=>v.split('\n').map(x=>x.trim()).filter(Boolean));
  $('cadFdDelete')?.addEventListener('click',()=>{draft=draft.filter(f=>f.id!==selected);selected='';dirty=true;render()});
 }
+const section=$('cadConfigSection');
+section?.addEventListener('change',()=>{document.querySelectorAll('[data-config-panel]').forEach(p=>p.hidden=p.dataset.configPanel!==section.value)});
 open.onclick=()=>{designer.hidden=false;load(agency||masterAgencies()[0]||'')};
 })();
