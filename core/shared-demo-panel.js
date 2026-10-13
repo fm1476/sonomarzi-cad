@@ -200,7 +200,7 @@
    try{
     let result;
     if(action==='create'){
-     result=await client.createIncident({agency,number:args.number,discipline:args.discipline,type:args.type,priority:args.priority,location:args.location});
+     result=await client.createIncidentAuto({agency,discipline:args.discipline,type:args.type,priority:args.priority,location:args.location});
     }else{
      if(!incident)throw Error('Incident not found. Refresh and retry.');
      if(action==='case')result=await client.setCaseNumber({agency,incident:incident.id,caseNumber:args.caseNumber||'',incidentVersion:incident.version});
