@@ -46,7 +46,7 @@ window.cadSharedApplySnapshot=function(snapshot){
  const units=(snapshot.roster||[]).map(u=>({id:u.call_sign,sharedUuid:u.id,sharedVersion:u.version,
   agency:u.home_agency_name||'SonoMarzi CAD Demo Agency',discipline:u.discipline,
   resourceType:u.resource_type,status:u.status,location:'Shared CAD',x:50,y:50}));
- state={...cadLocalWorkspace,incidents,units,selected:incidents.some(i=>i.id===previous)?previous:(incidents.find(i=>i.status==='ACTIVE')||incidents[0])?.id||null};
+ state={...cadLocalWorkspace,incidents,units,selected:incidents.some(i=>i.id===previous&&i.status!=='CLOSED')?previous:(incidents.find(i=>i.status==='ACTIVE')||incidents.find(i=>i.status==='PENDING'))?.id||null};
  render();
  const detail=document.getElementById('detail');
  if(detail&&state.selected===previous)detail.scrollTop=detailScroll;
