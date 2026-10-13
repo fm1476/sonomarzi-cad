@@ -100,8 +100,11 @@
       <label>Case Number (optional)<input id="newCaseNumber" placeholder="e.g. 26-000123"/></label><label>Priority<select id="priority"><option>P1</option><option selected>P2</option><option>P3</option><option>P4</option></select></label>
       <label>Call for Service<select id="type"></select></label><label>Other CFS (optional)<input id="customIncidentType" placeholder="e.g. Unwanted Subject (optional)"/></label>
       <label class="span2">Location<input id="location" autocomplete="off" placeholder="Enter incident location"/></label>
-      <label>Caller<input id="caller" autocomplete="off" placeholder="Caller name"/></label>
-      <label>Phone<input id="phone" autocomplete="off" placeholder="Callback number"/></label>
+      <label>Caller first name<input id="callerFirstName" autocomplete="given-name" placeholder="First name"/></label>
+      <label>Caller last name<input id="callerLastName" autocomplete="family-name" placeholder="Last name"/></label>
+      <label>Caller phone<input id="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="(707) 555-1212 or +44…"/></label>
+      <label class="span2">Caller location<input id="newCallerLocation" autocomplete="off" placeholder="Where is the caller?"/></label>
+      <label class="span2" style="display:flex;align-items:center;gap:9px"><input id="newCallerSameAsEvent" type="checkbox" style="width:18px;height:18px"/>Caller is at the same location as the event</label>
       <label class="span2">Narrative<textarea id="narrative" placeholder="Enter initial call narrative"></textarea></label>
     </div>
     <button id="createCall" class="primary">Create Call</button>
