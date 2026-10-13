@@ -21,7 +21,7 @@ function render(){
 }
 function setupMap(){
  if(!window.L){document.getElementById('sfMap').textContent='Map unavailable; enter coordinates manually.';return}
- map=L.map('sfMap').setView([38.2448,-122.6400],12);
+ map=L.map('sfMap').setView([38.2324,-122.6367],12);
  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'}).addTo(map);
  markers=L.layerGroup().addTo(map);
  map.on('click',e=>{document.getElementById('sfLat').value=e.latlng.lat.toFixed(6);document.getElementById('sfLng').value=e.latlng.lng.toFixed(6);document.getElementById('sfMessage').textContent='Location selected. Save the facility to place its pin.'});
