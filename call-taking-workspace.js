@@ -79,5 +79,17 @@ divider?.addEventListener('pointermove',e=>{if(!dragging)return;const rect=split
 divider?.addEventListener('pointerup',()=>dragging=false);
 divider?.addEventListener('pointercancel',()=>dragging=false);
 divider?.addEventListener('keydown',e=>{if(e.key==='ArrowLeft'||e.key==='ArrowRight'){e.preventDefault();applyWidth((Number(localStorage.getItem('smcad-calltake-split-v1'))||48)+(e.key==='ArrowLeft'?-3:3))}});
+// Persist native vertical resize handles without replacing the user's workspace layout.
+const sizeKey='smcad-calltake-panel-heights-v1';
+const queuePanel=document.querySelector('#calltake .cad-calltake-queue');
+const editorPanel=$('cadCTEditor');
+let savedHeights={};try{savedHeights=JSON.parse(localStorage.getItem(sizeKey)||'{}')}catch{}
+const restoreHeight=(el,key)=>{const height=Number(savedHeights[key]);if(el&&Number.isFinite(height)&&height>=200&&height<=3000){el.style.height=height+'px';el.style.setProperty('--cad-ct-'+key+'-height',height+'px')}};
+restoreHeight(queuePanel,'queue');restoreHeight(editorPanel,'editor');
+if(typeof ResizeObserver==='function'){
+ const observer=new ResizeObserver(entries=>{let changed=false;for(const entry of entries){const el=entry.target,key=el===queuePanel?'queue':'editor';if(el.hidden||!el.isConnected)continue;const height=Math.round(entry.borderBoxSize?.[0]?.blockSize||el.getBoundingClientRect().height);if(height>=200&&Math.abs(height-(savedHeights[key]||0))>2){savedHeights[key]=height;changed=true}}if(changed)localStorage.setItem(sizeKey,JSON.stringify(savedHeights))});
+ if(queuePanel)observer.observe(queuePanel);
+ if(editorPanel)observer.observe(editorPanel);
+}
 setTimeout(refresh,200);
 })();
