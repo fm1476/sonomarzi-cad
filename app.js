@@ -261,12 +261,12 @@ window.cadFindEventsByLocation=query=>{
  const q=String(query||'').trim().toLowerCase();if(!q)return [];
  return state.incidents.filter(i=>cadLocationHistory(i).some(l=>l.address.toLowerCase().includes(q))).map(i=>({id:i.id,type:i.type,status:i.status,currentLocation:i.location,locations:i.locations.filter(l=>l.address.toLowerCase().includes(q))}));
 };
-window.cadAddIncidentLocation=(id,address,role='RELATED',source='DISPATCH')=>{
+window.cadAddIncidentLocation=(id,address,role='RELATED',source='DISPATCH',verified=null)=>{
  const i=state.incidents.find(x=>x.id===id),value=String(address||'').trim();
  if(!i||!value)return {ok:false,message:'Event and location required'};
  if(!['RELATED','REPORTED_IN_ERROR','PREVIOUS'].includes(role))return {ok:false,message:'Invalid related location classification'};
- const records=cadLocationHistory(i);records.push(cadLocationRecord(i,value,role,source,null));
- event(i,'LOCATION_ADDED '+role+' '+value+' VIA '+source);save();return {ok:true};
+ const records=cadLocationHistory(i);records.push(cadLocationRecord(i,value,role,source,verified));
+ event(i,'LOCATION_ADDED '+role+' '+value+' VIA '+source+(verified?.ok?' GIS_VERIFIED':' NOT_VERIFIED'));save();return {ok:true};
 };
 window.cadUpdateIncidentFields=(id,updates,source='DISPATCH')=>{
  const i=state.incidents.find(x=>x.id===id);if(!i||i.status==='CLOSED')return {ok:false,message:'Active event not found'};
@@ -301,42 +301,43 @@ window.cadUpdateIncidentLocation=(id,location,source,verified)=>{
 function cadDispatchEdit(i){
  document.getElementById('cadDispatchEditDialog')?.remove();
  const dialog=document.createElement('dialog');dialog.id='cadDispatchEditDialog';
- dialog.style.cssText='background:#10253b;color:#f0f7ff;border:1px solid #527a9a;border-radius:12px;padding:22px;max-width:580px;width:calc(100% - 32px);box-shadow:0 20px 65px #000a';
- const heading=document.createElement('h3');heading.textContent='Edit Event '+i.id;
- const form=document.createElement('form');form.method='dialog';form.style.cssText='display:grid;gap:12px';
- const field=(name,value)=>{const label=document.createElement('label');label.textContent=name;label.style.cssText='display:grid;gap:5px';const input=document.createElement('input');input.value=value||'';input.style.cssText='padding:10px;background:#18334b;color:white;border:1px solid #527a9a;border-radius:6px';label.append(input);form.append(label);return input};
- const typeLabel=document.createElement('label');typeLabel.textContent='Call for Service (CFS) type';typeLabel.style.cssText='display:grid;gap:5px';
- const type=document.createElement('select');type.style.cssText='padding:10px;background:#18334b;color:white;border:1px solid #527a9a;border-radius:6px';
+ dialog.style.cssText='background:#11263b;color:#f0f7ff;border:1px solid #365772;border-radius:16px;padding:26px;max-width:690px;width:calc(100% - 28px);max-height:88vh;overflow-y:auto;box-shadow:0 24px 80px #000b';
+ const heading=document.createElement('h3');heading.textContent='Edit Event · '+i.id;heading.style.cssText='margin:0 0 20px;font-size:21px;letter-spacing:.2px;color:#f2f8ff';
+ const form=document.createElement('form');form.method='dialog';form.style.cssText='display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px';
+ const field=(name,value)=>{const label=document.createElement('label');label.textContent=name;label.style.cssText='display:grid;gap:7px;font-size:12px;font-weight:700;letter-spacing:.3px;color:#adc7dc;min-width:0';const input=document.createElement('input');input.value=value||'';input.style.cssText='box-sizing:border-box;width:100%;min-width:0;padding:12px;background:#18334b;color:white;border:1px solid #456986;border-radius:9px;font-size:14px';label.append(input);form.append(label);return input};
+ const typeLabel=document.createElement('label');typeLabel.textContent='Call for Service (CFS) type';typeLabel.style.cssText='display:grid;gap:7px;font-size:12px;font-weight:700;color:#adc7dc';
+ const type=document.createElement('select');type.style.cssText='box-sizing:border-box;width:100%;min-width:0;padding:12px;background:#18334b;color:white;border:1px solid #456986;border-radius:9px;font-size:14px';
  const options=[...new Set([i.type,...(defaultConfig.types?.[i.discipline]||[]),...(config.types?.[i.discipline]||[])].filter(Boolean))];
  for(const name of options){const option=document.createElement('option');option.value=name;option.textContent=name;type.append(option)}
  type.value=i.type;typeLabel.append(type);form.append(typeLabel);
- const location=field('Location',i.location),caller=field('Caller',i.caller),phone=field('Phone',i.phone);
- const priorityLabel=document.createElement('label');priorityLabel.textContent='Priority';priorityLabel.style.cssText='display:grid;gap:5px';
+ const location=field('Primary location',i.location),caller=field('Caller',i.caller),phone=field('Phone',i.phone);location.parentElement.style.gridColumn='1 / -1';
+ const priorityLabel=document.createElement('label');priorityLabel.textContent='Priority';priorityLabel.style.cssText=typeLabel.style.cssText;
  const priority=document.createElement('select');priority.style.cssText=type.style.cssText;
  for(const p of ['P1','P2','P3','P4','P5']){const o=document.createElement('option');o.value=p;o.textContent=p;priority.append(o)}priority.value=i.priority||'P2';priorityLabel.append(priority);form.insertBefore(priorityLabel,location.parentElement);
- const agency=field('Agency',i.agency);const disciplineLabel=document.createElement('label');disciplineLabel.textContent='Discipline';disciplineLabel.style.cssText='display:grid;gap:5px';
+ const agency=field('Agency',i.agency);const disciplineLabel=document.createElement('label');disciplineLabel.textContent='Discipline';disciplineLabel.style.cssText=typeLabel.style.cssText;
  const discipline=document.createElement('select');discipline.style.cssText=type.style.cssText;
  for(const d of ['LAW','FIRE','EMS']){const o=document.createElement('option');o.value=d;o.textContent=d;discipline.append(o)}discipline.value=i.discipline;disciplineLabel.append(discipline);form.append(disciplineLabel);
  discipline.onchange=()=>{const selected=type.value;type.replaceChildren();for(const name of [...new Set([selected,...(defaultConfig.types?.[discipline.value]||[]),...(config.types?.[discipline.value]||[])])]){const o=document.createElement('option');o.value=name;o.textContent=name;type.append(o)}type.value=selected};
- const note=field('Add narrative (optional)','');
- const related=field('Add related location (optional)','');
+ const note=field('Add narrative (optional)','');note.parentElement.style.gridColumn='1 / -1';
+ const related=field('Add related location (optional)','');related.parentElement.style.gridColumn='1 / -1';
+ let relatedVerified=null;window.cadAddressPicker?.(related,()=>discipline.value,v=>{relatedVerified=v});
  let verified=null;
  window.cadAddressPicker?.(location,()=>i.discipline,v=>{verified=v});
- const info=document.createElement('p');info.style.cssText='font-size:12px;color:#f4c68c';info.textContent='Unverified locations may be saved. Assigned units must be advised of location changes.';form.append(info);
- const actions=document.createElement('div');actions.style.cssText='display:flex;gap:10px';
- const saveButton=document.createElement('button');saveButton.type='button';saveButton.textContent='Save changes';saveButton.className='primary';
- const cancel=document.createElement('button');cancel.type='button';cancel.textContent='Cancel';cancel.onclick=()=>dialog.close();
+ const info=document.createElement('p');info.style.cssText='font-size:12px;color:#f4c68c';info.textContent='Unverified locations may be saved. Assigned units must be advised of location changes.';info.style.gridColumn='1 / -1';info.style.margin='0';form.append(info);
+ const actions=document.createElement('div');actions.style.cssText='display:flex;gap:12px;justify-content:flex-end;grid-column:1 / -1;border-top:1px solid #34516a;padding-top:18px;margin-top:4px';
+ const saveButton=document.createElement('button');saveButton.type='button';saveButton.textContent='Save changes';saveButton.className='primary';saveButton.style.cssText='padding:11px 18px;border-radius:9px;font-weight:700';
+ const cancel=document.createElement('button');cancel.type='button';cancel.textContent='Cancel';cancel.onclick=()=>dialog.close();cancel.style.cssText='padding:11px 18px;border-radius:9px;background:#203c55;color:#dbeaf6;border:1px solid #496780';
  actions.append(saveButton,cancel);form.append(actions);dialog.append(heading,form);document.body.append(dialog);
  saveButton.onclick=()=>{
   if(!type.value.trim()||!location.value.trim()){info.textContent='Incident type and location are required.';info.style.color='#ff9898';return}
   const updated=window.cadUpdateIncidentFields(i.id,{type:type.value,priority:priority.value,agency:agency.value,discipline:discipline.value,caller:caller.value,phone:phone.value,narrative:note.value},'DISPATCH_EDITOR');
   if(!updated.ok){info.textContent=updated.message;return}
-  if(related.value.trim())window.cadAddIncidentLocation(i.id,related.value.trim(),'RELATED','DISPATCH_EDITOR');
+  if(related.value.trim())window.cadAddIncidentLocation(i.id,related.value.trim(),'RELATED','DISPATCH_EDITOR',relatedVerified?.result||null);
   if(location.value.trim()!==i.location){cadUpdateIncidentLocation(i,location.value.trim(),'DISPATCH_EDITOR',verified?.result)}
   else save();
   dialog.close();toast('Event '+i.id+' updated');
  };
- dialog.addEventListener('close',()=>dialog.remove());dialog.showModal();location.focus();
+ dialog.addEventListener('close',()=>dialog.remove());dialog.showModal();
 }
 
 function detailAction(i,a){
