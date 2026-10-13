@@ -270,5 +270,26 @@
 <script src="header-navigation.js?v=1"></script>
 <script src="dispatch-new-info.js?v=2"></script>
 <script src="new-call-picker.js?v=2"></script>
+<script>
+/* Supplemental-resource voice request: resolve and display, never silently dispatch. */
+(()=>{
+ const prior=window.cadBeforeVoiceProcess;
+ window.cadBeforeVoiceProcess=(spoken,source)=>{
+  const text=String(spoken||'').trim();
+  if(!/\b(?:requesting|request|needs?|send|start)\s+(?:an?\s+)?(?:additional|more|backup)\s+(?:units?|officers?|resources?)\b/i.test(text))return prior?.(spoken,source)===true;
+  const unit=window.cadSafetyState?.().units.find(u=>new RegExp('(?:^|\\W)'+u.id.replace(/[.*+?^\x24{}()|[\]\\]/g,'\\\x24&')+'(?:\\W|\x24)','i').test(text));
+  const candidates=(window.cadSafetyState?.().incidents||[]).filter(i=>i.status!=='CLOSED'&&unit&&i.units.includes(unit.id));
+  if(candidates.length!==1){document.getElementById('voiceInterpretation').textContent='Additional resource request needs a unique incident match. Select the incident manually.';return true;}
+  const incident=candidates[0];
+  const address=text.match(/\b(?:at|for)\s+(\d+\s+[\w\s.]+?)(?:[,.]|\x24)/i);
+  if(address&& !incident.location.toLowerCase().includes(address[1].trim().toLowerCase())){document.getElementById('voiceInterpretation').textContent='Location does not match '+incident.id+'. Verify before dispatch.';return true;}
+  window.cadSafetyState().selected=incident.id;
+  if(typeof render==='function')render();
+  const recommendation=window.CadPlanDispatch?.preview(incident);
+  document.getElementById('voiceInterpretation').textContent=recommendation?.ok?'SUPPLEMENTAL REQUEST '+incident.id+': '+recommendation.units.join(', ')+' recommended. Review and confirm in incident details.': 'SUPPLEMENTAL REQUEST '+incident.id+': '+(recommendation?.message||'No verified response plan.');
+  return true;
+ };
+})();
+</script>
 </body>
 </html>
