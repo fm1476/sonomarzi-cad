@@ -211,11 +211,31 @@
   <span>Hackathon demo controls. Reset restores the original sample incidents and unit lineup.</span>
   <button id="reset" type="button" aria-label="Reset all CAD demo data">↻ Reset Entire Demo</button>
 </footer>
+<details id="cadSharedDemo" style="margin:12px 18px;border:1px solid #58718b;border-radius:12px;padding:12px;background:#142033;color:#e8f0fa">
+<summary style="cursor:pointer;font-weight:750">MULTI-DISPATCHER DEMO · Shared CAD preview</summary>
+<p style="font-size:13px">Optional Supabase test connection. The current CAD workspace remains local. Shared data below is read-only until transactional dispatch integration is ready.</p>
+<div id="cadSharedLoginPanel">
+<form id="cadSharedLoginForm" style="display:flex;gap:8px;flex-wrap:wrap;align-items:end">
+<label>Project URL<input id="cadSharedUrl" type="url" placeholder="https://project.supabase.co" required autocomplete="off"></label>
+<label>Publishable key<input id="cadSharedKey" type="password" placeholder="Supabase publishable key" required autocomplete="off"></label>
+<label>Demo agency UUID<input id="cadSharedAgency" placeholder="Agency UUID" required autocomplete="off"></label>
+<label>Dispatcher<select id="cadSharedUser"><option>cad1</option><option>cad2</option><option>cad3</option><option>cad4</option><option>cad5</option></select></label>
+<label>Password<input id="cadSharedPassword" type="password" required autocomplete="current-password"></label>
+<button id="cadSharedSignIn" type="submit">Connect to shared CAD</button>
+</form></div>
+<div id="cadSharedBoard" hidden>
+<div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap"><strong>Signed in: <span id="cadSharedSignedIn"></span></strong><button id="cadSharedRefresh" type="button">Refresh shared data</button><button id="cadSharedLogout" type="button">Sign out</button><span id="cadSharedCounts"></span></div>
+<div style="overflow:auto"><h4>Shared incidents</h4><table><thead><tr><th>ID</th><th>Status</th><th>Discipline</th><th>Created</th></tr></thead><tbody id="cadSharedIncidents"></tbody></table>
+<h4>Shared units</h4><table><thead><tr><th>Unit</th><th>Status</th><th>Resource type</th></tr></thead><tbody id="cadSharedUnits"></tbody></table>
+<h4>Outstanding response requirements</h4><table><thead><tr><th>Incident</th><th>Resource</th><th>Still needed</th></tr></thead><tbody id="cadSharedShortages"></tbody></table></div>
+</div><p id="cadSharedStatus" role="status" aria-live="polite">Not connected. Local CAD demo remains available.</p>
+</details>
 <div id="toast"></div>
 <script src="core/discipline.js?v=1"></script>
 <script src="core/persistence.js?v=1"></script>
 <script src="core/supabase-client.js?v=1"></script>
 <script src="core/demo-login.js?v=2"></script>
+<script src="core/shared-demo-panel.js?v=1"></script>
 <script src="core/incident-commands.js?v=1"></script>
 <script src="core/unit-commands.js?v=3"></script>
 <script src="app.js?v=43"></script>
