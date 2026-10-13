@@ -237,7 +237,14 @@ $('#createCall').onclick=()=>{
 $('nav [data-view]').forEach(b=>b.onclick=()=>show(b.dataset.view));
 window.cadShowView=show;
 function show(v){$('.view').forEach(x=>x.classList.toggle('active',x.id===v));$('nav [data-view]').forEach(x=>x.classList.toggle('active',x.dataset.view===v));if(v==='calltake')window.cadCallTakeRefresh?.()}
-$$('.filters button').forEach(b=>b.onclick=()=>{filter=window.CadDiscipline.normalize(b.dataset.discipline);window.cadUnitDisciplineFilter=filter;$$('.filters button').forEach(x=>x.classList.toggle('active',x===b));render()});
+document.querySelector('[data-panel="units"] .filters')?.addEventListener('click',e=>{
+ const btn=e.target.closest('button[data-discipline]');
+ if(!btn)return;
+ filter=window.CadDiscipline.normalize(btn.dataset.discipline);
+ window.cadUnitDisciplineFilter=filter;
+ document.querySelectorAll('[data-panel="units"] button[data-discipline]').forEach(x=>x.classList.toggle('active',x===btn));
+ render();
+});
 // The enhanced command desk installs its own keyboard handling from command-intelligence.js.
 $('#saveConfig').onclick=()=>{config={...config,agencies:$('#cfgAgencies').value.split('\n').filter(Boolean),types:{LAW:$('#cfgLaw').value.split('\n').filter(Boolean),FIRE:$('#cfgFire').value.split('\n').filter(Boolean),EMS:$('#cfgEms').value.split('\n').filter(Boolean)}};localStorage.setItem(CFG,JSON.stringify(config));populate();toast('Configuration saved')}
 window.cadActivateMasterUnit=function(masterUnitId){
