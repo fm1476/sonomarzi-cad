@@ -8,6 +8,7 @@ const el=id=>document.getElementById(id);
 const save=()=>{localStorage.setItem(KEY,JSON.stringify(plans));localStorage.setItem(CREWS,JSON.stringify(crews))};
 const escape=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 let discipline='FIRE',zone='',zoneMap=null,zoneOverlay=null,zoneAbort=null,mapObserver=null;
+const INITIAL_CENTER=[38.2448,-122.6400], INITIAL_ZOOM=13;
 const gis={FIRE:{url:'https://maps.cityofpetaluma.net/mapping/rest/services/Fire/FireWebApp_MIL/MapServer/11',field:'ESZ_NUM'},EMS:{url:'https://maps.cityofpetaluma.net/mapping/rest/services/Fire/FireWebApp_MIL/MapServer/11',field:'ESZ_NUM'},LAW:{url:'https://maps.cityofpetaluma.net/mapping/rest/services/Police/DistrictPolicing_Public_MIL1/FeatureServer/1',field:'PD_BEAT'}};
 function render(){
  // Tear down Leaflet before replacing its container. Discipline switches must recreate a fresh map.
@@ -24,15 +25,15 @@ function render(){
 }
 function initZoneMap(){
  if(!window.L){msg('Map library unavailable. Zone IDs can still be entered manually.');return}
- zoneMap=L.map('rpZoneMap',{scrollWheelZoom:false}).setView([38.2340,-122.6450],13);
+ zoneMap=L.map('rpZoneMap',{scrollWheelZoom:false}).setView(INITIAL_CENTER,INITIAL_ZOOM);
  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap contributors'}).addTo(zoneMap);
  zoneOverlay=L.geoJSON(null,{style:f=>({color:zone===featureZone(f)?'#f7d66b':'#5cb3e6',weight:zone===featureZone(f)?3:1.2,fillColor:'#50a2d4',fillOpacity:.12}),onEachFeature:(f,layer)=>{
  const id=featureZone(f);layer.bindTooltip(id||'Unnamed area',{sticky:true});
  layer.on('click',()=>{if(!id)return;zone=id;el('rpZone').value=id;zoneOverlay.setStyle(x=>({color:zone===featureZone(x)?'#f7d66b':'#5cb3e6',weight:zone===featureZone(x)?3:1.2,fillColor:'#50a2d4',fillOpacity:.12}));showPlans();msg('Selected '+discipline+' zone '+id+'.')});
  }}).addTo(zoneMap);
  zoneMap.on('moveend',loadMapZones);
- const host=el('rpZoneMap');let lastWidth=0,lastHeight=0;
- function fixSize(){if(!zoneMap||!host||!host.isConnected)return;const box=host.getBoundingClientRect();if(box.width<100||box.height<100)return;if(Math.abs(box.width-lastWidth)<2&&Math.abs(box.height-lastHeight)<2)return;lastWidth=box.width;lastHeight=box.height;requestAnimationFrame(()=>{if(zoneMap&&host.isConnected)zoneMap.invalidateSize({pan:false,animate:false})})}
+ const host=el('rpZoneMap');let lastWidth=0,lastHeight=0,initialSized=false;
+ function fixSize(){if(!zoneMap||!host||!host.isConnected)return;const box=host.getBoundingClientRect();if(box.width<100||box.height<100)return;if(Math.abs(box.width-lastWidth)<2&&Math.abs(box.height-lastHeight)<2)return;lastWidth=box.width;lastHeight=box.height;requestAnimationFrame(()=>{if(zoneMap&&host.isConnected){zoneMap.invalidateSize({pan:false,animate:false});if(!initialSized){initialSized=true;zoneMap.setView(INITIAL_CENTER,INITIAL_ZOOM,{animate:false})}}})}
  if(window.ResizeObserver){mapObserver=new ResizeObserver(fixSize);mapObserver.observe(host)}
  const visibleObserver=new MutationObserver(fixSize);visibleObserver.observe(document.querySelector('[data-config-panel="master"]')||root,{attributes:true,attributeFilter:['hidden','style','class']});
  const previousObserver=mapObserver;mapObserver={disconnect(){previousObserver?.disconnect();visibleObserver.disconnect()}};
