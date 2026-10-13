@@ -367,6 +367,21 @@ window.CadIncidentZones={async lookup(location,discipline){
  const unitPattern=id=>new RegExp('(?:^|[^A-Z0-9])'+String(id).replace(/[.*+?^\x24{}()|[\]\\]/g,'\\\x24&')+'(?=$|[^A-Z0-9])','i');
  window.cadBeforeVoiceProcess=(spoken,source)=>{
   const text=String(spoken||'').trim();
+  const reportVoice=message=>{const output=document.getElementById('voiceInterpretation');if(output)output.textContent=message;return true};
+  const priorityCommand=text.match(/\b(?:copy[,.]?\s*)?(?:change|update|set)\s+(?:the\s+)?priority\s+(?:to\s+)?(?:p(?:riority)?\s*)?([1-5])\b/i);
+  const typeCommand=text.match(/\b(?:copy[,.]?\s*)?(?:change|update|set)\s+(?:the\s+)?(?:call\s+type|cfs\s+type|incident\s+type)\s+to\s+(.+)$/i);
+  const noteCommand=text.match(/\b(?:copy[,.]?\s*)?(?:add\s+(?:to\s+)?narrative|narrative\s+(?:add|update))\s*[,:]?\s+(.+)$/i);
+  if(priorityCommand||typeCommand||noteCommand){
+   const state=window.cadSafetyState?.(),incident=state?.incidents?.find(i=>i.id===state.selected&&i.status!=='CLOSED');
+   if(!incident)return reportVoice('Select an active or pending event before updating it.');
+   let updates={},description='';
+   if(priorityCommand){updates.priority='P'+priorityCommand[1];description='priority to '+updates.priority}
+   if(typeCommand){const requested=typeCommand[1].trim().replace(/[.!]+$/,'');const configured=[...(window.cadConfiguredTypes?.(incident.discipline)||[])];const match=configured.find(x=>x.toLowerCase()===requested.toLowerCase());if(configured.length&&!match)return reportVoice('Unrecognized CFS type. Select a configured type in the event editor.');updates.type=match||requested;description='CFS type to '+updates.type}
+   if(noteCommand){updates.narrative=noteCommand[1].trim();description='narrative: '+updates.narrative}
+   if(!window.confirm('Event '+incident.id+': '+description+'?'))return reportVoice('Update canceled.');
+   const result=window.cadUpdateIncidentFields?.(incident.id,updates,'VOICE');
+   return reportVoice(result?.message||'Unable to update event.');
+  }
   const correction=text.match(/\b(?:copy[,.]?\s+)?(?:true\s+location\s+is\s+(?:at\s+)?|(?:update|correct|change)\s+(?:the\s+)?location\s+to\s+)(.+)$/i);
   if(correction){
    const state=window.cadSafetyState?.(),incident=state?.incidents?.find(i=>i.id===state.selected&&i.status!=='CLOSED');
