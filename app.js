@@ -22,7 +22,7 @@ const defaultState=()=>({seq:4525,selected:null,incidents:[
 {id:'M2',agency:'Petaluma Fire / EMS',discipline:'EMS',status:'AVAILABLE',location:'Station 2',x:82,y:71},
 {id:'M3',agency:'Petaluma Fire / EMS',discipline:'EMS',status:'TRANSPORTING',location:'Hospital',x:16,y:24}
 ]});
-let state=JSON.parse(localStorage.getItem(KEY)||'null')||defaultState();
+let state=window.CadPersistence.read(KEY)||defaultState();
 window.cadSafetyState=()=>state;
 window.cadCallTakeSave=()=>save();
 window.CadPlanDispatch={preview(incident){const result=window.CadResponsePlans?.recommendIncident(incident);if(incident.responseZoneSource==='MANUAL_UNVERIFIED'&&!incident.responseZoneReviewed)return {ok:false,message:'Operator-entered response zone requires explicit review before plan dispatch.'};if(result?.status!=='ready')return {ok:false,message:result?.message||'No verified response plan.'};if(incident.status==='CLOSED')return {ok:false,message:'Incident closed.'};const assigned=new Set(incident.units||[]);const units=[...new Set(result.rows.flatMap(r=>r.selected))].filter(id=>!assigned.has(id));if(!units.length)return {ok:false,message:'No additional eligible resources in the plan. The published plan may already be satisfied; supplemental requests need an explicitly configured increment.'};const sharedGroups=(()=>{try{return JSON.parse(localStorage.getItem('smcad-shared-crews-v1')||'[]')}catch{return []}})();const busy=new Set(state.incidents.filter(x=>x.status!=='CLOSED').flatMap(x=>x.units||[]));for(const id of units){const group=sharedGroups.find(g=>(!g.agency||g.agency===incident.agency)&&(g.units||[]).includes(id));if(group){const occupied=(group.units||[]).find(other=>other!==id&&busy.has(other));if(occupied)return {ok:false,message:'Shared crew conflict: '+id+' shares a crew with committed '+occupied+'.'};}}for(const id of units){const u=state.units.find(x=>x.id===id);if(!u||u.status!=='AVAILABLE'||state.incidents.some(x=>x.status!=='CLOSED'&&x.id!==incident.id&&x.units.includes(id)))return {ok:false,message:'Unit '+id+' is no longer available. Refresh recommendations.'};}return {ok:true,units,incidentId:incident.id,message:'Plan '+result.plan.type+' / '+result.plan.zone+'. Manual confirmation required.'}},commit(incident,preview){const fresh=this.preview(incident);if(!fresh.ok)return fresh;if(fresh.incidentId!==preview.incidentId||fresh.units.join('|')!==preview.units.join('|'))return {ok:false,message:'Recommendations changed. Review and confirm again.'};for(const id of fresh.units){const u=state.units.find(x=>x.id===id);u.status='DISPATCHED';u.location=incident.location;incident.units.push(id);event(incident,'RESPONSE_PLAN_UNIT_DISPATCHED '+id);}incident.status='ACTIVE';state.selected=incident.id;save();return {ok:true,message:'Dispatched '+fresh.units.join(', ')}}};
@@ -128,7 +128,7 @@ function save(){
   if(lastSavedStatuses.has(u.id)&&lastSavedStatuses.get(u.id)!==u.status){u.statusChangedAt=Date.now();}
   lastSavedStatuses.set(u.id,u.status);
  }
- localStorage.setItem(KEY,JSON.stringify(state));render();window.cadCallTakeRefresh?.();window.dispatchEvent(new Event('storage'));cadQueueResponseAreas();
+ window.CadPersistence.write(KEY,state);render();window.cadCallTakeRefresh?.();window.dispatchEvent(new Event('storage'));cadQueueResponseAreas();
 }
 setTimeout(cadQueueResponseAreas,600);
 function event(inc,msg){inc.events.push(`${now()} ${msg}`)}
