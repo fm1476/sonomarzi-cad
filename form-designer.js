@@ -10,16 +10,26 @@ const key=a=>'smcad-form-designer-v1-'+encodeURIComponent(a);
 const agencyOf=i=>String(i?.agency||'').trim();
 function read(a){try{return JSON.parse(localStorage.getItem(key(a))||'{}')}catch{return {}}}
 function published(a){const x=read(a).published;return Array.isArray(x?.fields)?x:null}
-function fieldsFor(a){return published(a)?.fields||defaults()}
+function fieldsFor(a){return published(a||DEFAULT_AGENCY)?.fields||defaults()}
 window.cadEventFormFields=fieldsFor;
-const masterAgencies=()=>{const s=window.cadSafetyState?.();const names=(s?.incidents||[]).map(i=>agencyOf(i));try{const m=JSON.parse(localStorage.getItem('smcad-agency-master-v1')||'{}');for(const a of m.agencies||[])names.push(a.name||a.id||a.agencyName||'')}catch{}return [...new Set(names.filter(Boolean))].sort()};
+const DEFAULT_AGENCY='Petaluma Police';
+const masterAgencies=()=>{
+ const names=[DEFAULT_AGENCY];
+ const add=x=>{const name=String(x??'').trim();if(name&&!names.some(n=>n.toLowerCase()===name.toLowerCase()))names.push(name)};
+ try{for(const a of window.CadAgencyMaster?.read(localStorage)?.agencies||[])add(a.name)}catch(e){console.warn('Agency master unavailable',e)}
+ const state=window.cadSafetyState?.();
+ for(const i of state?.incidents||[])add(agencyOf(i));
+ for(const u of state?.units||[])add(u.agency);
+ try{const cfg=JSON.parse(localStorage.getItem('smcad-config-v1')||'{}');for(const a of cfg.agencies||[])add(typeof a==='string'?a:a.name)}catch{}
+ return [DEFAULT_AGENCY,...names.filter(n=>n!==DEFAULT_AGENCY).sort()];
+};
 const designer=$('cadFormDesigner'),open=$('cadOpenFormDesigner');
 if(!designer||!open)return;
-let agency='',draft=[],selected='',dragged='',dirty=false;
-function load(a){agency=a;const doc=read(a);draft=structuredClone(doc.draft?.fields||doc.published?.fields||defaults());selected='';dirty=false;render()}
+let agency=DEFAULT_AGENCY,draft=[],selected='',dragged='',dirty=false;
+function load(a){agency=a||DEFAULT_AGENCY;const doc=read(agency);draft=structuredClone(doc.draft?.fields||doc.published?.fields||defaults());selected='';dirty=false;render()}
 function persistDraft(){if(!agency)return;const doc=read(agency);doc.draft={fields:structuredClone(draft),updatedAt:new Date().toISOString()};localStorage.setItem(key(agency),JSON.stringify(doc));dirty=false;render()}
 function render(){
- const agencies=masterAgencies();if(!agency&&agencies.length)agency=agencies[0];
+ const agencies=masterAgencies();if(!agency||!agencies.includes(agency))agency=DEFAULT_AGENCY;
  const doc=read(agency),item=draft.find(f=>f.id===selected);
  designer.innerHTML='<div class="cad-fd-head"><div><h3>Call Taking · Master Event Form</h3><p>Agency-wide layout · browser-local proof of concept</p></div><button type="button" id="cadFdExit">Close Designer</button></div>'+
  '<div class="cad-fd-actions"><label>Agency<select id="cadFdAgency">'+agencies.map(a=>'<option '+(a===agency?'selected':'')+'>'+esc(a)+'</option>').join('')+'</select></label><span class="cad-fd-state">'+(dirty?'Unsaved draft changes':doc.published?'Published '+new Date(doc.published.updatedAt).toLocaleString():'Using default layout')+'</span><button type="button" id="cadFdSave">Save Draft</button><button type="button" id="cadFdPreview">Preview</button><button type="button" class="primary" id="cadFdPublish">Publish to Agency</button><button type="button" id="cadFdRestore">Restore Published</button></div>'+
@@ -47,5 +57,5 @@ function render(){
 }
 const section=$('cadConfigSection');
 section?.addEventListener('change',()=>{document.querySelectorAll('[data-config-panel]').forEach(p=>p.hidden=p.dataset.configPanel!==section.value)});
-open.onclick=()=>{designer.hidden=false;load(agency||masterAgencies()[0]||'')};
+open.onclick=()=>{designer.hidden=false;load(agency||DEFAULT_AGENCY)};
 })();
