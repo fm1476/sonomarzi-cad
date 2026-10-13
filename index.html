@@ -250,6 +250,21 @@
 })();
 </script>
 <script>
+window.CadLocalAreas={
+ lookup(lat,lon){
+ let layers={};try{layers=JSON.parse(localStorage.getItem('smcad-response-geojson-v1')||'{}')}catch{}
+ const zones={};const ring=(pts,x,y)=>{let inside=false;for(let a=0,b=pts.length-1;a<pts.length;b=a++){const p=pts[a],q=pts[b];if((p[1]>y)!==(q[1]>y)&&x<(q[0]-p[0])*(y-p[1])/(q[1]-p[1])+p[0])inside=!inside}return inside};
+ for(const [kind,layer] of Object.entries(layers)){const values=new Set();for(const f of layer.features||[]){const g=f.geometry;const polygons=g?.type==='Polygon'?[g.coordinates]:g?.type==='MultiPolygon'?g.coordinates:[];if(polygons.some(p=>p.length&&ring(p[0],lon,lat)&&!p.slice(1).some(h=>ring(h,lon,lat)))){const v=f.properties?.[layer.field];if(v!=null)values.add(String(v))}}if(values.size>1)return {ok:false,message:'Overlapping local zones'};if(values.size)zones[kind]=[...values][0]}return {ok:true,zones}
+ },
+ install(kind,geojson,field){
+ if(!['esz','beat'].includes(kind)||geojson?.type!=='FeatureCollection'||!Array.isArray(geojson.features)||!geojson.features.length)throw Error('Invalid GeoJSON');
+ if(geojson.features.length>10000||!geojson.features.every(f=>['Polygon','MultiPolygon'].includes(f.geometry?.type)))throw Error('Expected polygon features');
+ if(!geojson.features.some(f=>f.properties?.[field]!=null))throw Error('Zone field missing');
+ const key='smcad-response-geojson-v1';let layers={};try{layers=JSON.parse(localStorage.getItem(key)||'{}')}catch{}layers[kind]={field,features:geojson.features,updatedAt:new Date().toISOString()};localStorage.setItem(key,JSON.stringify(layers));return geojson.features.length
+ }
+};
+</script>
+<script>
 window.CadIncidentZones={async lookup(location,discipline){
  const original=String(location||'').trim();if(!original)return {ok:false,message:'Enter incident location first.'};
  const address=/petaluma/i.test(original)?original:original+', Petaluma, California';
@@ -262,6 +277,8 @@ window.CadIncidentZones={async lookup(location,discipline){
  const candidates=(data.candidates||[]).filter(c=>c.location&&Number(c.score)>=90);
  if(candidates.length!==1)return {ok:false,message:'No unique high-confidence address candidate. Verify the location manually.'};
  const point=candidates[0].location;const zones={};
+ const local=window.CadLocalAreas?.lookup(point.y,point.x);
+ if(local?.ok&&local.zones?.[discipline==='LAW'?'beat':'esz'])return {ok:true,original,address:candidates[0].address,lat:point.y,lon:point.x,zones:local.zones,source:'LOCAL_GEOJSON'};
  for(const [name,url,field] of [['esz','https://maps.cityofpetaluma.net/mapping/rest/services/Fire/FireWebApp_MIL/MapServer/11','ESZ_NUM'],['beat','https://maps.cityofpetaluma.net/mapping/rest/services/Police/DistrictPolicing_Public_MIL1/FeatureServer/1','PD_BEAT']]){
   const query=new URL(url+'/query');
   for(const [key,value] of Object.entries({geometry:JSON.stringify({x:point.x,y:point.y,spatialReference:{wkid:4326}}),geometryType:'esriGeometryPoint',spatialRel:'esriSpatialRelIntersects',inSR:'4326',outFields:field,returnGeometry:'false',f:'json'}))query.searchParams.set(key,value);
