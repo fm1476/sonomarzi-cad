@@ -16,7 +16,7 @@ const LIST=[
  {id:'wui',name:'Wildland Urban Interface',category:'Fire & EMS',url:pet+'/Fire/FireWebApp_MIL/MapServer/2',color:'#efb75a',terms:['wildland urban','wildland interface','wui']},
  {id:'evac',name:'Evacuation Zones',category:'Emergency Management',url:'https://services1.arcgis.com/P5Mv5GY5S66M8Z1Q/ArcGIS/rest/services/Sonoma_County_Evacuation_Areas_public/FeatureServer/0',color:'#f2c15b',terms:['evacuation zones','evacuation zone','evac zones']},
  {id:'flood',name:'Flood Zones',category:'Emergency Management',url:pet+'/Fire/FireWebApp_MIL/MapServer/28',color:'#59adff',terms:['flood zones','flood zone','floodplain']},
- {id:'beats',name:'Police Beats',category:'Law Enforcement',url:pet+'/EnerGov/EnerGov_Display/MapServer/10',color:'#74aaff',terms:['police beats','patrol beats','police districts']},
+ {id:'beats',name:'Police Beats',category:'Law Enforcement',url:pet+'/Police/DistrictPolicing_Public_MIL1/FeatureServer/1',color:'#74aaff',terms:['police beats','patrol beats','police districts']},
  {id:'sheriff',name:'Sheriff Patrol Zones',category:'Law Enforcement',url:county+'/SCSDPublic/Sheriff_Patrol_Zones/FeatureServer/0',color:'#a795e8',terms:['sheriff patrol zones','sheriff zones','sheriff beats']},
  {id:'addresses',name:'Address Points',category:'Geographic Reference',url:base+'/0',color:'#e6f09d',minZoom:15,terms:['address points','addresses layer']},
  {id:'buildings',name:'Building Footprints',category:'Geographic Reference',url:base+'/4',color:'#e1a9ec',minZoom:14,terms:['building footprints','buildings']},
