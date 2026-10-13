@@ -557,3 +557,21 @@ header nav.cad-header-tabs button{position:relative;z-index:102;pointer-events:a
 #config [data-config-panel="master"] #cadMasterList h4{margin-top:10px;margin-bottom:5px}
 @media(max-width:1050px){#config [data-config-panel="master"] .cad-master-form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:700px){#config [data-config-panel="master"] .cad-master-grid,#config [data-config-panel="master"] .cad-master-form-grid{grid-template-columns:minmax(0,1fr)}}
+
+
+/* Responsive, compact top-level Agency Configuration layout */
+#config{min-width:0}
+#config>.panel.config{margin:10px;padding:0 14px 14px;min-width:0}
+#config>.panel.config>h2{font-size:clamp(14px,1.1vw,17px);line-height:1.25;padding:10px 12px;margin:0 -14px 8px;letter-spacing:.035em}
+#config>.panel.config>p{font-size:12px;line-height:1.4;margin:4px 0 8px;color:#a9bdce}
+#config>.panel.config>label:has(#cadConfigSection){display:grid;grid-template-columns:minmax(125px,175px) minmax(0,420px);align-items:center;gap:10px;margin:0 0 12px;font-size:12px}
+#config #cadConfigSection{width:100%;min-width:0;max-width:420px;height:35px;padding:5px 9px;font-size:12px}
+#config [data-config-panel="master"]>h3{margin:0 0 3px;font-size:clamp(16px,1.1vw,20px)}
+#config [data-config-panel="master"]>p{margin:0 0 8px;max-width:95ch}
+#config [data-config-panel="response"]{min-width:0;width:100%}
+#config [data-config-panel="response"] .cad-master-section{padding:12px 14px;min-width:0}
+#config [data-config-panel="response"] .cad-master-section h4{font-size:14px;margin:0 0 9px}
+#config [data-config-panel="response"] .cad-master-section>p{margin:6px 0 10px;font-size:12px}
+#config [data-config-panel="response"] .cad-master-section label{margin:0 0 8px;min-width:0}
+#config [data-config-panel="response"] .cad-master-section :is(input,select){max-width:100%;min-width:0;box-sizing:border-box}
+@media(max-width:600px){#config>.panel.config{margin:6px;padding:0 9px 10px}#config>.panel.config>h2{margin:0 -9px 8px}#config>.panel.config>label:has(#cadConfigSection){grid-template-columns:minmax(0,1fr);gap:4px}#config #cadConfigSection{max-width:100%}}
