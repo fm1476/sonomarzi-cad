@@ -429,3 +429,17 @@ header nav.cad-header-tabs button{position:relative;z-index:102;pointer-events:a
 
 #calltake .cad-ct-recovery{padding:12px;border:1px solid #416c89;border-radius:8px;background:#102e44;color:#b9d9ea;font-size:12px}
 #calltake .cad-ct-recovery button{padding:8px 11px;border-radius:6px;background:#174f76;border:1px solid #4e9ac4;color:#effaff;cursor:pointer}
+
+/* Modern agency master configuration section separation and consistent actions */
+#config [data-config-panel="master"]{display:flex;flex-direction:column;gap:14px}
+#config [data-config-panel="master"][hidden]{display:none!important}
+#config .cad-master-section{padding:17px 19px 19px;border:1px solid #2e526c;border-radius:12px;background:linear-gradient(145deg,#10273b,#0b1c2e);box-shadow:0 4px 14px #0002}
+#config .cad-master-section h4{margin:0 0 15px;padding:0 0 11px;border-bottom:1px solid #34546b;color:#e5f4ff;font-size:14px;letter-spacing:.035em}
+#config .cad-master-section label{display:flex;flex-direction:column;gap:5px;margin:0 0 12px}
+#config .cad-master-section button{appearance:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:36px;padding:8px 15px;margin:4px 8px 6px 0;border-radius:8px;border:1px solid #398bc2;background:#1768a8;color:#fff;font-weight:650;font-size:12px;letter-spacing:.015em;box-shadow:0 2px 9px #0003;cursor:pointer;transition:background .15s,border-color .15s,transform .15s}
+#config .cad-master-section button:hover{background:#2586c8;border-color:#73c3f2;transform:translateY(-1px)}
+#config .cad-master-section button:focus-visible{outline:2px solid #93d7ff;outline-offset:3px}
+#config .cad-master-section button:disabled{opacity:.45;cursor:not-allowed;transform:none}
+#config .cad-master-section input[type=file]{padding:9px;border:1px dashed #54758e;border-radius:8px}
+#config .cad-master-section input[type=file]::file-selector-button{background:#204e72;color:#e9f6ff;border:1px solid #427eac;border-radius:6px;padding:7px 12px;margin-right:10px;cursor:pointer}
+#config #cadMasterMessage:not(:empty){padding:10px 12px;margin:9px 0;border-left:3px solid #56b8ec;background:#10354c;border-radius:5px}
