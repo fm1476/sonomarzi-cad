@@ -79,17 +79,59 @@ divider?.addEventListener('pointermove',e=>{if(!dragging)return;const rect=split
 divider?.addEventListener('pointerup',()=>dragging=false);
 divider?.addEventListener('pointercancel',()=>dragging=false);
 divider?.addEventListener('keydown',e=>{if(e.key==='ArrowLeft'||e.key==='ArrowRight'){e.preventDefault();applyWidth((Number(localStorage.getItem('smcad-calltake-split-v1'))||48)+(e.key==='ArrowLeft'?-3:3))}});
-// Persist native vertical resize handles without replacing the user's workspace layout.
-const sizeKey='smcad-calltake-panel-heights-v1';
+// Full-height panels with an entire bottom-edge drag target. Persist only user drags.
+const sizeKey='smcad-calltake-panel-heights-v2';
 const queuePanel=document.querySelector('#calltake .cad-calltake-queue');
 const editorPanel=$('cadCTEditor');
+const newCallPanel=$('cadCTNewForm');
+const rightPanel=document.querySelector('#calltake .cad-ct-right');
 let savedHeights={};try{savedHeights=JSON.parse(localStorage.getItem(sizeKey)||'{}')}catch{}
-const restoreHeight=(el,key)=>{const height=Number(savedHeights[key]);if(el&&Number.isFinite(height)&&height>=200&&height<=3000){el.style.height=height+'px';el.style.setProperty('--cad-ct-'+key+'-height',height+'px')}};
-restoreHeight(queuePanel,'queue');restoreHeight(editorPanel,'editor');
-if(typeof ResizeObserver==='function'){
- const observer=new ResizeObserver(entries=>{let changed=false;for(const entry of entries){const el=entry.target,key=el===queuePanel?'queue':'editor';if(el.hidden||!el.isConnected)continue;const height=Math.round(entry.borderBoxSize?.[0]?.blockSize||el.getBoundingClientRect().height);if(height>=200&&Math.abs(height-(savedHeights[key]||0))>2){savedHeights[key]=height;changed=true}}if(changed)localStorage.setItem(sizeKey,JSON.stringify(savedHeights))});
- if(queuePanel)observer.observe(queuePanel);
- if(editorPanel)observer.observe(editorPanel);
+const defaultHeight=()=>Math.max(550,window.innerHeight-95);
+function applyHeight(el,key){
+ if(!el)return;
+ const height=Number(savedHeights[key]);
+ el.style.height=(Number.isFinite(height)&&height>=350?height:defaultHeight())+'px';
 }
+function installBottomHandle(el,key){
+ if(!el)return;
+ const handle=document.createElement('div');
+ handle.className='cad-ct-bottom-handle';
+ handle.title='Drag anywhere on this bar to resize height';
+ handle.setAttribute('role','separator');
+ handle.setAttribute('aria-orientation','horizontal');
+ handle.setAttribute('aria-label','Resize '+key+' height');
+ handle.tabIndex=0;
+ el.appendChild(handle);
+ let startY=0,startHeight=0,active=false;
+ handle.addEventListener('pointerdown',e=>{
+  if(e.button!==0)return;
+  active=true;startY=e.clientY;startHeight=el.getBoundingClientRect().height;
+  handle.setPointerCapture(e.pointerId);e.preventDefault();
+ });
+ handle.addEventListener('pointermove',e=>{
+  if(!active)return;
+  el.style.height=Math.max(350,Math.min(2400,startHeight+e.clientY-startY))+'px';
+ });
+ const finish=()=>{if(!active)return;active=false;savedHeights[key]=Math.round(el.getBoundingClientRect().height);localStorage.setItem(sizeKey,JSON.stringify(savedHeights))};
+ handle.addEventListener('pointerup',finish);
+ handle.addEventListener('pointercancel',finish);
+ handle.addEventListener('keydown',e=>{
+  if(!['ArrowUp','ArrowDown'].includes(e.key))return;
+  e.preventDefault();
+  const height=Math.max(350,el.getBoundingClientRect().height+(e.key==='ArrowDown'?40:-40));
+  el.style.height=height+'px';savedHeights[key]=height;localStorage.setItem(sizeKey,JSON.stringify(savedHeights));
+ });
+}
+installBottomHandle(queuePanel,'queue');
+installBottomHandle(editorPanel,'editor');
+installBottomHandle(newCallPanel,'newCall');
+function applyPanelHeights(){
+ applyHeight(queuePanel,'queue');
+ applyHeight(editorPanel,'editor');
+ applyHeight(newCallPanel,'newCall');
+ if(rightPanel)rightPanel.style.minHeight=defaultHeight()+'px';
+}
+applyPanelHeights();
+window.addEventListener('resize',()=>{if(!savedHeights.queue)applyHeight(queuePanel,'queue');if(!savedHeights.editor)applyHeight(editorPanel,'editor');if(!savedHeights.newCall)applyHeight(newCallPanel,'newCall')});
 setTimeout(refresh,200);
 })();
