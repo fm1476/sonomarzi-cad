@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
 <meta name="theme-color" content="#0b1220"/>
 <title>SonoMarzi CAD POC</title>
-<link rel="stylesheet" href="styles.css?v=22.4"/>
+<link rel="stylesheet" href="styles.css?v=22.5"/>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 </head>
 <body>
@@ -113,7 +113,8 @@
   <section class="panel config">
     <h2>Agency Configuration</h2>
     <p>Changes below affect this browser immediately and persist locally.</p>
-    <label>Configuration section<select id="cadConfigSection" aria-label="Choose configuration section"><option value="master">Agencies &amp; Units</option><option value="cfs">Calls for Service</option><option value="self">Self-Initiated CFS</option><option value="places">Common Places</option><option value="phrases">Voice Phrases</option><option value="general">General &amp; Other Settings</option></select></label>
+    <label>Configuration section<select id="cadConfigSection" aria-label="Choose configuration section"><option value="master">Agencies &amp; Units</option><option value="cfs">Calls for Service</option><option value="self">Self-Initiated CFS</option><option value="places">Common Places</option><option value="phrases">Voice Phrases</option><option value="general">General &amp; Other Settings</option><option value="designer">Workspace &amp; Form Designer</option></select></label>
+    <div data-config-panel="designer" hidden><div class="cad-designer-entry"><div><h3>Workspace &amp; Form Designer</h3><p>Design the agency-wide Call Taking event form. Draft changes are private to this browser until published locally.</p></div><button type="button" class="primary" id="cadOpenFormDesigner">Open Designer ↗</button></div><div id="cadFormDesigner" hidden></div></div>
     <div data-config-panel="master" hidden>
       <h3>Agency Master Configuration</h3>
       <p>Permanent browser-local definitions, separate from resettable demonstration incidents and live unit statuses. Select Activate in CAD on a unit definition to add it to the live demo roster without replacing existing units.</p>
@@ -218,6 +219,7 @@
 <script src="core/radio-status-repair.js?v=1"></script>
 <script src="voice.js?v=21.3"></script>
 <script src="call-taking-workspace.js?v=14"></script>
+<script src="form-designer.js?v=1"></script>
 <script src="operations.js?v=18"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="core/gis-query.js?v=1"></script>
