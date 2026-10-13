@@ -268,20 +268,77 @@ function populate(){
  $('#cfgAgencies').value=(config.agencies||[]).join('\n');$('#cfgLaw').value=(config.types?.LAW||[]).join('\n');$('#cfgFire').value=(config.types?.FIRE||[]).join('\n');$('#cfgEms').value=(config.types?.EMS||[]).join('\n');
 }
 function updateTypes(){const d=$('#discipline').value;const types=[...new Set([...(defaultConfig.types[d]||[]),...(config.types?.[d]||[])])];$('#type').innerHTML=types.map(t=>`<option value="${escapeCad(t)}">${escapeCad(t)}</option>`).join('')}
+
+/* Live CAD address suggestions, independent of response-area polygon datasets. */
+window.cadAddressPicker=(input,disciplineFor,onVerified)=>{
+ if(!input||input.dataset.cadPickerInstalled)return;
+ input.dataset.cadPickerInstalled='1';
+ const wrap=document.createElement('div');wrap.className='cad-address-assist';
+ const badge=document.createElement('span');badge.className='cad-address-badge';badge.textContent='Not verified';badge.style.cssText='display:inline-flex;padding:5px 9px;margin:6px 0;border-radius:6px;border:1px solid #c75d5d;color:#ffc1c1;background:#40212b;font-size:12px;font-weight:700';
+ const list=document.createElement('div');list.setAttribute('role','listbox');list.style.cssText='display:none;position:relative;z-index:30;background:#10263b;border:1px solid #4b7395;border-radius:8px;max-height:210px;overflow:auto;box-shadow:0 8px 20px #0008';
+ wrap.append(badge,list);input.insertAdjacentElement('afterend',wrap);
+ let timer=0,seq=0,options=[],active=-1,verified=null;
+ const mark=(mode,label)=>{badge.textContent=label;const color=mode==='valid'?'#9df0b8':mode==='loading'?'#f5d38a':'#ffc1c1';badge.style.color=color;badge.style.borderColor=color;badge.style.background=mode==='valid'?'#173d2d':mode==='loading'?'#3c3420':'#40212b'};
+ const hide=()=>{list.style.display='none';list.replaceChildren();active=-1};
+ const invalidate=()=>{verified=null;input.dataset.cadVerified='';onVerified?.(null);mark('invalid',input.value.trim()?'Not verified':'Location required')};
+ const choose=async item=>{
+  hide();input.value=item.address;invalidate();mark('loading','Validating…');
+  const current=++seq,discipline=disciplineFor(),value=input.value.trim();
+  try{
+   const r=await window.CadIncidentZones.lookup(value,discipline);
+   if(current!==seq||input.value.trim()!==value||disciplineFor()!==discipline)return;
+   if(!r?.ok||!r.zones?.[discipline==='LAW'?'beat':'esz']){mark('invalid','Not verified');return}
+   verified={location:value,discipline,result:r};input.dataset.cadVerified='true';onVerified?.(verified);
+   mark('valid','✓ Valid · '+(discipline==='LAW'?'Beat ':'ESZ ')+r.zones[discipline==='LAW'?'beat':'esz']);
+  }catch(e){if(current===seq)mark('invalid','Validation unavailable')}
+ };
+ const draw=()=>{
+  list.replaceChildren();if(!options.length){hide();return}
+  options.forEach((item,n)=>{const b=document.createElement('button');b.type='button';b.setAttribute('role','option');b.setAttribute('aria-selected',String(n===active));b.textContent=item.address;b.style.cssText='display:block;width:100%;text-align:left;padding:10px 12px;background:'+(n===active?'#235478':'transparent')+';border:0;color:#eff8ff;cursor:pointer';b.addEventListener('mousedown',e=>e.preventDefault());b.addEventListener('click',()=>choose(item));list.append(b)});list.style.display='block';
+ };
+ const search=async query=>{
+  const request=++seq;mark('loading','Searching addresses…');
+  try{
+   const u=new URL('https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/suggest');
+   u.searchParams.set('text',/petaluma/i.test(query)?query:query+', Petaluma, CA');
+   u.searchParams.set('f','json');u.searchParams.set('maxSuggestions','6');
+   const response=await fetch(u);if(!response.ok)throw Error('Search unavailable');
+   const data=await response.json();if(data.error)throw Error(data.error.message||'Search unavailable');
+   if(request!==seq)return;
+   options=(data.suggestions||[]).map(x=>({address:x.text})).filter(x=>x.address);active=-1;draw();
+   mark('invalid','Not verified · select a suggestion');
+  }catch(e){if(request===seq){hide();mark('loading','Suggestions unavailable')}}
+ };
+ input.addEventListener('input',()=>{clearTimeout(timer);++seq;invalidate();hide();const q=input.value.trim();if(q.length>=3)timer=setTimeout(()=>search(q),300)});
+ input.addEventListener('keydown',e=>{if(list.style.display==='none')return;if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();active=(active+(e.key==='ArrowDown'?1:options.length-1))%options.length;draw()}else if(e.key==='Enter'&&active>=0){e.preventDefault();e.stopImmediatePropagation();choose(options[active])}else if(e.key==='Escape'){hide()}});
+ input.addEventListener('blur',()=>setTimeout(hide,180));
+ return {getVerified:()=>verified,invalidate};
+};
+
 $('#discipline').onchange=updateTypes;
+const cadNewLocation=$('#location');
+let cadNewVerified=null;
+window.cadAddressPicker(cadNewLocation,()=>$('#discipline').value,v=>{cadNewVerified=v});
+$('#discipline').addEventListener('change',()=>{cadNewVerified=null;cadNewLocation.dispatchEvent(new Event('input'))});
+
 $('#createCall').onclick=()=>{
  const agency=$('#agency').value.trim(),discipline=$('#discipline').value;
  const type=($('#customIncidentType').value.trim()||$('#type').value||'').trim();
  const location=$('#location').value.trim();
  if(!agency){toast('Select an agency');$('#agency').focus();return}
- if(!type){toast('Select a Call for Service type');$('#type').focus();return}
- if(!location){toast('Enter the call location');$('#location').focus();return}
+ if(!type){toast('Incident type is required');$('#type').focus();$('#type').style.outline='2px solid #ef7777';return}
+ if(!location){toast('Location is required');$('#location').focus();$('#location').style.outline='2px solid #ef7777';return}
  const id=`${String(new Date().getFullYear()).slice(-2)}-${String(++state.seq).padStart(6,'0')}`;
  const initialNote=$('#narrative').value.trim();
  const i={id,caseNumber:$('#newCaseNumber').value.trim().slice(0,80),agency,discipline,priority:$('#priority').value,type,location:window.cadCommonPlaces?.resolve(location)?.address||location,caller:$('#caller').value.trim(),phone:$('#phone').value.trim(),narrative:initialNote?[initialNote]:[],status:'PENDING',units:[],events:[]};
+ if(cadNewVerified&&cadNewVerified.location===location&&cadNewVerified.discipline===discipline){
+ const r=cadNewVerified.result;i.location=location;i.esz=r.zones.esz||null;i.beat=r.zones.beat||null;
+ i.responseZone=discipline==='LAW'?i.beat:i.esz;i.responseZoneReviewed=true;i.responseZoneSource='GIS_POINT_LOOKUP';
+ i.responseZoneLookup={address:r.address,lat:r.lat,lon:r.lon,source:r.source,at:new Date().toISOString(),original:discipline+'|'+location};
+}else{i.responseZoneReviewed=false;i.responseZoneSource='UNVERIFIED';event(i,'LOCATION_NOT_VERIFIED')}
  event(i,'CALL_CREATED');state.incidents.push(i);state.selected=id;save();
  for(const key of ['newCaseNumber','customIncidentType','location','caller','phone','narrative'])$('#'+key).value='';
- $('#priority').value='P2';
+ $('#priority').value='P2';cadNewVerified=null;cadNewLocation.dispatchEvent(new Event('input'));
  if(document.getElementById('calltake')?.classList.contains('active'))window.cadCallTakeSelect?.(id);else show('dispatch');
  toast('Pending call created: '+id);
 };
