@@ -76,7 +76,7 @@ const RESOURCE_TYPES={
  LAW:['PATROL','SUPERVISOR','TRAFFIC','K9','DETECTIVE','SWAT','MOTOR','OTHER']
 };
 /* Read-only response plan test bench. No incident or unit state is changed. */
-function testPlan(plan){
+function testPlan(plan,overrides={}){
  const master=(()=>{try{return window.CadAgencyMaster?.read(localStorage)||{units:[]}}catch{return {units:[]}}})();
  const roster=window.cadSafetyState?.().units||[];
  const chosen=new Set(),usedCrew=new Set(),rows=[];
@@ -94,7 +94,7 @@ function testPlan(plan){
  const candidates=roster.filter(u=>u.discipline===plan.discipline).map(u=>{
   const definition=(master.units||[]).find(m=>m.id===u.id||m.designator===u.id);
   const group=crews.find(g=>g.units.some(id=>id.toUpperCase()===String(u.id).toUpperCase()));
-  return {...u,resourceType:definition?.resourceType||infer(u),crewId:group?.id||null,definition};
+  return {...u,status:overrides[u.id]||u.status,resourceType:definition?.resourceType||infer(u),crewId:group?.id||null,definition};
  });
  const eligibility=u=>chosen.has(u.id)?'Already selected':String(u.status).toUpperCase()!=='AVAILABLE'?'Status: '+u.status:u.crewId&&usedCrew.has(u.crewId)?'Shared crew committed':null;
  for(const request of plan.resources){
@@ -129,14 +129,18 @@ function testPlan(plan){
  }
  return rows;
 }
-function drawTest(plan){
+function drawTest(plan,overrides={}){
  const host=el('rpTestResults');if(!host)return;
- const rows=testPlan(plan),short=rows.reduce((n,r)=>n+r.short,0);
+ const rows=testPlan(plan,overrides),short=rows.reduce((n,r)=>n+r.short,0);
+ const roster=(window.cadSafetyState?.().units||[]).filter(u=>u.discipline===plan.discipline);
  host.innerHTML='<h4>Simulation results — '+(short?'Resource shortfall':'All requested types matched')+'</h4>'+
- '<p>Read-only demo roster check. No units dispatched. Unit types without a master definition are inferred from designators for demo purposes. Staffing qualifications, travel time, and actual geographic closest-unit calculations are not verified.</p>'+
+ '<p>Read-only demo roster check. No units dispatched. Unit types without a master definition are inferred from designators for demo purposes. Staffing qualifications, travel time, and actual geographic closest-unit calculations are not verified.</p>'+ 
+ '<details class="rp-scenario"><summary>Test scenarios: change simulated unit availability</summary><p>Changes below affect only this simulation, not the actual unit roster.</p><div class="rp-scenario-grid">'+roster.map(u=>'<label>'+escape(u.id)+'<select data-sim-unit="'+escape(u.id)+'"><option value="">Actual: '+escape(u.status)+'</option><option value="AVAILABLE" '+(overrides[u.id]==='AVAILABLE'?'selected':'')+'>Simulate available</option><option value="UNAVAILABLE" '+(overrides[u.id]==='UNAVAILABLE'?'selected':'')+'>Simulate unavailable</option></select></label>').join('')+'</div><button type="button" id="rpScenarioReset">Reset scenario</button></details>'+
  rows.map(r=>'<div style="border:1px solid #36536c;border-radius:8px;padding:10px;margin:8px 0"><strong>'+escape(r.type)+' · '+r.selected.length+'/'+r.need+'</strong> — '+(r.selected.length?'Selected: '+escape(r.selected.join(', ')):'No eligible units selected')+
  (r.short?' <strong style="color:#ffb17c">Short '+r.short+'</strong>':'')+'<div style="font-size:12px;color:#a9bfd0">Run order: '+escape(r.rule)+'</div>'+
  (r.rejected.length?'<div style="font-size:12px;color:#a9bfd0">Excluded: '+r.rejected.map(x=>escape(x.id+' ('+x.reason+')')).join('; ')+'</div>':'')+'<details><summary>Why these units?</summary><ol>'+r.trace.map(t=>'<li>'+escape(t)+'</li>').join('')+'</ol></details></div>').join('');
+ host.querySelectorAll('[data-sim-unit]').forEach(select=>select.onchange=()=>{const next={...overrides};if(select.value)next[select.dataset.simUnit]=select.value;else delete next[select.dataset.simUnit];drawTest(plan,next)});
+ host.querySelector('#rpScenarioReset').onclick=()=>drawTest(plan,{});
 }
 function edit(id){
  const p=plans.find(x=>x.id===id);
