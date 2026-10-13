@@ -41,7 +41,7 @@ window.CadMapLayerCatalog=(map,api)=>{
   if(item.minZoom&&map.getZoom()<item.minZoom){layers.get(item.id)?.clearLayers();report(`${item.name}: zoom to level ${item.minZoom} or closer to display detailed features.`);return}
   const controller=new AbortController();pending.get(item.id)?.abort();pending.set(item.id,controller);
   const args=window.CadGISQuery.params(map.getBounds());
-  try{const res=await fetch(item.url+'/query?'+args,{signal:controller.signal});if(!res.ok)throw Error(`GIS HTTP ${res.status}`);const data=await res.json();if(!active.has(item.id)||pending.get(item.id)!==controller)return;if(data.error)throw Error(data.error.message||'GIS query error');
+  try{const res=await fetch(item.url+'/query?'+args,{signal:controller.signal});if(!res.ok)throw Error(`GIS HTTP ${res.status}`);const data=await res.json();if(!active.has(item.id)||pending.get(item.id)!==controller||map._popup?.isOpen?.())return;if(data.error)throw Error(data.error.message||'GIS query error');
    let group=layers.get(item.id);if(!group){group=L.layerGroup().addTo(map);layers.set(item.id,group)}group.clearLayers();
    if(data.type!=='FeatureCollection')throw Error('GeoJSON response unavailable');
    L.geoJSON(data,{style:{color:item.color,weight:2,fillColor:item.color,fillOpacity:.11,opacity:.8},pointToLayer:(feature,latlng)=>L.circleMarker(latlng,{radius:5,color:item.color,weight:2,fillOpacity:.45,fillColor:item.color}),onEachFeature:(f,layer)=>layer.bindPopup(`<strong>${esc(item.name)}</strong><br>${fieldText(f.properties)}<br><small>Public GIS reference; verify before use.</small>`,{autoPan:false,closeButton:true,autoClose:false})}).addTo(group);
@@ -50,7 +50,7 @@ window.CadMapLayerCatalog=(map,api)=>{
  }
  function refresh(){if(map.isPopupOpen?.()||map._popup?.isOpen?.())return;for(const item of LIST)if(active.has(item.id)&&!item.special&&!item.unavailable)void load(item)}
  map.on('moveend zoomend',refresh); // Data is viewport-scoped, never repositions map.
- map.on('popupclose',()=>{ /* Resume on the next user-driven map movement; do not redraw immediately. */ });
+ map.on('popupopen',()=>{for(const request of pending.values())request.abort()});
  function mount(host){if(!host)return;mountNode=host;const wrap=document.createElement('details');wrap.className='cad-gis-layers';wrap.innerHTML='<summary aria-label="Layers">Layers ▾</summary><div class="cad-gis-options"></div>';host.appendChild(wrap);
   let category='';const content=wrap.querySelector('.cad-gis-options');for(const item of LIST){if(item.category!==category){category=item.category;const h=document.createElement('strong');h.textContent=category;content.appendChild(h)}const label=document.createElement('label');const cb=document.createElement('input');cb.type='checkbox';cb.dataset.layer=item.id;cb.disabled=!!item.unavailable;cb.checked=active.has(item.id);cb.onchange=()=>set(item.id,cb.checked);label.append(cb,document.createTextNode(' '+item.name+(item.unavailable?' (feed unavailable)':'')));content.appendChild(label)}
   wrap.addEventListener('pointerdown',e=>e.stopPropagation());refresh();
