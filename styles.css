@@ -871,3 +871,6 @@ button.cad-station-card:hover,button.cad-station-card.is-selected{border-color:#
 .cad-station-move strong{margin-right:auto}
 .cad-station-move button{background:#245575;border:1px solid #547d99;color:#fff;border-radius:7px;padding:5px 8px;cursor:pointer}
 @media(max-width:950px){.cad-station-layout{grid-template-columns:minmax(0,1fr)}}
+
+/* Facility icon selection and map symbols */
+.cad-facility-icons{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin-top:8px}.cad-facility-icon-choice{display:flex;flex-direction:column;align-items:center;gap:5px;padding:9px 4px;min-height:68px;border:1px solid #526078;border-radius:9px;background:#142237;color:#e5edf8;cursor:pointer;font-size:11px;text-align:center}.cad-facility-icon-choice:hover{border-color:#88b9ff;background:#223650}.cad-facility-icon-choice.is-selected{border:2px solid #60a5fa;background:#1c3b5b;box-shadow:0 0 0 1px #60a5fa}.cad-facility-icon-choice span{line-height:1.25}.cad-facility-map-marker{background:transparent;border:0}.cad-facility-map-marker svg{filter:drop-shadow(0 2px 3px rgba(0,0,0,.5))}
