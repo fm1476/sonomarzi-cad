@@ -57,8 +57,8 @@ function renderConfig(){
  function addType(type){const existing=resources.find(x=>x.type===type);if(existing)existing.count++;else resources.push({type,count:1});drawResources()}
  function drawPalette(){
   const disc=$('almDisc').value,masterTypes=master().units.filter(u=>u.discipline===disc).map(u=>u.resourceType).filter(Boolean);
-  const types=[...new Set([...(typesByDisc[disc]||[]),...masterTypes])];
-  $('almPalette').innerHTML=types.map(t=>'<button type="button" class="cad-alarm-palette-tile" draggable="true" data-palette="'+esc(t)+'"><span>'+esc(symbols[t]||'▣')+'</span>'+esc(t)+'</button>').join('');
+  const agency=$('almAgency').value;const types=window.CadResourceTypes?.forAgency(agency,disc).map(x=>x.name)||[];
+  $('almPalette').innerHTML=types.map(t=>'<button type="button" class="cad-alarm-palette-tile" draggable="true" data-palette="'+esc(t)+'"><span>'+esc(symbols[t]||'▣')+'</span>'+esc(t)+'</button>').join('')||'<p>No resource types configured for this agency. Add them under Agencies & Units.</p>';
   $('almPalette').querySelectorAll('[data-palette]').forEach(btn=>{
    btn.onclick=()=>addType(btn.dataset.palette);
    btn.ondragstart=e=>{e.dataTransfer.setData('text/plain','palette:'+btn.dataset.palette);e.dataTransfer.effectAllowed='copy'}
@@ -85,7 +85,7 @@ function renderConfig(){
   $('almList').querySelectorAll('[data-delete]').forEach(b=>b.onclick=()=>{if(!confirm('Delete this local alarm level?'))return;configs=configs.filter(x=>x.id!==b.dataset.delete);localStorage.setItem(KEY,JSON.stringify(configs));drawList()});
  }
  function updateTypes(){const cfg=read('smcad-config-v1',{});const d=$('almDisc').value;const types=[...new Set([...(cfg.types?.[d]||[]),...plans().filter(p=>p.discipline===d).map(p=>p.type)])];$('almCallTypes').innerHTML=types.map(x=>'<option>'+esc(x)+'</option>').join('')}
- $('almDisc').onchange=()=>{updateTypes();drawPalette()};updateTypes();drawPalette();drawResources();drawList();
+ $('almDisc').onchange=()=>{updateTypes();drawPalette()};$('almAgency').onchange=drawPalette;updateTypes();drawPalette();drawResources();drawList();
  $('almAddResource').onclick=()=>addType((typesByDisc[$('almDisc').value]||['ENGINE'])[0]);
  $('almCancel').onclick=()=>{currentId='';renderConfig()};
  $('almSave').onclick=()=>{
