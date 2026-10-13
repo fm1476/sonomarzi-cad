@@ -149,15 +149,33 @@ function edit(id){
  const defaults=discipline==='LAW'?[{type:'PATROL',count:2},{type:'SUPERVISOR',count:1}]:discipline==='EMS'?[{type:'AMBULANCE',count:1},{type:'ENGINE',count:1}]:[{type:'ENGINE',count:2},{type:'TRUCK',count:1},{type:'CHIEF',count:1}];
  let resources=(p?.resources||defaults).map(r=>({...r}));
  let runOrders=structuredClone(p?.runOrders||{});
- const options=RESOURCE_TYPES[discipline];
+ const master=(()=>{try{return window.CadAgencyMaster?.read(localStorage)||{units:[],agencies:[]}}catch{return {units:[],agencies:[]}}})();
+ const options=[...new Set([...RESOURCE_TYPES[discipline],...(master.units||[]).filter(u=>u.discipline===discipline).map(u=>u.resourceType).filter(Boolean)])];
+ const roster=(window.cadSafetyState?.().units||[]).filter(u=>u.discipline===discipline);
+ const agencyFor=u=>master.agencies?.find(a=>a.id===u.agencyId)?.name||'';
+ const availableUnits=[...new Map([...roster.map(u=>[u.agency+'|'+u.id,{id:u.id,agency:u.agency,type:(master.units||[]).find(m=>m.id===u.masterUnitId)?.resourceType||''}]),...(master.units||[]).filter(u=>u.discipline===discipline).map(u=>[agencyFor(u)+'|'+u.designator,{id:u.designator,agency:agencyFor(u),type:u.resourceType||''}])].map(([k,v])=>[k,v])).values()];
+ const symbols={ENGINE:'🚒',TRUCK:'🪜',LADDER:'🪜',RESCUE:'🚑',BRUSH:'🌲',CHIEF:'⭐',TENDER:'💧',MEDIC:'🚑',AMBULANCE:'🚑',PATROL:'🚓',SUPERVISOR:'⭐',K9:'🐕',SWAT:'🛡️'};
+
  el('rpEditor').innerHTML='<h4>'+(p?'Edit Plan':'New Plan')+' — '+escape(discipline==='LAW'?'Beat ':'ESZ ')+escape(zone)+'</h4>'+
  '<label>Call type<select id="rpType">'+cfsOptions(discipline,p?.type).map(type=>'<option value="'+escape(type)+'" '+(type===p?.type?'selected':'')+'>'+escape(type)+'</option>').join('')+'</select></label>'+
  '<label>Response level<select id="rpLevel"><option>First Alarm</option><option>Working Fire</option><option>Second Alarm</option><option>Standard</option></select></label>'+
  '<label>Selection method<select id="rpMethod"><option>HYBRID</option><option>CLOSEST</option><option>RUN_CARD</option></select></label>'+
  '<h4>Response resources</h4><p>Choose resource types, set quantities, and use the arrows to establish dispatch order.</p>'+
- '<div id="rpResourceCards"></div><h4>Visual Run Order Builder</h4><p>Define preferred units or station/beat locations for each resource type. Drag a rule by its grip to change priority. Unmatched resources fall back to roster order in this prototype.</p><div id="rpRunOrders"></div><button id="rpAddResource" type="button">+ Add Resource</button><button id="rpTest" type="button" style="margin-left:8px">Test Response Plan</button><div id="rpTestResults" role="status" aria-live="polite"></div>'+
+ '<div class="rp-palette-wrap"><div><strong>Resource types</strong><p>Drag or click a tile to add it to the assignment.</p><div id="rpTypePalette" class="rp-palette"></div></div><div class="rp-palette-drop"><strong>Response assignment</strong><div id="rpResourceCards"></div></div></div><h4>Visual Run Order Builder</h4><p>Define preferred units or station/beat locations for each resource type. Drag a rule by its grip to change priority. Unmatched resources fall back to roster order in this prototype.</p><div id="rpRunOrders"></div><button id="rpAddResource" type="button">+ Add Resource</button><button id="rpTest" type="button" style="margin-left:8px">Test Response Plan</button><div id="rpTestResults" role="status" aria-live="polite"></div>'+
  '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:18px"><button id="rpDraft" type="button">Save Draft</button><button id="rpPublish" type="button">Publish Locally</button></div><p id="rpSaveFeedback" role="status" aria-live="polite" style="margin-top:10px;font-weight:700"></p>';
  el('rpLevel').value=p?.level||'Standard';el('rpMethod').value=p?.method||'HYBRID';
+ function renderPalettes(){
+  el('rpTypePalette').innerHTML=options.map(t=>'<button type="button" draggable="true" class="rp-palette-pill" data-type-pill="'+escape(t)+'">'+escape(symbols[t]||'▣')+' '+escape(t)+'</button>').join('');
+  el('rpTypePalette').querySelectorAll('[data-type-pill]').forEach(b=>{b.onclick=()=>addResource(b.dataset.typePill);b.ondragstart=e=>{e.dataTransfer.setData('text/plain','resource:'+b.dataset.typePill);e.dataTransfer.effectAllowed='copy'}});
+  el('rpUnitPalette').innerHTML=availableUnits.map(u=>'<button type="button" draggable="true" class="rp-palette-pill" data-unit-pill="'+escape(u.id)+'" data-unit-type="'+escape(u.type)+'" title="'+escape(u.agency)+'">'+escape(symbols[u.type]||'▣')+' '+escape(u.id)+' <small>'+escape(u.agency)+'</small></button>').join('')||'<p>No agency units found for this discipline.</p>';
+  el('rpUnitPalette').querySelectorAll('[data-unit-pill]').forEach(b=>{b.onclick=()=>addUnit(b.dataset.unitPill,b.dataset.unitType);b.ondragstart=e=>{e.dataTransfer.setData('text/plain','unit:'+b.dataset.unitPill+'|'+b.dataset.unitType);e.dataTransfer.effectAllowed='copy'}});
+ }
+ function addResource(type){const found=resources.find(r=>r.type===type);if(found)found.count=Math.min(99,Number(found.count)+1);else resources.push({type,count:1});drawResources();drawOrders()}
+ function addUnit(id,type){
+  const target=type&&resources.some(r=>r.type===type)?type:resources.length===1?resources[0].type:null;
+  if(!target){msg('Add the matching resource type first, then drop the unit onto that run-order card.');return}
+  (runOrders[target]??=[]).push({kind:'UNIT',value:id});drawOrders();msg(id+' added to '+target+' run order. No live dispatch changes.');
+ }
  function drawResources(){
   el('rpResourceCards').innerHTML=resources.map((resource,i)=>'<div data-resource-index="'+i+'" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;border:1px solid #34536d;border-radius:10px;padding:12px;margin:8px 0;background:rgba(31,75,109,.22)">'+
    '<strong style="min-width:30px">'+(i+1)+'.</strong>'+
@@ -179,6 +197,8 @@ function edit(id){
    (runOrders[type]||[]).map((step,i)=>'<div class="rp-run-step" draggable="true" data-step="'+i+'"><span class="rp-run-grip" title="Drag to reorder">⠿</span><strong>'+(i+1)+'</strong><select data-run-kind="'+i+'"><option value="UNIT" '+(step.kind==='UNIT'?'selected':'')+'>Specific unit</option><option value="EITHER" '+(step.kind==='EITHER'?'selected':'')+'>Either unit</option><option value="LOCATION" '+(step.kind==='LOCATION'?'selected':'')+'>Station / beat</option><option value="CLOSEST" '+(step.kind==='CLOSEST'?'selected':'')+'>Closest (placeholder)</option></select><input data-run-value="'+i+'" value="'+escape(step.value||'')+'" placeholder="E1, or E1,E2, or Station 1"><button data-run-remove="'+i+'" type="button">Remove</button></div>').join('')+
    '<button data-run-add type="button">+ Add run-order step</button><p class="rp-rule-explain" style="font-size:12px;color:#a9bfd0">'+escape((runOrders[type]||[]).map((step,i)=>(i+1)+'. '+({UNIT:'Prefer unit',EITHER:'Choose first eligible from',LOCATION:'Prefer units at',CLOSEST:'Closest eligible unit (not yet implemented)'}[step.kind]||step.kind)+' '+(step.value||'')).join(' · ')||'No preference set; use demo roster order')+'</p></section>').join('');
   el('rpRunOrders').querySelectorAll('[data-run-type]').forEach(group=>{
+   group.ondragover=e=>{if(e.dataTransfer.types.includes('text/plain'))e.preventDefault()};
+   group.ondrop=e=>{const v=e.dataTransfer.getData('text/plain');if(!v.startsWith('unit:'))return;e.preventDefault();e.stopPropagation();const [id,type]=v.slice(5).split('|');if(type&&type!==group.dataset.runType){msg(id+' is configured as '+type+'. Drop it on the matching resource card.');return}(runOrders[group.dataset.runType]??=[]).push({kind:'UNIT',value:id});drawOrders()};
    const type=group.dataset.runType;
    group.querySelector('[data-run-add]').onclick=()=>{(runOrders[type]??=[]).push({kind:'UNIT',value:''});drawOrders()};
    group.querySelectorAll('[data-run-kind]').forEach(x=>x.onchange=()=>{runOrders[type][Number(x.dataset.runKind)].kind=x.value;drawOrders()});
@@ -192,7 +212,10 @@ function edit(id){
    });
   });
  }
- drawOrders();
+ drawOrders();renderPalettes();
+ const resourceDrop=el('rpResourceCards');
+ resourceDrop.ondragover=e=>e.preventDefault();
+ resourceDrop.ondrop=e=>{const v=e.dataTransfer.getData('text/plain');if(v.startsWith('resource:')){e.preventDefault();addResource(v.slice(9))}};
  el('rpResourceCards').addEventListener('change',e=>{if(e.target.matches('[data-resource-type]'))setTimeout(drawOrders,0)});
  el('rpAddResource').onclick=()=>{resources.push({type:options[0],count:1});drawResources();drawOrders()};
  el('rpTest').onclick=()=>{const requested=resources.map(r=>({...r,count:Number(r.count)}));if(!requested.length||requested.some(r=>!r.type||!Number.isInteger(r.count)||r.count<1))return msg('Enter valid resources before testing.');drawTest({discipline,resources:requested,runOrders})};
