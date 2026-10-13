@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
 <meta name="theme-color" content="#0b1220"/>
 <title>SonoMarzi CAD POC</title>
-<link rel="stylesheet" href="styles.css?v=22.9"/>
+<link rel="stylesheet" href="styles.css?v=23.0"/>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 </head>
 <body>
@@ -113,7 +113,7 @@
   <section class="panel config">
     <h2>Agency Configuration</h2>
     <p>Changes below affect this browser immediately and persist locally.</p>
-    <label>Configuration section<select id="cadConfigSection" aria-label="Choose configuration section"><option value="master">Agencies &amp; Units</option><option value="cfs">Calls for Service</option><option value="self">Self-Initiated CFS</option><option value="places">Common Places</option><option value="phrases">Voice Phrases</option><option value="general">General &amp; Other Settings</option><option value="designer">Workspace &amp; Form Designer</option></select></label>
+    <label>Configuration section<select id="cadConfigSection" aria-label="Choose configuration section"><option value="master">Agencies &amp; Units</option><option value="response">Response Plan Designer</option><option value="cfs">Calls for Service</option><option value="self">Self-Initiated CFS</option><option value="places">Common Places</option><option value="phrases">Voice Phrases</option><option value="general">General &amp; Other Settings</option><option value="designer">Workspace &amp; Form Designer</option></select></label>
     <div data-config-panel="designer" hidden><div class="cad-designer-entry"><div><h3>Workspace &amp; Form Designer</h3><p>Design the agency-wide Call Taking event form. Draft changes are private to this browser until published locally.</p></div><button type="button" class="primary" id="cadOpenFormDesigner">Open Designer ↗</button></div><div id="cadFormDesigner" hidden></div></div>
     <div data-config-panel="master" hidden>
       <h3>Agency Master Configuration</h3>
@@ -141,12 +141,13 @@
       </div><button type="button" id="cadMasterAddUnit">Add Unit</button>
       <div id="cadMasterMessage" role="status" aria-live="polite"></div>
       <div id="cadMasterList"></div>
-      </div><div class="cad-master-section" id="cadResponseDesigner"></div>
+      </div>
       <div class="cad-master-section"><h4>Configuration Backup</h4>
       <button type="button" id="cadMasterExport">Export Agency Master JSON</button>
       <label>Import Agency Master JSON<input type="file" id="cadMasterImport" accept=".json,application/json"></label>
       </div>
     </div>
+    <div data-config-panel="response" hidden><div class="cad-master-section" id="cadResponseDesigner"></div></div>
     <div data-config-panel="general" hidden>
     <label>Agencies<textarea id="cfgAgencies"></textarea></label>
     </div>
