@@ -98,11 +98,11 @@
       <label>Agency<select id="agency"></select></label>
       <label>Discipline<select id="discipline"><option>LAW</option><option>FIRE</option><option>EMS</option></select></label>
       <label>Case Number (optional)<input id="newCaseNumber" placeholder="e.g. 26-000123"/></label><label>Priority<select id="priority"><option>P1</option><option selected>P2</option><option>P3</option><option>P4</option></select></label>
-      <label>Incident Type<select id="type"></select></label><label>Custom Incident Type<input id="customIncidentType" placeholder="e.g. Unwanted Subject (optional)"/></label>
-      <label class="span2">Location<input id="location" value="123 Main St"/></label>
-      <label>Caller<input id="caller" value="Jane Caller"/></label>
-      <label>Phone<input id="phone" value="707-555-0100"/></label>
-      <label class="span2">Narrative<textarea id="narrative">Caller reports a disturbance in progress.</textarea></label>
+      <label>Call for Service<select id="type"></select></label><label>Other CFS (optional)<input id="customIncidentType" placeholder="e.g. Unwanted Subject (optional)"/></label>
+      <label class="span2">Location<input id="location" autocomplete="off" placeholder="Enter incident location"/></label>
+      <label>Caller<input id="caller" autocomplete="off" placeholder="Caller name"/></label>
+      <label>Phone<input id="phone" autocomplete="off" placeholder="Callback number"/></label>
+      <label class="span2">Narrative<textarea id="narrative" placeholder="Enter initial call narrative"></textarea></label>
     </div>
     <button id="createCall" class="primary">Create Call</button>
   </section>
@@ -202,7 +202,7 @@
 </footer>
 <div id="toast"></div>
 <script src="core/discipline.js?v=1"></script>
-<script src="app.js?v=21.9"></script>
+<script src="app.js?v=22.0"></script>
 <script src="core/agency-phrases.js?v=1"></script>
 <script src="core/intent-catalog.js?v=1"></script>
 <script src="core/command-gate.js?v=1"></script>
