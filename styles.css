@@ -809,3 +809,16 @@ header :is(button,select){max-width:100%}
 .cad-alarm-palette-tile .cad-vehicle-icon,.cad-alarm-symbol .cad-vehicle-icon,.rp-palette-pill .cad-vehicle-icon,.rp-resource-icon .cad-vehicle-icon{width:43px;height:29px;flex:none}
 .cad-map-unit-symbol .cad-vehicle-icon{width:27px;height:19px;display:block}
 .rp-resource-icon{display:inline-flex;align-items:center}
+
+/* Resource type catalog: clean card layout, icon previews and stable actions */
+.cad-rt-cards{grid-template-columns:repeat(auto-fill,minmax(min(100%,330px),1fr));gap:12px}
+.cad-rt-card{display:grid;grid-template-columns:12px 52px minmax(0,1fr);grid-template-rows:auto auto;column-gap:11px;row-gap:9px;align-items:center;min-width:0;padding:13px 14px}
+.cad-rt-card .cad-rt-grip{grid-column:1;grid-row:1/3;cursor:grab}
+.cad-rt-card .cad-rt-icon{grid-column:2;grid-row:1;display:flex;align-items:center;justify-content:center;min-width:0;min-height:35px;font-size:20px;overflow:hidden}
+.cad-rt-card .cad-rt-icon .cad-vehicle-icon{width:50px;height:34px;max-width:100%;display:block}
+.cad-rt-card strong{grid-column:3;grid-row:1;font-size:14px;line-height:1.3;overflow-wrap:normal;word-break:normal;min-width:0}
+.cad-rt-card button{font-size:12px;white-space:nowrap;padding:7px 10px}
+.cad-rt-card button[data-icon-edit]{grid-column:2;grid-row:2}
+.cad-rt-card button[data-edit]{grid-column:3;grid-row:2;justify-self:start}
+.cad-rt-card button[data-remove]{grid-column:3;grid-row:2;justify-self:end}
+@media(max-width:390px){.cad-rt-card{grid-template-columns:10px 42px minmax(0,1fr)}.cad-rt-card button{padding:6px 7px;font-size:11px}}
