@@ -708,3 +708,10 @@ header :is(button,select){max-width:100%}
 #rpRunOrders .rp-run-step button{grid-column:4;grid-row:1/3;align-self:center}
 #rpRunOrders .rp-run-step :is(input,select){box-sizing:border-box;max-width:100%}
 @media(max-width:780px){#rpResourceCards,#rpRunOrders{grid-template-columns:minmax(0,1fr)}}
+
+/* Compact what-if scenario controls inside response plan simulation */
+#rpTestResults .rp-scenario{border:1px solid #36536c;border-radius:8px;padding:10px;margin:10px 0}
+#rpTestResults .rp-scenario summary{cursor:pointer;font-weight:700}
+#rpTestResults .rp-scenario-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,175px),1fr));gap:8px;margin:10px 0}
+#rpTestResults .rp-scenario-grid label{display:flex;flex-direction:column;gap:4px;min-width:0;margin:0}
+#rpTestResults .rp-scenario-grid select{width:100%;min-width:0;box-sizing:border-box}
