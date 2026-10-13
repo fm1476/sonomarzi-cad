@@ -760,3 +760,28 @@ header :is(button,select){max-width:100%}
 .rp-palette-drop #rpResourceCards{margin-top:8px}
 #rpRunOrders .rp-run-group{min-height:105px}
 @media(max-width:850px){.rp-palette-wrap{grid-template-columns:minmax(0,1fr)}}
+
+/* Professional CAD configuration controls — explicitly override browser defaults */
+#cadAlarmManager .cad-alarm-builder{grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);align-items:stretch}
+#cadAlarmManager .cad-alarm-builder>div,.rp-palette-wrap>div,.rp-unit-palette-box{background:linear-gradient(155deg,#102338,#0d1d2e);border:1px solid #29475f;border-radius:14px;padding:16px;box-shadow:0 5px 18px rgba(0,0,0,.12)}
+#cadAlarmManager .cad-alarm-builder strong,.rp-palette-wrap strong,.rp-unit-palette-box strong{font-size:14px;letter-spacing:.01em;color:#e9f2fa}
+#cadAlarmManager .cad-alarm-palette{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,138px),1fr));gap:9px;align-content:start}
+#cadAlarmManager button.cad-alarm-palette-tile,.rp-palette button.rp-palette-pill{appearance:none!important;-webkit-appearance:none!important;box-sizing:border-box!important;min-width:0!important;width:100%;max-width:100%;min-height:48px;padding:10px 12px!important;border:1px solid #365775!important;border-radius:10px!important;background:#183148!important;color:#eaf4fc!important;font:600 12px/1.35 inherit;letter-spacing:.02em;box-shadow:none!important;display:flex;align-items:center;gap:10px;justify-content:flex-start;white-space:normal;overflow-wrap:anywhere;overflow:hidden;text-align:left;cursor:grab;transition:background .16s,border-color .16s,transform .16s}
+#cadAlarmManager button.cad-alarm-palette-tile span{flex:0 0 auto;font-size:21px;line-height:1.1}
+#cadAlarmManager button.cad-alarm-palette-tile:hover,.rp-palette button.rp-palette-pill:hover{background:#244660!important;border-color:#64b8e5!important;transform:translateY(-1px)}
+#cadAlarmManager button.cad-alarm-palette-tile:active,.rp-palette button.rp-palette-pill:active{cursor:grabbing;transform:translateY(0)}
+#cadAlarmManager button.cad-alarm-palette-tile:focus-visible,.rp-palette button.rp-palette-pill:focus-visible{outline:2px solid #81d3ff;outline-offset:2px}
+#cadAlarmManager .cad-alarm-tile{background:#172e43;border-color:#3b617c;box-shadow:0 2px 7px rgba(0,0,0,.12);min-height:48px}
+#cadAlarmManager .cad-alarm-qty button,#cadAlarmManager .cad-alarm-tile>button{appearance:none;background:#24445f;color:#e9f4fc;border:1px solid #426784;border-radius:7px;cursor:pointer;min-width:29px;min-height:29px}
+#cadAlarmManager .cad-alarm-qty button:hover,#cadAlarmManager .cad-alarm-tile>button:hover{background:#326083}
+#cadAlarmManager button#almAddResource,#cadAlarmManager button#almCancel,#cadAlarmManager button#almSave,#cadAlarmManager .cad-alarm-entry button{appearance:none!important;background:#1b354b!important;color:#e8f2fa!important;border:1px solid #3d627f!important;border-radius:9px!important;padding:10px 15px!important;font-weight:650;min-height:39px;cursor:pointer;margin:5px 6px 5px 0}
+#cadAlarmManager button#almSave{background:#176b9b!important;border-color:#329bd1!important;color:#fff!important}
+#cadAlarmManager button#almSave:hover{background:#2181b7!important}
+#cadAlarmManager button#almAddResource:hover,#cadAlarmManager button#almCancel:hover,#cadAlarmManager .cad-alarm-entry button:hover{background:#284d69!important}
+.rp-palette{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,138px),1fr));gap:8px}
+.rp-palette button.rp-palette-pill{border-radius:10px!important;min-height:44px}
+.rp-palette button.rp-palette-pill small{display:block;color:#a7c3d8;font-weight:450;overflow-wrap:anywhere}
+#rpResourceCards>[data-resource-index],#rpRunOrders .rp-run-group{background:#132b3e!important;border-color:#375c77!important;border-radius:11px!important}
+#rpEditor button:not(.rp-palette-pill){border-radius:8px}
+@media(max-width:1000px){#cadAlarmManager .cad-alarm-builder{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:600px){#cadAlarmManager .cad-alarm-palette,.rp-palette{grid-template-columns:repeat(2,minmax(0,1fr))}}
