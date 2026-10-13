@@ -266,6 +266,7 @@ function cadFormatPhone(raw){
  if(local.length>3&&local.length<=6)return '('+local.slice(0,3)+') '+local.slice(3);
  return local;
 }
+window.cadPhoneNormalize=raw=>cadPhoneCanonical(raw);
 function cadPhoneCanonical(raw){
  const value=String(raw||'').trim(),digits=value.replace(/\D/g,'');
  if(!value)return {ok:true,canonical:'',formatted:''};
