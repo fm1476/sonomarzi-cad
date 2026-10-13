@@ -7,7 +7,10 @@
 <title>SonoMarzi CAD POC</title>
 <link rel="stylesheet" href="styles.css?v=25.1"/>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-</head>
+<style>
+.cad-alarm-chip{display:inline-flex;align-items:center;margin:3px 0 3px 8px;padding:3px 9px;border-radius:999px;background:#7b341d;color:#fff1db;border:1px solid #df874b;font-size:11px;font-weight:800;letter-spacing:.3px;white-space:nowrap;vertical-align:middle}
+.cad-alarm-chip-header{font-size:12px;padding:5px 11px;background:#923c22}
+</style></head>
 <body>
 <header>
   <div class="cad-brand-and-tabs"><div class="cad-brand"><b>SONOMARZI CAD</b><span class="badge">POC</span></div><nav class="cad-header-tabs" aria-label="Main navigation"><button data-view="dispatch" class="active">Dispatch</button><button data-view="calltake">Call Taking</button><button data-view="config">Configuration</button></nav></div>
@@ -210,7 +213,7 @@
 </footer>
 <div id="toast"></div>
 <script src="core/discipline.js?v=1"></script>
-<script src="app.js?v=34"></script>
+<script src="app.js?v=35"></script>
 <script src="core/agency-phrases.js?v=1"></script>
 <script src="core/intent-catalog.js?v=1"></script>
 <script src="core/command-gate.js?v=1"></script>
@@ -223,13 +226,13 @@
 <script src="resource-types.js?v=4"></script>
 <script src="agency-master-settings.js?v=7"></script>
 
-<script src="board-layout.js?v=21.1"></script>
+<script src="board-layout.js?v=22"></script>
 <script src="incident-intelligence.js?v=18.3"></script>
 <script src="core/voice-text.js?v=1"></script>
 <script src="core/radio-incomplete.js?v=1"></script>
 <script src="core/radio-status-repair.js?v=1"></script>
 <script src="voice.js?v=21.3"></script>
-<script src="call-taking-workspace.js?v=15"></script>
+<script src="call-taking-workspace.js?v=16"></script>
 <script src="form-designer.js?v=3"></script>
 <script src="operations.js?v=18"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -342,7 +345,7 @@ window.CadIncidentZones={async lookup(location,discipline){
 }};
 </script>
 <script src="station-manager.js?v=6"></script><script src="response-plan-designer.js?v=29"></script>
-<script src="alarm-levels.js?v=5"></script>
+<script src="alarm-levels.js?v=6"></script>
 <script src="demo-tools.js?v=18"></script>
 <script src="extended-ops.js?v=18"></script>
 <script src="structured-command.js?v=19.6"></script>
