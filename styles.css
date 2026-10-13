@@ -463,3 +463,11 @@ header nav.cad-header-tabs button{position:relative;z-index:102;pointer-events:a
 #calltake .cad-ct-record-title{display:flex;align-items:center;justify-content:space-between;font-weight:650}
 #calltake .cad-ct-section button{background:#173f5c;border:1px solid #417fa8;color:#e7f5ff;border-radius:7px;padding:8px 11px;cursor:pointer}
 #calltake .cad-ct-section button:hover{background:#24658b}
+
+/* Make queue and editor contents follow the outer resizable panel */
+#calltake .cad-calltake-queue{display:flex;flex-direction:column;overflow:hidden}
+#calltake .cad-calltake-queue #cadCTQueue{flex:1;min-height:0;max-height:none!important;overflow-y:auto}
+#calltake .cad-ct-right>#cadCTEditor:not([hidden]){display:flex;flex-direction:column;overflow:auto;box-sizing:border-box}
+#calltake .cad-ct-right>#cadCTEditor:not([hidden]) #cadCTForm{flex:0 0 auto;min-width:0}
+#calltake .cad-ct-section select{width:100%;background:#091c2c;color:#e6f5ff;border:1px solid #3b617e;border-radius:6px;padding:8px}
+#calltake .cad-ct-section .cad-ct-danger{background:#793044;border-color:#bd586b}
