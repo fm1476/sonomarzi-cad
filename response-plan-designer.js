@@ -97,10 +97,14 @@ const RESOURCE_TYPES={
  LAW:['PATROL','SUPERVISOR','TRAFFIC','K9','DETECTIVE','SWAT','MOTOR','OTHER']
 };
 /* Read-only response plan test bench. No incident or unit state is changed. */
-function testPlan(plan,overrides={}){
+function testPlan(plan,overrides={},incident=null){
  const master=(()=>{try{return window.CadAgencyMaster?.read(localStorage)||{units:[]}}catch{return {units:[]}}})();
  const roster=window.cadSafetyState?.().units||[];
  const chosen=new Set(),usedCrew=new Set(),usedPersonnel=new Set(),rows=[];
+ const committed=new Set(incident?.units||[]);
+ const open=window.cadSafetyState?.().incidents||[];
+ const globallyCommitted=new Set(open.filter(i=>i.status!=='CLOSED').flatMap(i=>i.units||[]));
+ for(const id of globallyCommitted){const g=crews.find(g=>(g.units||[]).some(x=>String(x).toUpperCase()===String(id).toUpperCase()));if(g)usedCrew.add(g.id)}
  const infer=u=>{
   const id=String(u.id||'').toUpperCase();
   if(u.discipline==='LAW')return /K9/.test(id)?'K9':/MOTOR|M[0-9]/.test(id)?'MOTOR':'PATROL';
@@ -117,9 +121,11 @@ function testPlan(plan,overrides={}){
   const group=crews.find(g=>(!g.agency||g.agency===u.agency)&&g.units.some(id=>id.toUpperCase()===String(u.id).toUpperCase()));
   return {...u,status:overrides[u.id]?.status||u.status,simStaff:overrides[u.id]?.staff,resourceType:definition?.resourceType||infer(u),crewId:group?.id||null,definition};
  });
- const eligibility=u=>{if(chosen.has(u.id))return 'Already selected';if(String(u.status).toUpperCase()!=='AVAILABLE')return 'Status: '+u.status;if(u.crewId&&usedCrew.has(u.crewId))return 'Shared crew committed';if(u.staffing?.active&&u.staffing.personIds?.some(id=>usedPersonnel.has(id)))return 'Signed-on personnel already committed';const required=Number(u.definition?.minStaffing||0);if(required>0){if(u.simStaff===undefined||u.simStaff===null||u.simStaff==='')return 'Staffing unverified (requires '+required+')';if(Number(u.simStaff)<required)return 'Understaffed: '+u.simStaff+' of '+required+' required'}return null};
+ const eligibility=u=>{if(chosen.has(u.id))return 'Already selected';if(globallyCommitted.has(u.id))return 'Already committed';if(String(u.status).toUpperCase()!=='AVAILABLE')return 'Status: '+u.status;if(u.crewId&&usedCrew.has(u.crewId))return 'Shared crew committed';if(u.staffing?.active&&u.staffing.personIds?.some(id=>usedPersonnel.has(id)))return 'Signed-on personnel already committed';const required=Number(u.definition?.minStaffing||0);if(required>0){if(u.simStaff===undefined||u.simStaff===null||u.simStaff==='')return 'Staffing unverified (requires '+required+')';if(Number(u.simStaff)<required)return 'Understaffed: '+u.simStaff+' of '+required+' required'}return null};
  for(const request of plan.resources){
-  const selected=[],rejected=[],trace=[];const need=Number(request.count)||0;
+  const selected=[],rejected=[],trace=[];const requested=Number(request.count)||0;
+  const already=incident?Array.from(committed).filter(id=>{const unit=roster.find(u=>u.id===id);if(!unit)return false;const def=(master.units||[]).find(m=>m.id===unit.masterUnitId||m.designator===unit.id);return (def?.resourceType||infer(unit))===request.type}).length:0;
+  const need=Math.max(0,requested-already);
   const pool=candidates.filter(x=>x.resourceType===request.type);
   const rule=(plan.runOrders||{})[request.type]||[];
   const tryUnit=(u,why)=>{
@@ -146,7 +152,7 @@ function testPlan(plan,overrides={}){
    trace.push('Using unranked demo-roster fallback for '+(need-selected.length)+' remaining resource(s)');
    for(const u of pool){if(selected.length>=need)break;if(chosen.has(u.id))continue;tryUnit(u,'roster fallback')}
   }
-  rows.push({type:request.type,need,selected,rejected,short:Math.max(0,need-selected.length),trace,rule:rule.length?rule.map(x=>x.kind+' '+(x.value||'')).join(' → '):'No configured preference'});
+  rows.push({type:request.type,requested,already,need,selected,rejected,short:Math.max(0,need-selected.length),trace,rule:rule.length?rule.map(x=>x.kind+' '+(x.value||'')).join(' → '):'No configured preference'});
  }
  return rows;
 }
@@ -250,6 +256,6 @@ function edit(id){
  }
  el('rpDraft').onclick=()=>commit('Draft');el('rpPublish').onclick=()=>commit('Published');
 }
-window.CadResponsePlans={recommendIncident(incident){if(!incident)return {status:'none',message:'No incident selected.'};const matching=plans.filter(p=>p.status==='Published'&&p.discipline===incident.discipline&&p.agency===incident.agency&&p.type?.toLowerCase()===String(incident.type||'').toLowerCase());if(!matching.length)return {status:'none',message:'No published response plan matches this agency, discipline and call type.'};const zone=String(incident.responseZone||incident.zone||incident.esz||incident.beat||'').trim();if(!zone)return {status:'zone',message:'A published plan exists, but the incident has no verified response zone or beat. Select the zone before recommending units.'};const matches=matching.filter(p=>String(p.zone).trim().toLowerCase()===zone.toLowerCase());if(matches.length!==1)return {status:'zone',message:matches.length?'Multiple published plans match this zone. Resolve the ambiguity before using recommendations.':'No published plan matches incident zone '+zone+'.'};const plan=matches[0];return {status:'ready',plan:{id:plan.id,type:plan.type,zone:plan.zone,level:plan.level},rows:testPlan(plan),message:'Read-only simulation. No units have been dispatched.'}},openZone(z,d='FIRE'){zone=String(z);discipline=['EMS','LAW'].includes(d)?d:'FIRE';render()},sharedCrewConflicts:ids=>{const used=new Set();return ids.filter(id=>{const g=crews.find(x=>x.units.includes(id));if(!g)return false;if(used.has(g.id))return true;used.add(g.id);return false})}};
+window.CadResponsePlans={recommendIncident(incident){if(!incident)return {status:'none',message:'No incident selected.'};const matching=plans.filter(p=>p.status==='Published'&&p.discipline===incident.discipline&&p.agency===incident.agency&&p.type?.toLowerCase()===String(incident.type||'').toLowerCase());if(!matching.length)return {status:'none',message:'No published response plan matches this agency, discipline and call type.'};const zone=String(incident.responseZone||incident.zone||incident.esz||incident.beat||'').trim();if(!zone)return {status:'zone',message:'A published plan exists, but the incident has no verified response zone or beat. Select the zone before recommending units.'};const matches=matching.filter(p=>String(p.zone).trim().toLowerCase()===zone.toLowerCase());if(matches.length!==1)return {status:'zone',message:matches.length?'Multiple published plans match this zone. Resolve the ambiguity before using recommendations.':'No published plan matches incident zone '+zone+'.'};const plan=matches[0];return {status:'ready',plan:{id:plan.id,type:plan.type,zone:plan.zone,level:plan.level},rows:testPlan(plan,{},incident),message:'Read-only simulation. No units have been dispatched.'}},openZone(z,d='FIRE'){zone=String(z);discipline=['EMS','LAW'].includes(d)?d:'FIRE';render()},sharedCrewConflicts:ids=>{const used=new Set();return ids.filter(id=>{const g=crews.find(x=>x.units.includes(id));if(!g)return false;if(used.has(g.id))return true;used.add(g.id);return false})}};
 render();
 })();
