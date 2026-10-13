@@ -256,6 +256,8 @@ window.CadLocalAreas={
  const zones={};const ring=(pts,x,y)=>{let inside=false;for(let a=0,b=pts.length-1;a<pts.length;b=a++){const p=pts[a],q=pts[b];if((p[1]>y)!==(q[1]>y)&&x<(q[0]-p[0])*(y-p[1])/(q[1]-p[1])+p[0])inside=!inside}return inside};
  for(const [kind,layer] of Object.entries(layers)){const values=new Set();for(const f of layer.features||[]){const g=f.geometry;const polygons=g?.type==='Polygon'?[g.coordinates]:g?.type==='MultiPolygon'?g.coordinates:[];if(polygons.some(p=>p.length&&ring(p[0],lon,lat)&&!p.slice(1).some(h=>ring(h,lon,lat)))){const v=f.properties?.[layer.field];if(v!=null)values.add(String(v))}}if(values.size>1)return {ok:false,message:'Overlapping local zones'};if(values.size)zones[kind]=[...values][0]}return {ok:true,zones}
  },
+ summary(){let layers={};try{layers=JSON.parse(localStorage.getItem('smcad-response-geojson-v1')||'{}')}catch{}return Object.fromEntries(Object.entries(layers).map(([k,v])=>[k,{count:v.features?.length||0,field:v.field,updatedAt:v.updatedAt||null}]))},
+ remove(kind){if(!['esz','beat'].includes(kind))throw Error('Unknown dataset');const key='smcad-response-geojson-v1';let layers={};try{layers=JSON.parse(localStorage.getItem(key)||'{}')}catch{}delete layers[kind];localStorage.setItem(key,JSON.stringify(layers))},
  install(kind,geojson,field){
  if(!['esz','beat'].includes(kind)||geojson?.type!=='FeatureCollection'||!Array.isArray(geojson.features)||!geojson.features.length)throw Error('Invalid GeoJSON');
  if(geojson.features.length>10000||!geojson.features.every(f=>['Polygon','MultiPolygon'].includes(f.geometry?.type)))throw Error('Expected polygon features');
@@ -265,6 +267,21 @@ window.CadLocalAreas={
 };
 </script>
 <script>
+window.CadLocalGISAdmin={
+ open(){
+  if(document.getElementById('cadLocalGISDialog'))return;
+  const overlay=document.createElement('div');overlay.id='cadLocalGISDialog';overlay.className='cad-gis-overlay';
+  overlay.innerHTML='<div class="cad-gis-dialog" role="dialog" aria-modal="true" aria-label="Local GIS datasets"><div class="cad-gis-dialog-head"><div><div class="cad-eyebrow">GIS DATA MANAGEMENT</div><h3>Response area datasets</h3><p>Import approved GeoJSON polygons for local ESZ and beat lookup.</p></div><button type="button" id="cadGisClose" aria-label="Close">✕</button></div><div class="cad-gis-import"><label>Dataset type<select id="cadGisKind"><option value="esz">Fire / EMS ESZ</option><option value="beat">Police beat</option></select></label><label>Zone attribute<input id="cadGisField" value="ESZ_NUM" spellcheck="false"></label><label>GeoJSON file<input type="file" id="cadGisFile" accept=".geojson,.json,application/geo+json,application/json"></label><button id="cadGisImport" type="button">Import dataset</button></div><div id="cadGisDatasetList"></div><p class="cad-gis-disclaimer">Local browser storage only. Import from approved agency GIS exports. Not a production GIS publication workflow.</p></div>';
+  document.body.appendChild(overlay);
+  const el=id=>document.getElementById(id);
+  const render=()=>{const data=window.CadLocalAreas.summary();el('cadGisDatasetList').innerHTML=['esz','beat'].map(k=>{const d=data[k];return '<div class="cad-gis-dataset"><div><strong>'+(k==='esz'?'Fire / EMS ESZ':'Police beat')+'</strong><small>'+(d?d.count+' polygons · '+d.field+' · '+new Date(d.updatedAt).toLocaleString():'No dataset installed')+'</small></div>'+(d?'<button type="button" data-remove="'+k+'">Remove</button>':'')+'</div>'}).join('');el('cadGisDatasetList').querySelectorAll('[data-remove]').forEach(b=>b.onclick=()=>{if(confirm('Remove locally stored '+b.dataset.remove+' dataset?')){window.CadLocalAreas.remove(b.dataset.remove);render()}})};
+  el('cadGisClose').onclick=()=>overlay.remove();
+  overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove()});
+  el('cadGisKind').onchange=()=>{el('cadGisField').value=el('cadGisKind').value==='esz'?'ESZ_NUM':'PD_BEAT'};
+  el('cadGisImport').onclick=async()=>{const file=el('cadGisFile').files[0];if(!file)return alert('Select a GeoJSON file.');if(file.size>8*1024*1024)return alert('File exceeds 8 MB local prototype limit.');try{const geojson=JSON.parse(await file.text());const count=window.CadLocalAreas.install(el('cadGisKind').value,geojson,el('cadGisField').value.trim());render();alert('Imported '+count+' polygons to this browser.')}catch(error){alert('Import failed: '+error.message)}};
+  render();
+ }
+};
 window.CadIncidentZones={async lookup(location,discipline){
  const original=String(location||'').trim();if(!original)return {ok:false,message:'Enter incident location first.'};
  const address=/petaluma/i.test(original)?original:original+', Petaluma, California';
