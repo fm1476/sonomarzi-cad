@@ -278,6 +278,23 @@ window.CadLocalGISAdmin={
   el('cadGisClose').onclick=()=>overlay.remove();
   overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove()});
   el('cadGisKind').onchange=()=>{el('cadGisField').value=el('cadGisKind').value==='esz'?'ESZ_NUM':'PD_BEAT'};
+  const sync=document.createElement('button');sync.type='button';sync.className='cad-gis-sync';sync.textContent='Import Petaluma ESZ + police beats from GIS';el('cadGisDatasetList').before(sync);
+  sync.onclick=async()=>{
+   if(!confirm('Download and install the current public Petaluma ESZ and police beat polygons into this browser? This is a prototype import, not an approved production GIS publication.'))return;
+   sync.disabled=true;sync.textContent='Downloading public GIS layers…';
+   const layers=[['esz','https://maps.cityofpetaluma.net/mapping/rest/services/Fire/FireWebApp_MIL/MapServer/11','ESZ_NUM'],['beat','https://maps.cityofpetaluma.net/mapping/rest/services/Police/DistrictPolicing_Public_MIL1/FeatureServer/1','PD_BEAT']];
+   const reports=[];
+   for(const [kind,url,field] of layers){
+    try{
+     const endpoint=new URL(url+'/query');endpoint.searchParams.set('where','1=1');endpoint.searchParams.set('outFields',field);endpoint.searchParams.set('returnGeometry','true');endpoint.searchParams.set('outSR','4326');endpoint.searchParams.set('f','geojson');endpoint.searchParams.set('resultRecordCount','10000');
+     const response=await fetch(endpoint);if(!response.ok)throw Error('HTTP '+response.status);
+     const data=await response.json();if(data.error)throw Error(data.error.message);
+     if(data.exceededTransferLimit)throw Error('Service truncated results; no dataset installed');
+     const count=window.CadLocalAreas.install(kind,data,field);reports.push(kind.toUpperCase()+': '+count+' polygons imported');
+    }catch(error){reports.push(kind.toUpperCase()+': failed ('+error.message+')')}
+   }
+   render();sync.disabled=false;sync.textContent='Import Petaluma ESZ + police beats from GIS';alert(reports.join('\\n'));
+  };
   el('cadGisImport').onclick=async()=>{const file=el('cadGisFile').files[0];if(!file)return alert('Select a GeoJSON file.');if(file.size>8*1024*1024)return alert('File exceeds 8 MB local prototype limit.');try{const geojson=JSON.parse(await file.text());const count=window.CadLocalAreas.install(el('cadGisKind').value,geojson,el('cadGisField').value.trim());render();alert('Imported '+count+' polygons to this browser.')}catch(error){alert('Import failed: '+error.message)}};
   render();
  }
