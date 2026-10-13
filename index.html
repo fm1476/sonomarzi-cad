@@ -59,10 +59,6 @@
 
 <main id="dispatch" class="view active">
   <section class="cad-workspace-toolbar" aria-label="Saved CAD workspaces"><strong>WORKSPACE</strong><select id="cadWorkspaceSelect" aria-label="Choose a saved workspace"></select><button id="cadWorkspaceLoad" type="button">Load</button><button id="cadWorkspaceNew" type="button">Save New</button><button id="cadWorkspaceUpdate" type="button">Update</button><button id="cadWorkspaceRename" type="button">Rename</button><button id="cadWorkspaceDelete" type="button">Delete</button><button id="cadWorkspaceReset" type="button">Reset Layout</button><label class="cad-external-launch">Other monitor <select id="cadExternalPanel" aria-label="Select panel for a separate monitor"><option value="">Choose pane…</option></select></label><button id="cadExternalOpen" type="button" title="Open selected pane as separate browser window">Open Window ↗</button><button id="cadOpenSavedWindows" type="button" title="Reopen saved separate-monitor windows">Restore Windows</button><span id="cadWorkspaceStatus" role="status" aria-live="polite">Workspace layout stored on this browser.</span></section>
-  <section id="cadSharedWorkspace" class="cad-shared-workspace" hidden aria-label="Shared dispatch activity">
-<div class="cad-shared-workspace-heading"><div><span class="cad-shared-online-dot"></span><strong>SHARED DISPATCH ACTIVITY</strong><span id="cadSharedWorkspaceUpdated">Waiting for synchronization</span></div><button id="cadSharedWorkspaceManage" class="cad-shared-btn" type="button">Manage shared operations ↗</button></div>
-<div class="cad-shared-workspace-grid"><div><h4>Shared incidents</h4><div id="cadSharedWorkspaceIncidents" class="cad-shared-workspace-list"></div></div><div><h4>Shared units</h4><div id="cadSharedWorkspaceUnits" class="cad-shared-workspace-list"></div></div></div>
-</section>
 <section class="grid">
     <article class="panel" data-panel="pending">
       <h2><span class="panel-drag" draggable="true" title="Drag to move this panel" aria-label="Drag panel">⠿</span> Pending Calls <span id="pendingCount"></span></h2>
@@ -259,7 +255,7 @@
 <script src="core/persistence.js?v=1"></script>
 <script src="core/supabase-client.js?v=2"></script>
 <script src="core/demo-login.js?v=2"></script>
-<script src="core/shared-demo-panel.js?v=8"></script>
+<script src="core/shared-demo-panel.js?v=9"></script>
 <script src="core/incident-commands.js?v=1"></script>
 <script src="core/unit-commands.js?v=3"></script>
 <script src="app.js?v=43"></script>
