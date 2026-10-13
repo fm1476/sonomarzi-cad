@@ -58,7 +58,63 @@ function execOne(part, context){let text=part.trim();if(!text)return null; /* Ke
  const r=contextFor(u,ref);if(r.error){messages.push(fail(r.error));continue}const i=r.incident;if(code==='C'){const cleared=clearCadUnit(i,u,'','COMMAND');messages.push(cleared.ok?ok(cleared.message):fail(cleared.message));continue}if(code==='AH'&&u.discipline!=='EMS'){messages.push(fail(`${id}: AH requires an EMS unit.`));continue}const before=u.status;u.status=statusCodes[code];u.location=code==='AH'?'Hospital':i.location;recordAction(i,u,before,u.status,code);messages.push(ok(`${id}: ${before} → ${u.status} on ${i.id}.`));}
  return messages;
 }
-function execute(){hideGeo();const raw=input.value.trim();if(!raw)return;const chunks=raw.split(';').map(s=>s.trim()).filter(Boolean);if(chunks.length>30){results.textContent='Maximum 30 commands per batch.';return;}const ctx={ref:null,incident:null};const output=[];for(const chunk of chunks){try{const v=execOne(chunk,ctx);if(Array.isArray(v))output.push(...v);else if(v)output.push(v);}catch(e){output.push(fail(`Error in ${chunk}: ${e.message}`))}}results.innerHTML='';for(const [idx,r] of output.entries()){const el=document.createElement('div');el.className='cad-result-line'+(r.ok?'':' error');el.textContent=`${idx+1}. ${r.ok?'OK':'REVIEW'}: ${r.message}`;results.append(el)}save();hideSuggestions();input.value='';}
+async function executeShared(raw){
+ const chunks=raw.split(';').map(s=>s.trim()).filter(Boolean);
+ if(chunks.length>30){results.textContent='Maximum 30 commands per batch.';return;}
+ const button=document.getElementById('executeCadCommand');button.disabled=true;
+ results.textContent='Processing shared CAD commands…';
+ const messages=[];let contextRef='';
+ try{
+  for(const chunk of chunks){
+   try{
+    let command=chunk;
+    const prefix=command.match(/^#([\\w-]+)\\s*:\\s*(.*)$/);
+    if(prefix){contextRef='#'+prefix[1];command=prefix[2];if(!command){messages.push(ok('Context set to '+contextRef));continue;}}
+    const m=command.match(/^(DE|AOS|C4|OS|AH|RT|D|E|C|A|T)\\b\\s*(.*)$/i);
+    if(!m)throw Error('Unsupported shared command: '+command+'. Use D, DE, E, OS, T, AH, A or C; RT for notes.');
+    const code=m[1].toUpperCase(),rest=m[2];
+    const refMatch=rest.match(/#([\\w-]+)/);
+    const ref=refMatch?'#'+refMatch[1]:contextRef;
+    if(code==='RT'){
+     if(!ref)throw Error('RT requires an incident reference, e.g. RT #4526 narrative.');
+     const target=resolve(ref);if(target.error)throw Error(target.error);
+     const note=rest.replace(refMatch?.[0]||'','').trim();
+     if(!note)throw Error('Narrative text is required.');
+     await window.cadSharedCommand('note',{incidentId:target.incident.id,text:note});
+     messages.push(ok('Narrative added to '+target.incident.id));continue;
+    }
+    const unitIds=rest.replace(refMatch?.[0]||'','').split(/[\\s,]+/).filter(Boolean);
+    if(!unitIds.length)throw Error('Specify a unit.');
+    for(const id of unitIds){
+     const u=unit(id.toUpperCase());if(!u){messages.push(fail('Unknown unit '+id));continue;}
+     const active=owner(u);
+     let incident;
+     if(ref){const found=resolve(ref);if(found.error){messages.push(fail(found.error));continue;}incident=found.incident;}
+     else if(active.length===1)incident=active[0];
+     if(!incident){messages.push(fail('Specify an assigned incident for '+u.id+' using #event.'));continue;}
+     if(code==='D'||code==='DE'){
+      await window.cadSharedCommand('assign',{incidentId:incident.id,unitId:u.id});
+      if(code==='DE')await window.cadSharedCommand('status',{incidentId:incident.id,unitId:u.id,status:'ENROUTE'});
+     }else if(code==='A'||code==='C'){
+      await window.cadSharedCommand('clear',{incidentId:incident.id,unitId:u.id,disposition:'CLEARED'});
+     }else{
+      const status={E:'ENROUTE',OS:'ONSCENE',T:'TRANSPORTING',AH:'AT_HOSPITAL',C4:'CODE4',AOS:'AVAILABLE_ON_SCENE'}[code];
+      if(!status)throw Error('Unsupported shared status: '+code);
+      if(code==='AH'&&u.discipline!=='EMS')throw Error('AT HOSPITAL requires an EMS unit.');
+      await window.cadSharedCommand('status',{incidentId:incident.id,unitId:u.id,status});
+     }
+     messages.push(ok(code+' '+u.id+' → '+incident.id));
+    }
+   }catch(e){messages.push(fail(chunk+': '+e.message));}
+  }
+ }finally{
+  results.replaceChildren();
+  messages.forEach((r,index)=>{const el=document.createElement('div');el.className='cad-result-line'+(r.ok?'':' error');el.textContent=(index+1)+'. '+(r.ok?'OK':'REVIEW')+': '+r.message;results.append(el);});
+  button.disabled=false;
+  if(messages.every(x=>x.ok))input.value='';
+ }
+}
+function execute(){if(window.cadSharedIsActive?.()){executeShared(input.value.trim());return;}hideGeo();const raw=input.value.trim();if(!raw)return;const chunks=raw.split(';').map(s=>s.trim()).filter(Boolean);if(chunks.length>30){results.textContent='Maximum 30 commands per batch.';return;}const ctx={ref:null,incident:null};const output=[];for(const chunk of chunks){try{const v=execOne(chunk,ctx);if(Array.isArray(v))output.push(...v);else if(v)output.push(v);}catch(e){output.push(fail(`Error in ${chunk}: ${e.message}`))}}results.innerHTML='';for(const [idx,r] of output.entries()){const el=document.createElement('div');el.className='cad-result-line'+(r.ok?'':' error');el.textContent=`${idx+1}. ${r.ok?'OK':'REVIEW'}: ${r.message}`;results.append(el)}save();hideSuggestions();input.value='';}
 const eventToken=()=>{const pos=input.selectionStart??input.value.length;const prefix=input.value.slice(0,pos);const match=prefix.match(/#([^\s;:]*)$/);return match?{term:match[1],from:pos-match[0].length,to:pos}:null;};let currentOptions=[],hover=0;
 function hideSuggestions(){sugg.hidden=true;currentOptions=[];}
 function updateSuggestions(){const t=eventToken();if(!t){hideSuggestions();return}const query=t.term.toLowerCase();currentOptions=allCurrent().filter(i=>!query||[i.id,i.id.split('-').at(-1),i.type,i.location].some(s=>s.toLowerCase().includes(query))).slice(0,12);hover=0;sugg.innerHTML='';if(!currentOptions.length){hideSuggestions();return;}for(const [n,i] of currentOptions.entries()){const item=document.createElement('button');item.type='button';item.className='cad-suggestion';item.setAttribute('role','option');item.setAttribute('aria-selected',String(n===hover));const primary=document.createElement('strong');primary.textContent=`${i.id} · ${i.type}`;const secondary=document.createElement('small');secondary.textContent=`${i.location} · ${i.priority} · ${i.status}`;item.append(primary,secondary);item.onmousedown=e=>e.preventDefault();item.onclick=()=>choose(i);sugg.append(item);}sugg.hidden=false;}
