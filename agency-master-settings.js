@@ -11,6 +11,31 @@ const opts=(items,value)=>items.map(x=>'<option value="'+esc(x.id)+'"'+(x.id===v
 const TYPES={LAW:['PATROL','SUPERVISOR','TRAFFIC','K9','DETECTIVE','SWAT','MOTOR','OTHER'],FIRE:['ENGINE','TRUCK','LADDER','RESCUE','BRUSH','CHIEF','TENDER','MEDIC','AMBULANCE','OTHER'],EMS:['AMBULANCE','MEDIC','ENGINE','RESCUE','CHIEF','SUPERVISOR','OTHER']};
 function refreshTypes(){const e=el('cadMasterResourceType');if(!e)return;const previous=e.value;e.innerHTML=(TYPES[el('cadMasterDiscipline').value]||[]).map(t=>'<option>'+t+'</option>').join('');if([...e.options].some(o=>o.value===previous))e.value=previous}
 el('cadMasterDiscipline').addEventListener('change',refreshTypes);refreshTypes();
+function importDemoRoster(){
+ const source=window.cadSafetyState?.();
+ if(!source||!Array.isArray(source.units))return message.textContent='CAD roster unavailable.';
+ const next=structuredClone(data),added={agencies:0,units:0},skipped=[];
+ const agencyNames=[...new Set([...(source.units||[]).map(u=>u.agency),...(JSON.parse(localStorage.getItem('smcad-config-v1')||'{}').agencies||[])])].filter(Boolean);
+ for(const name of agencyNames){
+  if(next.agencies.some(a=>a.name.toLowerCase()===name.toLowerCase()))continue;
+  let id='AG-'+name.toUpperCase().replace(/[^A-Z0-9]+/g,'-').replace(/^-|-$/g,'');
+  let base=id,n=2;while(next.agencies.some(a=>a.id===id))id=base+'-'+n++;
+  next.agencies.push({id,name,model:'APPARATUS'});added.agencies++;
+ }
+ for(const unit of source.units){
+  const agency=next.agencies.find(a=>a.name.toLowerCase()===String(unit.agency).toLowerCase());
+  if(!agency||!unit.id||!['LAW','FIRE','EMS'].includes(unit.discipline)){skipped.push(unit.id||'?');continue}
+  if(next.units.some(u=>u.agencyId===agency.id&&u.designator.toUpperCase()===String(unit.id).toUpperCase()))continue;
+  let id='UNIT-'+agency.id+'-'+String(unit.id).toUpperCase().replace(/[^A-Z0-9]+/g,'-');
+  let base=id,n=2;while(next.units.some(u=>u.id===id))id=base+'-'+n++;
+  const designator=String(unit.id);
+  const type=unit.discipline==='LAW'?'PATROL':/^E\d/i.test(designator)?'ENGINE':/^T\d/i.test(designator)?'TRUCK':/^R\d/i.test(designator)?'RESCUE':/^M\d/i.test(designator)?'AMBULANCE':/^C\d/i.test(designator)?'CHIEF':'OTHER';
+  next.units.push({id,designator,agencyId:agency.id,discipline:unit.discipline,model:'APPARATUS',resourceType:type,minStaffing:0,qualifications:[],source:'demo-roster-import'});
+  added.units++;
+ }
+ try{M.save(localStorage,next);data=next;render();message.textContent='Imported '+added.agencies+' agencies and '+added.units+' unit definitions; '+skipped.length+' skipped. Existing master records were preserved. Staffing requirements remain unverified and unset.';window.dispatchEvent(new Event('cad-master-updated'))}
+ catch(e){message.textContent='Import failed; nothing changed: '+e.message}
+}
 function renderStaff(){
  const unitSelect=el('cadStaffUnit'),crewSelect=el('cadStaffCrew'),status=el('cadStaffCurrent');
  const active=window.cadMasterActiveUnits?.()||[];
@@ -28,6 +53,7 @@ function renderStaff(){
 }
 
 function render(){
+ if(!el('cadMasterImportDemo')){const b=document.createElement('button');b.id='cadMasterImportDemo';b.type='button';b.textContent='Import Existing CAD Agencies & Units';b.style.margin='8px 0';b.addEventListener('click',()=>{if(confirm('Copy the current CAD agency names and unit designators into persistent Agency Master? Existing master records will be preserved. No personnel or staffing will be invented.'))importDemoRoster()});list.before(b)}
  list.innerHTML='<h4>Agencies ('+data.agencies.length+')</h4>'+(data.agencies.map(a=>'<div>'+esc(a.name)+' ('+esc(a.id)+') · '+esc(a.model)+'</div>').join('')||'<p>No configured agencies yet.</p>')+
  '<h4>Personnel ('+data.personnel.length+')</h4>'+(data.personnel.map(p=>'<div>'+esc(p.name)+' ('+esc(p.id)+') · '+esc(p.agencyId)+'</div>').join('')||'<p>No configured personnel yet.</p>')+
  '<h4>Units ('+data.units.length+')</h4>'+(data.units.map(u=>'<div><strong>'+esc(u.designator)+'</strong> · '+esc(u.agencyId)+' · '+esc(u.discipline)+' · '+esc(u.model)+(u.resourceType?' · '+esc(u.resourceType):'')+(u.personId?' · '+esc(u.personId):'')+' <button type="button" data-unit-activate="'+esc(u.id)+'">Activate in CAD</button> <button type="button" data-unit-delete="'+esc(u.id)+'">Remove</button></div>').join('')||'<p>No configured units yet.</p>');
