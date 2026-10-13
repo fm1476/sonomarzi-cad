@@ -38,11 +38,37 @@ function bindDrag(el,handle){handle.classList.add('cad-freeform-handle');handle.
  handle.addEventListener('pointermove',e=>{if(!start||e.pointerId!==start.id)return;const dx=e.clientX-start.x,dy=e.clientY-start.y;el.style.left=clamp(start.left+dx,0,Math.max(0,stage.clientWidth-el.offsetWidth))+'px';el.style.top=Math.max(0,start.top+dy)+'px';totalHeight();});
  const finish=()=>{if(!start)return;start=null;totalHeight();delayedStore();};handle.addEventListener('pointerup',finish);handle.addEventListener('pointercancel',finish);
 }
-function bindResize(el){const grip=document.createElement('div');grip.className='cad-freeform-resizer';grip.title='Drag to resize this pane horizontally and vertically';grip.setAttribute('aria-label','Resize panel');el.append(grip);
- let drag=null;
- grip.addEventListener('pointerdown',e=>{if(e.button!==0)return;drag={id:e.pointerId,x:e.clientX,y:e.clientY,w:el.offsetWidth,h:el.offsetHeight};activate(el);grip.setPointerCapture(e.pointerId);e.preventDefault();e.stopPropagation()});
- grip.addEventListener('pointermove',e=>{if(!drag||e.pointerId!==drag.id)return;el.style.width=clamp(drag.w+e.clientX-drag.x,270,Math.max(270,stage.clientWidth-el.offsetLeft))+'px';el.style.height=Math.max(el.classList.contains('cad-smart-command')?105:135,drag.h+e.clientY-drag.y)+'px';totalHeight();if(el.dataset.panel==='map')window.cadInvalidateMapSize?.();});
- const finish=()=>{if(!drag)return;drag=null;if(el.dataset.panel==='map')window.cadInvalidateMapSize?.();delayedStore();};grip.addEventListener('pointerup',finish);grip.addEventListener('pointercancel',finish);
+function bindResize(el){
+ const directions=['n','s','e','w','ne','nw','se','sw'];
+ const minW=270,minH=el.classList.contains('cad-smart-command')?105:135;
+ for(const direction of directions){
+  const grip=document.createElement('div');
+  grip.className='cad-freeform-edge cad-freeform-edge-'+direction;
+  grip.dataset.resizeDirection=direction;
+  grip.title='Resize pane from '+direction.toUpperCase()+' edge';
+  grip.setAttribute('aria-label','Resize pane '+direction);
+  el.append(grip);
+  let drag=null;
+  grip.addEventListener('pointerdown',e=>{
+   if(e.button!==0)return;
+   drag={id:e.pointerId,x:e.clientX,y:e.clientY,left:el.offsetLeft,top:el.offsetTop,w:el.offsetWidth,h:el.offsetHeight};
+   activate(el);grip.setPointerCapture(e.pointerId);e.preventDefault();e.stopPropagation();
+  });
+  grip.addEventListener('pointermove',e=>{
+   if(!drag||e.pointerId!==drag.id)return;
+   const dx=e.clientX-drag.x,dy=e.clientY-drag.y;
+   const east=direction.includes('e'),west=direction.includes('w'),north=direction.includes('n'),south=direction.includes('s');
+   let left=drag.left,top=drag.top,w=drag.w,h=drag.h;
+   if(east)w=clamp(drag.w+dx,minW,Math.max(minW,stage.clientWidth-drag.left));
+   if(west){const right=drag.left+drag.w;left=clamp(drag.left+dx,0,right-minW);w=right-left;}
+   if(south)h=Math.max(minH,drag.h+dy);
+   if(north){const bottom=drag.top+drag.h;top=clamp(drag.top+dy,0,bottom-minH);h=bottom-top;}
+   Object.assign(el.style,{left:left+'px',top:top+'px',width:w+'px',height:h+'px'});
+   totalHeight();if(el.dataset.panel==='map')window.cadInvalidateMapSize?.();
+  });
+  const finish=()=>{if(!drag)return;drag=null;totalHeight();if(el.dataset.panel==='map')window.cadInvalidateMapSize?.();delayedStore();};
+  grip.addEventListener('pointerup',finish);grip.addEventListener('pointercancel',finish);
+ }
 }
 // Prevent the legacy fixed-placement selector and old resize handles from competing with freeform controls.
 const oldSelect=document.getElementById('commandPlacement');if(oldSelect){oldSelect.value='top';oldSelect.disabled=true;oldSelect.title='Free workspace layout controls position instead';}
