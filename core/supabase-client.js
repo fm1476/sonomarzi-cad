@@ -31,6 +31,8 @@
    listIncidents:agency=>read('cad_incidents',agency,'select=*&order=created_at.desc&limit=250'),
    listUnits:agency=>read('cad_units',agency,'select=*&order=call_sign&limit=500'),
    listAssignments:agency=>read('cad_assignments',agency,'select=*&cleared_at=is.null&limit=500'),
+   listDispatchAreas:agency=>read('cad_dispatch_areas',agency,'select=id,name,description,active&active=eq.true&order=name'),
+   listDispatchAreaAgencies:agency=>read('cad_dispatch_area_agencies',agency,'select=dispatch_area_id,served_agency_name'),
    createIncident:({agency,number,discipline,type,priority,location})=>rpc('cad_create_incident',{p_agency:id(agency),p_number:number,p_discipline:discipline,p_type:type,p_priority:priority,p_location:location}),
    assignUnit:({agency,incident,unit,incidentVersion,unitVersion})=>rpc('cad_assign_unit',{p_agency:id(agency),p_incident:id(incident),p_unit:id(unit),p_expected_incident_version:incidentVersion,p_expected_unit_version:unitVersion}),
    changeUnitStatus:({agency,incident,unit,status,unitVersion})=>rpc('cad_change_unit_status',{p_agency:id(agency),p_incident:id(incident),p_unit:id(unit),p_status:status,p_expected_unit_version:unitVersion}),
