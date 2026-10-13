@@ -173,13 +173,13 @@
    const agency=window.CadDemoLogin.current().agencyId;
    if(!quiet)say('Refreshing shared CAD data…');
    try{
-    const [incidents,roster,missing,assignments,dispatchAreas,areaAgencies]=await Promise.all([
-     client.listIncidents(agency),client.listUnits(agency),client.listOutstanding(agency),client.listAssignments(agency),client.listDispatchAreas(agency),client.listDispatchAreaAgencies(agency)
+    const [incidents,roster,missing,assignments,dispatchAreas,areaAgencies,incidentEvents,incidentLocations]=await Promise.all([
+     client.listIncidents(agency),client.listUnits(agency),client.listOutstanding(agency),client.listAssignments(agency),client.listDispatchAreas(agency),client.listDispatchAreaAgencies(agency),client.listIncidentEvents(agency),client.listIncidentLocations(agency)
     ]);
     const signature=JSON.stringify({incidents,roster,missing,assignments});
     const changed=lastSignature!==''&&lastSignature!==signature;
     lastSignature=signature;
-    snapshot={incidents,roster,assignments,dispatchAreas,areaAgencies};syncChoices();renderWorkspace();renderSharedBoard();window.cadSharedApplySnapshot?.(snapshot);
+    snapshot={incidents,roster,assignments,dispatchAreas,areaAgencies,incidentEvents,incidentLocations};syncChoices();renderWorkspace();renderSharedBoard();window.cadSharedApplySnapshot?.(snapshot);
     displayRows(tbody,incidents,['incident_number','status','discipline','created_at']);
     displayRows(units,roster,['call_sign','status','resource_type']);
     displayRows(shortages,missing,['incident_id','resource_type','missing_count']);
@@ -190,6 +190,38 @@
     if(refreshAgain){refreshAgain=false;queueMicrotask(()=>refresh({quiet:true}));}
    }
   }
+  // Original CAD controls use this single authenticated command gateway.
+  window.cadSharedCommand=async function(action,args={}){
+   const session=window.CadDemoLogin.current();
+   if(!session)throw Error('Sign in to shared CAD first.');
+   const client=window.CadDemoLogin.client(),agency=session.agencyId;
+   const incident=snapshot.incidents.find(i=>i.id===args.incidentId||i.incident_number===args.incidentId);
+   const unit=snapshot.roster.find(u=>u.id===args.unitId||u.call_sign===args.unitId);
+   try{
+    let result;
+    if(action==='create'){
+     result=await client.createIncident({agency,number:args.number,discipline:args.discipline,type:args.type,priority:args.priority,location:args.location});
+    }else{
+     if(!incident)throw Error('Incident not found. Refresh and retry.');
+     if(action==='close')result=await client.closeIncident({agency,incident:incident.id,disposition:args.disposition||'CLOSED',incidentVersion:incident.version});
+     else if(action==='location')result=await client.correctLocation({agency,incident:incident.id,location:args.location,incidentVersion:incident.version,source:'DISPATCH'});
+     else{
+      if(!unit)throw Error('Unit not found. Refresh and retry.');
+      if(action==='assign'){
+       if(unit.status!=='AVAILABLE')throw Error(unit.call_sign+' is not available.');
+       result=await client.assignUnit({agency,incident:incident.id,unit:unit.id,incidentVersion:incident.version,unitVersion:unit.version});
+      }else if(action==='clear')result=await client.clearUnit({agency,incident:incident.id,unit:unit.id,incidentVersion:incident.version,unitVersion:unit.version,disposition:args.disposition||'CLEARED'});
+      else if(action==='status')result=await client.changeUnitStatus({agency,incident:incident.id,unit:unit.id,status:args.status,unitVersion:unit.version});
+      else throw Error('Unsupported shared CAD operation: '+action);
+     }
+    }
+    await refresh({quiet:true});
+    return result;
+   }catch(error){
+    await refresh({quiet:true});
+    throw Error(error.message+' — Shared records were refreshed. Review the current state before retrying.');
+   }
+  };
   window.cadSharedRequestRefresh=()=>refresh({quiet:true});
   window.addEventListener('cad:shared-dispatch',event=>{
    const button=document.getElementById('cadSharedToggle');
