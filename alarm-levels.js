@@ -132,6 +132,9 @@ function bindIncident(incident){
    const updated=window.cadSafetyState?.().incidents?.find(i=>i.id===incident.id);
    if(updated)incident.alarmLevel=updated.alarmLevel;
    host.textContent='Alarm level changed to '+entry.name+'. No unit status was changed.';
+   window.cadCallTakeRefresh?.();
+   document.querySelectorAll('[data-view="dispatch"]').forEach(()=>{});
+   window.cadRefreshDisplay?.();
    select.value=entry.id;
   };
  };
