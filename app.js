@@ -264,6 +264,17 @@ window.cadSignOffMasterUnit=function(unitId){
  catch(e){toast('Sign-off rejected: '+e.message);return {ok:false,error:e.message};}
 };
 window.cadMasterActiveUnits=function(){return state.units.filter(u=>u.masterUnitId).map(u=>({id:u.id,masterUnitId:u.masterUnitId,status:u.status,staffing:u.staffing||null}));};
+// Demo incidents are optional and can be reloaded without touching Agency Master or unit status.
+if($('#reset')&&!document.getElementById('cadLoadDemoCalls')){
+ const btn=document.createElement('button');
+ btn.id='cadLoadDemoCalls';btn.type='button';btn.textContent='Load Demo Calls';
+ btn.title='Restore missing fictional sample incidents without resetting agencies, units or existing calls';
+ $('#reset').insertAdjacentElement('beforebegin',btn);
+ btn.addEventListener('click',()=>{
+  const count=window.cadRestoreMissingDemoCalls();
+  toast(count?count+' demo calls loaded; existing records preserved':'All standard demo calls are already present');
+ });
+}
 $('#reset').onclick=()=>{
  if(!confirm('RESET ENTIRE DEMO?\n\nThis will erase all browser-saved incidents, cases, unit assignments/statuses, radio transcripts, AI summaries, activity history, and legacy demo settings. Permanent Agency Master records will NOT be erased. It will restore the original sample data.\n\nThis cannot be undone.'))return;
  localStorage.setItem(KEY,JSON.stringify(defaultState()));
