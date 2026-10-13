@@ -247,6 +247,13 @@ document.querySelector('[data-panel="units"] .filters')?.addEventListener('click
 });
 // The enhanced command desk installs its own keyboard handling from command-intelligence.js.
 $('#saveConfig').onclick=()=>{config={...config,agencies:$('#cfgAgencies').value.split('\n').filter(Boolean),types:{LAW:$('#cfgLaw').value.split('\n').filter(Boolean),FIRE:$('#cfgFire').value.split('\n').filter(Boolean),EMS:$('#cfgEms').value.split('\n').filter(Boolean)}};localStorage.setItem(CFG,JSON.stringify(config));populate();toast('Configuration saved')}
+window.cadLinkExistingMasterUnits=function(){
+ try{
+  const result=window.CadUnitActivation.linkExisting(window.CadAgencyMaster.read(localStorage),state);
+  if(result.linked){state=result.state;save();}
+  return {ok:true,linked:result.linked};
+ }catch(e){return {ok:false,error:e.message}}
+};
 window.cadActivateMasterUnit=function(masterUnitId){
  try{
   const master=window.CadAgencyMaster.read(localStorage);
