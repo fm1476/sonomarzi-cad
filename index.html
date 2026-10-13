@@ -367,7 +367,7 @@ window.CadIncidentZones={async lookup(location,discipline){
  const unitPattern=id=>new RegExp('(?:^|[^A-Z0-9])'+String(id).replace(/[.*+?^\x24{}()|[\]\\]/g,'\\\x24&')+'(?=$|[^A-Z0-9])','i');
  window.cadBeforeVoiceProcess=(spoken,source)=>{
   const text=String(spoken||'').trim();
-  const correction=text.match(/\\b(?:copy[,.]?\\s+)?(?:true\\s+location\\s+is\\s+(?:at\\s+)?|(?:update|correct|change)\\s+(?:the\\s+)?location\\s+to\\s+)(.+)$/i);
+  const correction=text.match(/\b(?:copy[,.]?\s+)?(?:true\s+location\s+is\s+(?:at\s+)?|(?:update|correct|change)\s+(?:the\s+)?location\s+to\s+)(.+)$/i);
   if(correction){
    const state=window.cadSafetyState?.(),incident=state?.incidents?.find(i=>i.id===state.selected&&i.status!=='CLOSED');
    const output=document.getElementById('voiceInterpretation');
