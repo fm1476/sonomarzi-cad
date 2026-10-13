@@ -7,7 +7,7 @@ const LIST=[
  {id:'hydrants',name:'Fire Hydrants',category:'Fire & EMS',special:true,terms:['fire hydrant','hydrant']},
  {id:'petaluma-esz',name:'Petaluma Fire Response Zones (ESZ)',category:'Fire & EMS',url:pet+'/Fire/FireWebApp_MIL/MapServer/11',color:'#ff886b',terms:['fire response zones','petaluma esz','fire esz','fire zones','response zones']},
  {id:'ems-esz',name:'EMS Emergency Service Zones',category:'Fire & EMS',url:pet+'/Fire/FireWebApp_MIL/MapServer/18',color:'#6fc8ed',terms:['ems response zones','ems esz','ems zones']},
- {id:'ambulance-area',name:'Ambulance Response Areas',category:'Fire & EMS',url:pet+'/Fire/FireWebApp_MIL/MapServer/7',color:'#e8a2db',terms:['ambulance response areas','ambulance zones']},
+ {id:'ambulance-area',name:'Sonoma Ambulance Response Areas',category:'Fire & EMS',url:pet+'/Fire/FireWebApp_MIL/MapServer/9',color:'#e8a2db',terms:['ambulance response areas','ambulance zones']},
  {id:'bls-area',name:'BLS Response Areas',category:'Fire & EMS',url:pet+'/Fire/FireWebApp_MIL/MapServer/6',color:'#76d6a2',terms:['bls response areas','bls zones']},
  {id:'mutual-threat',name:'Mutual Threat Zones',category:'Fire & EMS',url:pet+'/Fire/FireWebApp_MIL/MapServer/3',color:'#e8c36d',terms:['mutual threat zones','mutual threat']},
  {id:'fire-districts',name:'Sonoma Fire District Boundaries',category:'Fire & EMS',url:county+'/BASEPublic/Fire_Districts/FeatureServer/0',color:'#b9a0ff',terms:['fire districts','fire district boundaries']},
@@ -67,6 +67,18 @@ window.CadMapLayerCatalog=(map,api)=>{
   report((intent.action==='hide'?'Hidden':'Selected')+': '+names.join(', ')+'. Map zoom and center preserved.');return true;
  }
 
+ // Read-only point-in-polygon lookup for future response-plan simulation.
+ // No published response assignment is inferred from these reference boundaries.
+ async function lookupZone(lat,lng,kind='fire'){
+  const layer=kind==='ems'?18:11;
+  if(!Number.isFinite(Number(lat))||!Number.isFinite(Number(lng)))throw Error('Valid latitude and longitude required');
+  const url=pet+'/Fire/FireWebApp_MIL/MapServer/'+layer+'/query';
+  const params=new URLSearchParams({geometry:JSON.stringify({x:Number(lng),y:Number(lat),spatialReference:{wkid:4326}}),geometryType:'esriGeometryPoint',inSR:'4326',spatialRel:'esriSpatialRelIntersects',outFields:'ESZ_NUM,AGENCY,PLY_NAME,NAME',returnGeometry:'false',f:'json'});
+  const response=await fetch(url+'?'+params);if(!response.ok)throw Error('Zone lookup HTTP '+response.status);
+  const data=await response.json();if(data.error)throw Error(data.error.message||'Zone lookup error');
+  return {kind,features:(data.features||[]).map(f=>f.attributes),source:url,authority:'PUBLIC_GIS_REFERENCE_ONLY'};
+ }
+ window.CadFireZoneLookup=lookupZone;
  return{mount,voice,set,refresh,items:LIST};
 };
 })();
