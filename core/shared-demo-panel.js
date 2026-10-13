@@ -43,6 +43,74 @@
    workUpdated.textContent=snapshot.incidents.length+' incidents · '+snapshot.roster.length+' units · auto-sync every 4s';
   }
 
+  const sharedBoard=document.getElementById('cadSharedOperational');
+  const localGrid=document.querySelector('section.grid');
+  const disciplineFilter=document.getElementById('cadSharedDiscipline');
+  const areaFilter=document.getElementById('cadSharedArea');
+  let selectedSharedIncident=null;
+  let areas=[];
+  const boardText=(id,value)=>{const node=document.getElementById(id);if(node)node.textContent=value};
+  const filteredIncident=i=>disciplineFilter.value==='ALL'||i.discipline===disciplineFilter.value;
+  function boardRow(host,item,label,handler){
+   const button=document.createElement('button');
+   button.type='button';button.className='cad-shared-board-row';button.textContent=label;
+   button.addEventListener('click',handler);host.appendChild(button);
+  }
+  function renderSharedBoard(){
+   if(!sharedBoard)return;
+   const connected=!!window.CadDemoLogin.current();
+   sharedBoard.hidden=!connected;
+   if(localGrid)localGrid.hidden=connected;
+   if(!connected)return;
+   const visible=snapshot.incidents.filter(filteredIncident);
+   const pending=visible.filter(i=>i.status==='PENDING');
+   const active=visible.filter(i=>i.status==='ACTIVE');
+   boardText('cadSharedPendingCount','('+pending.length+')');
+   boardText('cadSharedActiveCount','('+active.length+')');
+   for(const [id,items] of [['cadSharedPendingList',pending],['cadSharedActiveList',active]]){
+    const host=document.getElementById(id);host.replaceChildren();
+    for(const i of items)boardRow(host,i,i.incident_number+'  ·  '+i.type+'  ·  '+i.current_location+'  ·  '+i.priority,()=>{selectedSharedIncident=i.id;renderSharedBoard()});
+    if(!items.length)host.textContent='No calls in this view';
+   }
+   const units=document.getElementById('cadSharedUnitList');units.replaceChildren();
+   for(const u of snapshot.roster.filter(u=>disciplineFilter.value==='ALL'||u.discipline===disciplineFilter.value)){
+    boardRow(units,u,u.call_sign+'  ·  '+u.discipline+'  ·  '+u.status,()=>{
+     const a=snapshot.assignments.find(a=>a.unit_id===u.id);
+     if(a){selectedSharedIncident=a.incident_id;renderSharedBoard()}
+    });
+   }
+   const detail=document.getElementById('cadSharedOperationalDetail');detail.replaceChildren();
+   const i=snapshot.incidents.find(i=>i.id===selectedSharedIncident);
+   if(!i){detail.textContent='Select any call to view or dispatch, including calls handled by another dispatcher.';return}
+   const heading=document.createElement('div');heading.className='cad-shared-board-heading';
+   heading.textContent=i.incident_number+' · '+i.type+' · '+i.current_location+' · '+i.status;
+   detail.appendChild(heading);
+   const assigned=snapshot.assignments.filter(a=>a.incident_id===i.id);
+   for(const a of assigned){
+    const u=snapshot.roster.find(u=>u.id===a.unit_id);if(!u)continue;
+    const line=document.createElement('div');line.className='cad-shared-board-assignment';
+    const label=document.createElement('span');label.textContent=u.call_sign+' · '+u.status;line.appendChild(label);
+    const select=document.createElement('select');
+    for(const st of ['DISPATCHED','ENROUTE','ONSCENE','TRANSPORTING','AT_HOSPITAL','OUT_OF_SERVICE'])select.appendChild(option(st,st));
+    select.value=u.status;line.appendChild(select);
+    const btn=document.createElement('button');btn.className='cad-shared-btn';btn.textContent='Update';
+    btn.addEventListener('click',()=>operate(btn,(client,agency)=>client.changeUnitStatus({agency,incident:i.id,unit:u.id,status:select.value,unitVersion:u.version})));
+    line.appendChild(btn);detail.appendChild(line);
+   }
+   if(i.status!=='CLOSED'){
+    const line=document.createElement('div');line.className='cad-shared-board-assignment';
+    const select=document.createElement('select');
+    const available=snapshot.roster.filter(u=>u.status==='AVAILABLE');
+    for(const u of available)select.appendChild(option(u.id,u.call_sign+' · '+u.discipline));
+    line.appendChild(select);
+    const btn=document.createElement('button');btn.className='cad-shared-btn';btn.textContent='Dispatch unit';btn.disabled=!available.length;
+    btn.addEventListener('click',()=>{const u=snapshot.roster.find(u=>u.id===select.value);if(!u)return;operate(btn,(client,agency)=>client.assignUnit({agency,incident:i.id,unit:u.id,incidentVersion:i.version,unitVersion:u.version}))});
+    line.appendChild(btn);detail.appendChild(line);
+   }
+  }
+  disciplineFilter?.addEventListener('change',renderSharedBoard);
+  document.getElementById('cadSharedShowAll')?.addEventListener('click',()=>{disciplineFilter.value='ALL';areaFilter.value='ALL';renderSharedBoard()});
+
   const option=(value,label)=>{const o=document.createElement('option');o.value=value;o.textContent=label;return o};
   function choose(select,items,format){
    const previous=select.value;select.replaceChildren();
@@ -108,7 +176,7 @@
     const signature=JSON.stringify({incidents,roster,missing,assignments});
     const changed=lastSignature!==''&&lastSignature!==signature;
     lastSignature=signature;
-    snapshot={incidents,roster,assignments};syncChoices();renderWorkspace();
+    snapshot={incidents,roster,assignments};syncChoices();renderWorkspace();renderSharedBoard();
     displayRows(tbody,incidents,['incident_number','status','discipline','created_at']);
     displayRows(units,roster,['call_sign','status','resource_type']);
     displayRows(shortages,missing,['incident_id','resource_type','missing_count']);
@@ -137,7 +205,7 @@
    lastSignature='';
    window.CadDemoLogin.logout();
    tbody.replaceChildren();units.replaceChildren();shortages.replaceChildren();
-   snapshot={incidents:[],roster:[],assignments:[]};syncChoices();renderWorkspace();
+   snapshot={incidents:[],roster:[],assignments:[]};syncChoices();renderWorkspace();renderSharedBoard();
    board.hidden=true;loginPanel.hidden=false;text(headerUser,'Offline');toggle.classList.remove('is-connected');
    say('Signed out of shared CAD. Local demo remains available.');
   });
