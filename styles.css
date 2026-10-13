@@ -452,3 +452,14 @@ header nav.cad-header-tabs button{position:relative;z-index:102;pointer-events:a
 #calltake #cadCTNewForm{margin:0;flex:1;min-width:0}
 #calltake .cad-ct-right{min-height:400px}
 #calltake .cad-ct-heading>button{align-self:center;white-space:nowrap}
+
+/* Resizable call queue and master event window */
+#calltake .cad-calltake-queue{height:var(--cad-ct-queue-height,440px);min-height:200px;max-height:calc(100vh - 110px);overflow:auto;resize:vertical;flex:none}
+#calltake .cad-ct-right>#cadCTEditor:not([hidden]){height:var(--cad-ct-editor-height,700px);min-height:260px;max-height:none;overflow:auto;resize:vertical;flex:none}
+#calltake .cad-ct-section{border:1px solid #2d516c;border-radius:9px;background:#102639;margin:12px 0;padding:12px}
+#calltake .cad-ct-section>summary{font-weight:750;cursor:pointer;color:#d9efff;padding:5px 2px}
+#calltake .cad-ct-section .cad-ct-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;padding:12px 0}
+#calltake .cad-ct-record{padding:10px 0;border-top:1px solid #31516a}
+#calltake .cad-ct-record-title{display:flex;align-items:center;justify-content:space-between;font-weight:650}
+#calltake .cad-ct-section button{background:#173f5c;border:1px solid #417fa8;color:#e7f5ff;border-radius:7px;padding:8px 11px;cursor:pointer}
+#calltake .cad-ct-section button:hover{background:#24658b}
