@@ -63,7 +63,7 @@ async function loadMapZones(){
 }
 function msg(t){el('rpMessage').textContent=t}
 function showCrews(){el('rpCrews').innerHTML=crews.map(g=>'<p>'+escape(g.name)+' — '+escape(g.units.join(', '))+' <button data-remove-crew="'+escape(g.id)+'">Remove</button></p>').join('')||'<p>No shared crew groups configured.</p>';el('rpCrews').querySelectorAll('[data-remove-crew]').forEach(b=>b.onclick=()=>{crews=crews.filter(g=>g.id!==b.dataset.removeCrew);save();showCrews()})}
-function showPlans(){el('rpZone').value=zone;const matches=plans.filter(p=>p.zone===zone&&p.discipline===discipline);el('rpPlans').innerHTML=matches.map(p=>'<p>'+escape(p.type)+' · '+escape(p.level)+' · '+escape(p.status)+' <button data-edit-plan="'+escape(p.id)+'">Edit</button></p>').join('')||(zone?'<p>No existing plans for this ESZ.</p>':'<p>Select an ESZ to begin.</p>');el('rpPlans').querySelectorAll('[data-edit-plan]').forEach(b=>b.onclick=()=>edit(b.dataset.editPlan));if(matches.length===1)edit(matches[0].id);else el('rpEditor').innerHTML=''}
+function showPlans(){el('rpZone').value=zone;const matches=plans.filter(p=>p.zone===zone&&p.discipline===discipline);el('rpPlans').innerHTML=matches.map(p=>'<p>'+escape(p.type)+' · '+escape(p.level)+' · '+escape(p.status)+(p.savedAt?' · Saved '+escape(new Date(p.savedAt).toLocaleString()):'')+' <button data-edit-plan="'+escape(p.id)+'">Edit</button></p>').join('')||(zone?'<p>No existing plans for this ESZ.</p>':'<p>Select an ESZ to begin.</p>');el('rpPlans').querySelectorAll('[data-edit-plan]').forEach(b=>b.onclick=()=>edit(b.dataset.editPlan));if(matches.length===1)edit(matches[0].id);else el('rpEditor').innerHTML=''}
 const RESOURCE_TYPES={
  FIRE:['ENGINE','TRUCK','LADDER','RESCUE','BRUSH','CHIEF','TENDER','MEDIC','AMBULANCE','OTHER'],
  EMS:['AMBULANCE','MEDIC','ENGINE','RESCUE','CHIEF','SUPERVISOR','OTHER'],
@@ -80,7 +80,7 @@ function edit(id){
  '<label>Selection method<select id="rpMethod"><option>HYBRID</option><option>CLOSEST</option><option>RUN_CARD</option></select></label>'+
  '<h4>Response resources</h4><p>Choose resource types, set quantities, and use the arrows to establish dispatch order.</p>'+
  '<div id="rpResourceCards"></div><button id="rpAddResource" type="button">+ Add Resource</button>'+
- '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:18px"><button id="rpDraft" type="button">Save Draft</button><button id="rpPublish" type="button">Publish Locally</button></div>';
+ '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:18px"><button id="rpDraft" type="button">Save Draft</button><button id="rpPublish" type="button">Publish Locally</button></div><p id="rpSaveFeedback" role="status" aria-live="polite" style="margin-top:10px;font-weight:700"></p>';
  el('rpLevel').value=p?.level||'Standard';el('rpMethod').value=p?.method||'HYBRID';
  function drawResources(){
   el('rpResourceCards').innerHTML=resources.map((resource,i)=>'<div data-resource-index="'+i+'" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;border:1px solid #34536d;border-radius:10px;padding:12px;margin:8px 0;background:rgba(31,75,109,.22)">'+
@@ -101,8 +101,8 @@ function edit(id){
  function commit(status){
   const type=el('rpType').value.trim();
   if(!type||!resources.length||resources.some(r=>!r.type||!Number.isInteger(r.count)||r.count<1||r.count>99))return msg('Enter a call type and at least one resource with a quantity from 1 to 99.');
-  const next={id:id||crypto.randomUUID(),zone,discipline,type,level:el('rpLevel').value,method:el('rpMethod').value,resources:resources.map(r=>({...r})),status};
-  plans=plans.filter(x=>x.id!==id);plans.push(next);save();showPlans();msg('Saved '+status+' locally. No live dispatch changes.');
+  const next={id:id||crypto.randomUUID(),zone,discipline,type,level:el('rpLevel').value,method:el('rpMethod').value,resources:resources.map(r=>({...r})),status,savedAt:new Date().toISOString()};
+  try{plans=plans.filter(x=>x.id!==id);plans.push(next);save();showPlans();const confirmation=(status==='Draft'?'Draft saved':'Plan published locally')+' at '+new Date(next.savedAt).toLocaleTimeString()+'.';const feedback=el('rpSaveFeedback');if(feedback){feedback.textContent='✓ '+confirmation;feedback.style.color='#72e0a2'}msg(confirmation+' No live dispatch changes.')}catch(error){const feedback=el('rpSaveFeedback');if(feedback){feedback.textContent='Save failed: '+error.message;feedback.style.color='#ff9898'}msg('Save failed: '+error.message)}
  }
  el('rpDraft').onclick=()=>commit('Draft');el('rpPublish').onclick=()=>commit('Published');
 }
