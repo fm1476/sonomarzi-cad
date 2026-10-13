@@ -172,13 +172,13 @@
    const agency=window.CadDemoLogin.current().agencyId;
    if(!quiet)say('Refreshing shared CAD data…');
    try{
-    const [incidents,roster,missing,assignments]=await Promise.all([
-     client.listIncidents(agency),client.listUnits(agency),client.listOutstanding(agency),client.listAssignments(agency)
+    const [incidents,roster,missing,assignments,dispatchAreas,areaAgencies]=await Promise.all([
+     client.listIncidents(agency),client.listUnits(agency),client.listOutstanding(agency),client.listAssignments(agency),client.listDispatchAreas(agency),client.listDispatchAreaAgencies(agency)
     ]);
     const signature=JSON.stringify({incidents,roster,missing,assignments});
     const changed=lastSignature!==''&&lastSignature!==signature;
     lastSignature=signature;
-    snapshot={incidents,roster,assignments};syncChoices();renderWorkspace();renderSharedBoard();
+    snapshot={incidents,roster,assignments,dispatchAreas,areaAgencies};syncChoices();renderWorkspace();renderSharedBoard();
     displayRows(tbody,incidents,['incident_number','status','discipline','created_at']);
     displayRows(units,roster,['call_sign','status','resource_type']);
     displayRows(shortages,missing,['incident_id','resource_type','missing_count']);
