@@ -367,6 +367,26 @@ window.CadIncidentZones={async lookup(location,discipline){
  const unitPattern=id=>new RegExp('(?:^|[^A-Z0-9])'+String(id).replace(/[.*+?^\x24{}()|[\]\\]/g,'\\\x24&')+'(?=$|[^A-Z0-9])','i');
  window.cadBeforeVoiceProcess=(spoken,source)=>{
   const text=String(spoken||'').trim();
+  const correction=text.match(/\\b(?:copy[,.]?\\s+)?(?:true\\s+location\\s+is\\s+(?:at\\s+)?|(?:update|correct|change)\\s+(?:the\\s+)?location\\s+to\\s+)(.+)$/i);
+  if(correction){
+   const state=window.cadSafetyState?.(),incident=state?.incidents?.find(i=>i.id===state.selected&&i.status!=='CLOSED');
+   const output=document.getElementById('voiceInterpretation');
+   const report=msg=>{if(output)output.textContent=msg;return true};
+   if(!incident)return report('Select an active or pending event before updating its location.');
+   const address=correction[1].trim().replace(/[.!]+$/,'');
+   if(!address)return report('No new location recognized.');
+   if(!window.confirm('Update event '+incident.id+' location from '+incident.location+' to '+address+'?'))return report('Location change canceled.');
+   const id=incident.id;
+   report('Updating '+id+' location; GIS verification in progress…');
+   window.CadIncidentZones.lookup(address,incident.discipline).then(result=>{
+    const latest=window.cadSafetyState?.().incidents?.find(i=>i.id===id);
+    if(!latest||latest.status==='CLOSED')return report('Event no longer available. Location unchanged.');
+    const r=window.cadUpdateIncidentLocation?.(id,address,'VOICE',result?.ok?result:null);
+    report((r?.message||'Location update failed')+(result?.ok?'':' · GIS not verified')+'. Advise assigned units of location changes.');
+   }).catch(()=>{const r=window.cadUpdateIncidentLocation?.(id,address,'VOICE',null);report((r?.message||'Update failed')+' · GIS validation unavailable.');});
+   return true;
+  }
+
   if(!/\b(?:requesting|request|needs?|send|start)\s+(?:an?\s+)?(?:additional|more|backup)\s+(?:units?|officers?|resources?)\b/i.test(text))return previous?.(spoken,source)===true;
   const state=window.cadSafetyState?.();
   const output=document.getElementById('voiceInterpretation');
