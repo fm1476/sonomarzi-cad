@@ -804,3 +804,8 @@ header :is(button,select){max-width:100%}
 .cad-vehicle-icon{display:block;flex:none}
 .cad-rt-pick-icon{display:flex;align-items:center;gap:10px;justify-content:center;min-height:46px}
 .cad-rt-card .cad-rt-icon .cad-vehicle-icon{width:45px;height:31px}
+
+/* Configured vehicle SVGs in draggable palettes and simulated map markers */
+.cad-alarm-palette-tile .cad-vehicle-icon,.cad-alarm-symbol .cad-vehicle-icon,.rp-palette-pill .cad-vehicle-icon,.rp-resource-icon .cad-vehicle-icon{width:43px;height:29px;flex:none}
+.cad-map-unit-symbol .cad-vehicle-icon{width:27px;height:19px;display:block}
+.rp-resource-icon{display:inline-flex;align-items:center}
