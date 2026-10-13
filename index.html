@@ -59,6 +59,10 @@
 
 <main id="dispatch" class="view active">
   <section class="cad-workspace-toolbar" aria-label="Saved CAD workspaces"><strong>WORKSPACE</strong><select id="cadWorkspaceSelect" aria-label="Choose a saved workspace"></select><button id="cadWorkspaceLoad" type="button">Load</button><button id="cadWorkspaceNew" type="button">Save New</button><button id="cadWorkspaceUpdate" type="button">Update</button><button id="cadWorkspaceRename" type="button">Rename</button><button id="cadWorkspaceDelete" type="button">Delete</button><button id="cadWorkspaceReset" type="button">Reset Layout</button><label class="cad-external-launch">Other monitor <select id="cadExternalPanel" aria-label="Select panel for a separate monitor"><option value="">Choose pane…</option></select></label><button id="cadExternalOpen" type="button" title="Open selected pane as separate browser window">Open Window ↗</button><button id="cadOpenSavedWindows" type="button" title="Reopen saved separate-monitor windows">Restore Windows</button><span id="cadWorkspaceStatus" role="status" aria-live="polite">Workspace layout stored on this browser.</span></section>
+<section id="cadSharedOperational" class="cad-shared-operational" hidden aria-label="Shared CAD operational workspace">
+<div class="cad-shared-operational-toolbar"><strong>LIVE SHARED CAD</strong><label>Discipline<select id="cadSharedDiscipline"><option value="ALL">All disciplines</option><option value="LAW">Law</option><option value="FIRE">Fire</option><option value="EMS">EMS</option></select></label><label>Dispatch area<select id="cadSharedArea"><option value="ALL">All areas</option></select></label><button id="cadSharedShowAll" type="button" class="cad-shared-btn">Show all calls</button><span id="cadSharedOperationalStatus" role="status"></span></div>
+<div class="cad-shared-operational-grid"><article class="panel"><h2>Pending Calls <span id="cadSharedPendingCount"></span></h2><div id="cadSharedPendingList"></div></article><article class="panel"><h2>Active Incidents <span id="cadSharedActiveCount"></span></h2><div id="cadSharedActiveList"></div></article><article class="panel"><h2>Unit Status</h2><div id="cadSharedUnitList"></div></article><article class="panel"><h2>Incident Detail</h2><div id="cadSharedOperationalDetail">Select an incident to view and manage its units.</div></article></div>
+</section>
 <section class="grid">
     <article class="panel" data-panel="pending">
       <h2><span class="panel-drag" draggable="true" title="Drag to move this panel" aria-label="Drag panel">⠿</span> Pending Calls <span id="pendingCount"></span></h2>
@@ -255,7 +259,7 @@
 <script src="core/persistence.js?v=1"></script>
 <script src="core/supabase-client.js?v=2"></script>
 <script src="core/demo-login.js?v=2"></script>
-<script src="core/shared-demo-panel.js?v=9"></script>
+<script src="core/shared-demo-panel.js?v=10"></script>
 <script src="core/incident-commands.js?v=1"></script>
 <script src="core/unit-commands.js?v=3"></script>
 <script src="app.js?v=43"></script>
