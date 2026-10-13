@@ -261,7 +261,7 @@ window.CadLocalAreas={
  install(kind,geojson,field){
  if(!['esz','beat'].includes(kind)||geojson?.type!=='FeatureCollection'||!Array.isArray(geojson.features)||!geojson.features.length)throw Error('Invalid GeoJSON');
  if(geojson.features.length>10000||!geojson.features.every(f=>['Polygon','MultiPolygon'].includes(f.geometry?.type)))throw Error('Expected polygon features');
- if(!geojson.features.some(f=>f.properties?.[field]!=null))throw Error('Zone field missing');
+ if(!geojson.features.every(f=>f.properties?.[field]!=null&&String(f.properties[field]).trim()))throw Error('One or more polygons have no zone ID');
  const key='smcad-response-geojson-v1';let layers={};try{layers=JSON.parse(localStorage.getItem(key)||'{}')}catch{}layers[kind]={field,features:geojson.features,updatedAt:new Date().toISOString()};localStorage.setItem(key,JSON.stringify(layers));return geojson.features.length
  }
 };
@@ -299,6 +299,16 @@ window.CadLocalGISAdmin={
   render();
  }
 };
+window.CadLocalAreas.loadBundled=async function(){
+ const key='smcad-response-geojson-v1';
+ for(const [kind,path,field] of [['esz','data/petaluma-fire-esz.geojson','ESZ_NUM'],['beat','data/petaluma-police-beats.geojson','PD_BEAT']]){
+  let existing={};try{existing=JSON.parse(localStorage.getItem(key)||'{}')}catch{}
+  if(existing[kind])continue;
+  try{const res=await fetch(path,{cache:'no-cache'});if(!res.ok)continue;this.install(kind,await res.json(),field)}
+  catch(err){console.warn('Bundled GIS '+kind+' not installed:',err.message)}
+ }
+};
+window.CadLocalAreas.loadBundled();
 window.CadIncidentZones={async lookup(location,discipline){
  const original=String(location||'').trim();if(!original)return {ok:false,message:'Enter incident location first.'};
  const address=/petaluma/i.test(original)?original:original+', Petaluma, California';
@@ -312,6 +322,7 @@ window.CadIncidentZones={async lookup(location,discipline){
  if(candidates.length!==1)return {ok:false,message:'No unique high-confidence address candidate. Verify the location manually.'};
  const point=candidates[0].location;const zones={};
  const local=window.CadLocalAreas?.lookup(point.y,point.x);
+ if(local&&!local.ok)return {ok:false,message:local.message||'Conflicting local GIS boundaries; review the dataset.'};
  if(local?.ok&&local.zones?.[discipline==='LAW'?'beat':'esz'])return {ok:true,original,address:candidates[0].address,lat:point.y,lon:point.x,zones:local.zones,source:'LOCAL_GEOJSON'};
  for(const [name,url,field] of [['esz','https://maps.cityofpetaluma.net/mapping/rest/services/Fire/FireWebApp_MIL/MapServer/11','ESZ_NUM'],['beat','https://maps.cityofpetaluma.net/mapping/rest/services/Police/DistrictPolicing_Public_MIL1/FeatureServer/1','PD_BEAT']]){
   const query=new URL(url+'/query');
