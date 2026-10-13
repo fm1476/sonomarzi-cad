@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
 <meta name="theme-color" content="#0b1220"/>
 <title>SonoMarzi CAD POC</title>
-<link rel="stylesheet" href="styles.css?v=21.8"/>
+<link rel="stylesheet" href="styles.css?v=21.9"/>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 </head>
 <body>
@@ -117,17 +117,17 @@
     <div data-config-panel="master" hidden>
       <h3>Agency Master Configuration</h3>
       <p>Permanent browser-local definitions, separate from resettable demonstration incidents and live unit statuses. Select Activate in CAD on a unit definition to add it to the live demo roster without replacing existing units.</p>
-      <h4>Add Agency</h4>
+      <div class="cad-master-section"><h4>Add Agency</h4>
       <label>Agency ID<input id="cadMasterAgencyId" placeholder="PETPD"></label>
       <label>Agency name<input id="cadMasterAgencyName" placeholder="Petaluma Police"></label>
       <label>Default unit identification model<select id="cadMasterAgencyModel"><option value="HYBRID">Hybrid</option><option value="FIXED">Fixed beat</option><option value="PERSONNEL">Personnel ID</option><option value="APPARATUS">Apparatus</option></select></label>
       <button type="button" id="cadMasterAddAgency">Add Agency</button>
-      <h4>Add Personnel</h4>
+      </div><div class="cad-master-section"><h4>Add Personnel</h4>
       <label>Personnel ID<input id="cadMasterPersonId" placeholder="1476"></label>
       <label>Display name<input id="cadMasterPersonName" placeholder="Deputy Smith"></label>
       <label>Home agency<select id="cadMasterPersonnelAgency"></select></label>
       <button type="button" id="cadMasterAddPerson">Add Personnel</button>
-      <h4>Add Unit Definition</h4>
+      </div><div class="cad-master-section"><h4>Add Unit Definition</h4>
       <label>Internal unit ID<input id="cadMasterUnitId" placeholder="petpd-3a12"></label>
       <label>Radio designator<input id="cadMasterDesignator" placeholder="3A12"></label>
       <label>Owning agency<select id="cadMasterAgencySelect"></select></label>
@@ -137,9 +137,10 @@
       <button type="button" id="cadMasterAddUnit">Add Unit</button>
       <div id="cadMasterMessage" role="status" aria-live="polite"></div>
       <div id="cadMasterList"></div>
-      <h4>Configuration Backup</h4>
+      </div><div class="cad-master-section"><h4>Configuration Backup</h4>
       <button type="button" id="cadMasterExport">Export Agency Master JSON</button>
       <label>Import Agency Master JSON<input type="file" id="cadMasterImport" accept=".json,application/json"></label>
+      </div>
     </div>
     <div data-config-panel="general" hidden>
     <label>Agencies<textarea id="cfgAgencies"></textarea></label>
