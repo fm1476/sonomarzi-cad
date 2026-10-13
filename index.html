@@ -216,9 +216,7 @@
 <p style="font-size:13px">Optional Supabase test connection. The current CAD workspace remains local. Shared data below is read-only until transactional dispatch integration is ready.</p>
 <div id="cadSharedLoginPanel">
 <form id="cadSharedLoginForm" style="display:flex;gap:8px;flex-wrap:wrap;align-items:end">
-<label>Project URL<input id="cadSharedUrl" type="url" placeholder="https://project.supabase.co" required autocomplete="off"></label>
-<label>Publishable key<input id="cadSharedKey" type="password" placeholder="Supabase publishable key" required autocomplete="off"></label>
-<label>Demo agency UUID<input id="cadSharedAgency" placeholder="Agency UUID" required autocomplete="off"></label>
+
 <label>Dispatcher<select id="cadSharedUser"><option>cad1</option><option>cad2</option><option>cad3</option><option>cad4</option><option>cad5</option></select></label>
 <label>Password<input id="cadSharedPassword" type="password" required autocomplete="current-password"></label>
 <button id="cadSharedSignIn" type="submit">Connect to shared CAD</button>
@@ -235,7 +233,7 @@
 <script src="core/persistence.js?v=1"></script>
 <script src="core/supabase-client.js?v=1"></script>
 <script src="core/demo-login.js?v=2"></script>
-<script src="core/shared-demo-panel.js?v=1"></script>
+<script src="core/shared-demo-panel.js?v=2"></script>
 <script src="core/incident-commands.js?v=1"></script>
 <script src="core/unit-commands.js?v=3"></script>
 <script src="app.js?v=43"></script>
