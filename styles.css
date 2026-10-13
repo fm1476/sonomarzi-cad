@@ -785,3 +785,5 @@ header :is(button,select){max-width:100%}
 #rpEditor button:not(.rp-palette-pill){border-radius:8px}
 @media(max-width:1000px){#cadAlarmManager .cad-alarm-builder{grid-template-columns:minmax(0,1fr)}}
 @media(max-width:600px){#cadAlarmManager .cad-alarm-palette,.rp-palette{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+.cad-resource-type-manager{border:1px solid #34536d;border-radius:12px;padding:16px;margin:14px 0;background:#102338}.cad-rt-toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:end;margin:10px 0}.cad-rt-toolbar label{display:grid;gap:5px;flex:1;min-width:160px}.cad-rt-toolbar input,.cad-rt-toolbar select{width:100%;box-sizing:border-box}.cad-rt-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px}.cad-rt-card{display:flex;align-items:center;gap:8px;background:#183148;border:1px solid #355a78;border-radius:9px;padding:10px}.cad-rt-card strong{flex:1;font-size:12px}.cad-rt-icon{font-size:20px}.cad-rt-card button,.cad-rt-toolbar button{background:#1b354b;color:#eaf3fc;border:1px solid #426b87;border-radius:8px;padding:7px;cursor:pointer}
