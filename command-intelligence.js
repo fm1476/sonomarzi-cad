@@ -131,7 +131,20 @@ async function lookupAddresses(){const span=activeAddress();if(!span){hideGeo();
  }catch(_){hideGeo()}}
 function scheduleGeo(){clearTimeout(geoTimer);if(activeAddress())geoTimer=setTimeout(lookupAddresses,700);else hideGeo()}
 input.addEventListener('input',scheduleGeo);
-input.addEventListener('input',updateSuggestions);input.addEventListener('click',updateSuggestions);input.addEventListener('keydown',e=>{if(!sugg.hidden&&['ArrowUp','ArrowDown','Tab'].includes(e.key)){e.preventDefault();if(e.key==='Tab'){choose(currentOptions[hover]);return;}hover=(hover+(e.key==='ArrowDown'?1:-1)+currentOptions.length)%currentOptions.length;[...sugg.children].forEach((el,j)=>el.setAttribute('aria-selected',String(j===hover)));return;}if(e.key==='Escape'){hideSuggestions();return;}if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();if(!sugg.hidden){choose(currentOptions[hover]);return;}execute();}});document.getElementById('executeCadCommand').onclick=execute;window.cadExecuteSharedCommand=executeShared;document.addEventListener('click',e=>{if(!e.target.closest('.cad-smart-entry'))hideSuggestions()});
+input.addEventListener('input',updateSuggestions);input.addEventListener('click',updateSuggestions);input.addEventListener('keydown',e=>{if(!sugg.hidden&&['ArrowUp','ArrowDown','Tab'].includes(e.key)){e.preventDefault();if(e.key==='Tab'){choose(currentOptions[hover]);return;}hover=(hover+(e.key==='ArrowDown'?1:-1)+currentOptions.length)%currentOptions.length;[...sugg.children].forEach((el,j)=>el.setAttribute('aria-selected',String(j===hover)));return;}if(e.key==='Escape'){hideSuggestions();return;}if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();if(!sugg.hidden){choose(currentOptions[hover]);return;}execute();}});document.getElementById('executeCadCommand').onclick=execute;window.cadExecuteSharedCommand=executeShared;
+// Capture shared commands before any legacy CAD command listeners can mutate local state.
+document.addEventListener('click',e=>{
+ if(!window.cadSharedIsActive?.()||!e.target.closest('#executeCadCommand'))return;
+ e.preventDefault();e.stopImmediatePropagation();
+ execute();
+},true);
+document.addEventListener('keydown',e=>{
+ if(!window.cadSharedIsActive?.()||e.target!==input||e.key!=='Enter'||e.shiftKey)return;
+ if(!sugg.hidden)return; // Allow the existing incident-number autocomplete.
+ e.preventDefault();e.stopImmediatePropagation();
+ execute();
+},true);
+document.addEventListener('click',e=>{if(!e.target.closest('.cad-smart-entry'))hideSuggestions()});
 function boardAnswer(text){const q=text.toLowerCase().replace(/[^\w\s-]/g,' '),pending=incidents().filter(i=>i.status==='PENDING'),active=incidents().filter(i=>i.status==='ACTIVE'),available=units().filter(u=>u.status==='AVAILABLE');
  const p1=incidents().filter(i=>i.status!=='CLOSED'&&(i.priority==='P1'||i.priority==='1')&&!i.units.length);
  if(/priority\s*(one|1)|p1|unassigned|without\s*(an?\s*)?(assigned\s*)?unit/.test(q))return p1.length?`${p1.length} unassigned priority-one call(s):\n`+p1.map(i=>`${i.id} · ${i.type} · ${i.location} (${i.status})`).join('\n'):'No unassigned priority-one incidents.';
