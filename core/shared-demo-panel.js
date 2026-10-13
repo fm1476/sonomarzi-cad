@@ -187,11 +187,11 @@
    }catch(error){say(error.message)}finally{refreshing=false}
   }
   window.cadSharedRequestRefresh=()=>refresh({quiet:true});
-  document.addEventListener('click',event=>{
-   const button=event.target.closest?.('[data-act="shared-dispatch"]');
-   if(!button)return;
+  window.addEventListener('cad:shared-dispatch',event=>{
+   const button=document.getElementById('cadSharedToggle');
+   if(!window.CadDemoLogin.current())return window.alert('Sign in to shared CAD first.');
    const state=window.cadSafetyState?.();
-   const selected=state?.incidents?.find(i=>i.id===state.selected);
+   const selected=state?.incidents?.find(i=>i.id===(event.detail?.incidentId||state.selected));
    if(!selected?.sharedUuid)return;
    const incident=snapshot.incidents.find(i=>i.id===selected.sharedUuid);
    if(!incident)return;
