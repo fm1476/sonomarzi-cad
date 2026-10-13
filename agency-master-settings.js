@@ -8,6 +8,9 @@ let data;
 try{data=M.read(localStorage);}catch(e){message.textContent='Saved master data could not be loaded: '+e.message+'. Export/recover it before editing.';return;}
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const opts=(items,value)=>items.map(x=>'<option value="'+esc(x.id)+'"'+(x.id===value?' selected':'')+'>'+esc(x.name)+'</option>').join('');
+const TYPES={LAW:['PATROL','SUPERVISOR','TRAFFIC','K9','DETECTIVE','SWAT','MOTOR','OTHER'],FIRE:['ENGINE','TRUCK','LADDER','RESCUE','BRUSH','CHIEF','TENDER','MEDIC','AMBULANCE','OTHER'],EMS:['AMBULANCE','MEDIC','ENGINE','RESCUE','CHIEF','SUPERVISOR','OTHER']};
+function refreshTypes(){const e=el('cadMasterResourceType');if(!e)return;const previous=e.value;e.innerHTML=(TYPES[el('cadMasterDiscipline').value]||[]).map(t=>'<option>'+t+'</option>').join('');if([...e.options].some(o=>o.value===previous))e.value=previous}
+el('cadMasterDiscipline').addEventListener('change',refreshTypes);refreshTypes();
 function renderStaff(){
  const unitSelect=el('cadStaffUnit'),crewSelect=el('cadStaffCrew'),status=el('cadStaffCurrent');
  const active=window.cadMasterActiveUnits?.()||[];
@@ -27,7 +30,7 @@ function renderStaff(){
 function render(){
  list.innerHTML='<h4>Agencies ('+data.agencies.length+')</h4>'+(data.agencies.map(a=>'<div>'+esc(a.name)+' ('+esc(a.id)+') · '+esc(a.model)+'</div>').join('')||'<p>No configured agencies yet.</p>')+
  '<h4>Personnel ('+data.personnel.length+')</h4>'+(data.personnel.map(p=>'<div>'+esc(p.name)+' ('+esc(p.id)+') · '+esc(p.agencyId)+'</div>').join('')||'<p>No configured personnel yet.</p>')+
- '<h4>Units ('+data.units.length+')</h4>'+(data.units.map(u=>'<div><strong>'+esc(u.designator)+'</strong> · '+esc(u.agencyId)+' · '+esc(u.discipline)+' · '+esc(u.model)+(u.personId?' · '+esc(u.personId):'')+' <button type="button" data-unit-activate="'+esc(u.id)+'">Activate in CAD</button> <button type="button" data-unit-delete="'+esc(u.id)+'">Remove</button></div>').join('')||'<p>No configured units yet.</p>');
+ '<h4>Units ('+data.units.length+')</h4>'+(data.units.map(u=>'<div><strong>'+esc(u.designator)+'</strong> · '+esc(u.agencyId)+' · '+esc(u.discipline)+' · '+esc(u.model)+(u.resourceType?' · '+esc(u.resourceType):'')+(u.personId?' · '+esc(u.personId):'')+' <button type="button" data-unit-activate="'+esc(u.id)+'">Activate in CAD</button> <button type="button" data-unit-delete="'+esc(u.id)+'">Remove</button></div>').join('')||'<p>No configured units yet.</p>');
  el('cadMasterAgencySelect').innerHTML=opts(data.agencies.map(a=>({id:a.id,name:a.name})));
  el('cadMasterPersonnelAgency').innerHTML=opts(data.agencies.map(a=>({id:a.id,name:a.name})));
  el('cadMasterPersonSelect').innerHTML='<option value="">None / assigned at sign-on</option>'+opts(data.personnel.filter(p=>p.agencyId===el('cadMasterAgencySelect').value).map(p=>({id:p.id,name:p.name+' ('+p.id+')'})));
@@ -62,7 +65,7 @@ el('cadMasterAddPerson').addEventListener('click',()=>{
 el('cadMasterAddUnit').addEventListener('click',()=>{
  const id=el('cadMasterUnitId').value.trim(),designator=el('cadMasterDesignator').value.trim(),agencyId=el('cadMasterAgencySelect').value,discipline=el('cadMasterDiscipline').value,model=el('cadMasterUnitModel').value,personId=el('cadMasterPersonSelect').value;
  if(!id||!designator){message.textContent='Unit ID and designator are required.';return;}
- commit({...data,units:[...data.units,{id,designator,agencyId,discipline,model,personId}]},'Unit saved. This is a master definition, not a live CAD assignment.');
+ commit({...data,units:[...data.units,{id,designator,agencyId,discipline,model,personId,resourceType:el('cadMasterResourceType').value,minStaffing:Number(el('cadMasterMinStaffing').value),qualifications:el('cadMasterQualifications').value.split(',').map(x=>x.trim()).filter(Boolean)}]},'Unit saved. This is a master definition, not a live CAD assignment.');
 });
 list.addEventListener('click',e=>{
  const activateId=e.target?.getAttribute('data-unit-activate');if(activateId){const result=window.cadActivateMasterUnit?.(activateId);message.textContent=result?.ok?'Unit activated in live CAD roster.':'Activation failed: '+(result?.error||'CAD integration unavailable');renderStaff();return;}
