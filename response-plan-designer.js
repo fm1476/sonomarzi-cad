@@ -7,7 +7,7 @@ const root=document.getElementById('cadResponseDesigner');if(!root)return;
 const el=id=>document.getElementById(id);
 const save=()=>{localStorage.setItem(KEY,JSON.stringify(plans));localStorage.setItem(CREWS,JSON.stringify(crews))};
 const escape=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-let discipline='FIRE',zone='',zoneMap=null,zoneOverlay=null,zoneAbort=null,mapObserver=null;
+let discipline='FIRE',agency='',zone='',zoneMap=null,zoneOverlay=null,zoneAbort=null,mapObserver=null;
 const INITIAL_CENTER=[38.2448,-122.6400], INITIAL_ZOOM=13;
 const gis={FIRE:{url:'https://maps.cityofpetaluma.net/mapping/rest/services/Fire/FireWebApp_MIL/MapServer/11',field:'ESZ_NUM'},EMS:{url:'https://maps.cityofpetaluma.net/mapping/rest/services/Fire/FireWebApp_MIL/MapServer/11',field:'ESZ_NUM'},LAW:{url:'https://maps.cityofpetaluma.net/mapping/rest/services/Police/DistrictPolicing_Public_MIL1/FeatureServer/1',field:'PD_BEAT'}};
 function render(){
@@ -16,8 +16,9 @@ function render(){
  if(mapObserver){mapObserver.disconnect();mapObserver=null}
  if(zoneMap){zoneMap.off();zoneMap.remove();zoneMap=null;zoneOverlay=null}
  const zones=[...new Set(plans.filter(p=>p.discipline===discipline).map(p=>p.zone))];
- root.innerHTML='<h4>Response Plan Designer</h4><p>Local draft/publish prototype. Does not affect live dispatch.</p><label>Discipline<select id="rpDisc"><option>FIRE</option><option>EMS</option><option>LAW</option></select></label><label>Response zone / police beat<input id="rpZone" placeholder="Click a polygon on the map, or enter a zone ID" value="'+escape(zone)+'"></label><div id="rpZoneMap" style="height:370px;min-height:300px;border:1px solid #34536d;border-radius:10px;margin:12px 0;overflow:hidden" aria-label="Select response zone on map"></div><p id="rpMapStatus">Loading response area map…</p><button id="rpOpen" type="button">Open Zone</button><button id="rpNew" type="button">New Plan</button><div id="rpPlans"></div><div id="rpEditor"></div><h4>Shared Crew Groups</h4><p>Apparatus sharing a crew cannot be recommended as independently staffed resources.</p><label>Group name<input id="rpCrewName" placeholder="Station 1 primary crew"></label><label>Apparatus (comma separated)<input id="rpCrewUnits" placeholder="E1, R1, BR1"></label><button id="rpAddCrew" type="button">Add Shared Crew</button><div id="rpCrews"></div><p id="rpMessage" role="status"></p>';
- el('rpDisc').value=discipline;el('rpDisc').onchange=e=>{discipline=e.target.value;zone='';render()};
+ const agencyNames=(window.CadAgencyMaster?.read(localStorage)?.agencies||[]).map(a=>a.name);if(!agencyNames.includes(agency))agency=agencyNames[0]||'';
+ root.innerHTML='<h4>Response Plan Designer</h4><p>Local draft/publish prototype. Does not affect live dispatch.</p><label>Agency<select id="rpAgency">'+agencyNames.map(a=>'<option value="'+escape(a)+'">'+escape(a)+'</option>').join('')+'</select></label><label>Discipline<select id="rpDisc"><option>FIRE</option><option>EMS</option><option>LAW</option></select></label><label>Response zone / police beat<input id="rpZone" placeholder="Click a polygon on the map, or enter a zone ID" value="'+escape(zone)+'"></label><div id="rpZoneMap" style="height:370px;min-height:300px;border:1px solid #34536d;border-radius:10px;margin:12px 0;overflow:hidden" aria-label="Select response zone on map"></div><p id="rpMapStatus">Loading response area map…</p><button id="rpOpen" type="button">Open Zone</button><button id="rpNew" type="button">New Plan</button><div id="rpPlans"></div><div id="rpEditor"></div><h4>Shared Crew Groups</h4><p>Apparatus sharing a crew cannot be recommended as independently staffed resources.</p><label>Group name<input id="rpCrewName" placeholder="Station 1 primary crew"></label><label>Apparatus (comma separated)<input id="rpCrewUnits" placeholder="E1, R1, BR1"></label><button id="rpAddCrew" type="button">Add Shared Crew</button><div id="rpCrews"></div><p id="rpMessage" role="status"></p>';
+ el('rpAgency').value=agency;el('rpAgency').onchange=e=>{agency=e.target.value;showPlans()};el('rpDisc').value=discipline;el('rpDisc').onchange=e=>{discipline=e.target.value;zone='';render()};
  el('rpOpen').onclick=()=>{zone=el('rpZone').value.trim();showPlans()};
  el('rpNew').onclick=()=>{zone=el('rpZone').value.trim();if(!zone)return msg('Select an ESZ first.');edit()};
  el('rpAddCrew').onclick=()=>{const name=el('rpCrewName').value.trim(),units=[...new Set(el('rpCrewUnits').value.toUpperCase().split(',').map(s=>s.trim()).filter(Boolean))];if(!name||units.length<2)return msg('Provide a group name and at least two apparatus.');crews.push({id:crypto.randomUUID(),name,units});save();showCrews();msg('Shared crew saved locally.')};
@@ -63,7 +64,7 @@ async function loadMapZones(){
 }
 function msg(t){el('rpMessage').textContent=t}
 function showCrews(){el('rpCrews').innerHTML=crews.map(g=>'<p>'+escape(g.name)+' — '+escape(g.units.join(', '))+' <button data-remove-crew="'+escape(g.id)+'">Remove</button></p>').join('')||'<p>No shared crew groups configured.</p>';el('rpCrews').querySelectorAll('[data-remove-crew]').forEach(b=>b.onclick=()=>{crews=crews.filter(g=>g.id!==b.dataset.removeCrew);save();showCrews()})}
-function showPlans(){el('rpZone').value=zone;const matches=plans.filter(p=>p.zone===zone&&p.discipline===discipline);el('rpPlans').innerHTML=matches.map(p=>'<p>'+escape(p.type)+' · '+escape(p.level)+' · '+escape(p.status)+(p.savedAt?' · Saved '+escape(new Date(p.savedAt).toLocaleString()):'')+' <button data-edit-plan="'+escape(p.id)+'">Edit</button></p>').join('')||(zone?'<p>No existing plans for this ESZ.</p>':'<p>Select an ESZ to begin.</p>');el('rpPlans').querySelectorAll('[data-edit-plan]').forEach(b=>b.onclick=()=>edit(b.dataset.editPlan));if(matches.length===1)edit(matches[0].id);else el('rpEditor').innerHTML=''}
+function showPlans(){el('rpZone').value=zone;const matches=plans.filter(p=>p.zone===zone&&p.discipline===discipline&&(!p.agency||p.agency===agency));el('rpPlans').innerHTML=matches.map(p=>'<p>'+escape(p.type)+' · '+escape(p.level)+' · '+escape(p.status)+(p.savedAt?' · Saved '+escape(new Date(p.savedAt).toLocaleString()):'')+' <button data-edit-plan="'+escape(p.id)+'">Edit</button></p>').join('')||(zone?'<p>No existing plans for this ESZ.</p>':'<p>Select an ESZ to begin.</p>');el('rpPlans').querySelectorAll('[data-edit-plan]').forEach(b=>b.onclick=()=>edit(b.dataset.editPlan));if(matches.length===1)edit(matches[0].id);else el('rpEditor').innerHTML=''}
 const DEFAULT_CFS={LAW:['Traffic Stop','Domestic','Suspicious Person','Alarm','Traffic Collision','Welfare Check','Disturbance','Unwanted Subject','Burglary Alarm'],FIRE:['Structure Fire','Vegetation Fire','Vehicle Fire','Alarm','Hazard'],EMS:['Medical Aid','Cardiac Arrest','Fall','Overdose','Traffic Collision']};
 function cfsOptions(d,existing){
  const cfg=(()=>{try{return JSON.parse(localStorage.getItem('smcad-config-v1')||'{}')}catch{return {}}})();
@@ -147,13 +148,13 @@ function drawTest(plan,overrides={}){
 function edit(id){
  const p=plans.find(x=>x.id===id);
  const defaults=discipline==='LAW'?[{type:'PATROL',count:2},{type:'SUPERVISOR',count:1}]:discipline==='EMS'?[{type:'AMBULANCE',count:1},{type:'ENGINE',count:1}]:[{type:'ENGINE',count:2},{type:'TRUCK',count:1},{type:'CHIEF',count:1}];
- let resources=(p?.resources||defaults).map(r=>({...r}));
+ let resources=(p?.resources||defaults.filter(r=>(window.CadResourceTypes?.forAgency(agency,discipline).map(x=>x.name)||[]).includes(r.type))).map(r=>({...r}));
  let runOrders=structuredClone(p?.runOrders||{});
  const master=(()=>{try{return window.CadAgencyMaster?.read(localStorage)||{units:[],agencies:[]}}catch{return {units:[],agencies:[]}}})();
- const options=[...new Set([...RESOURCE_TYPES[discipline],...(master.units||[]).filter(u=>u.discipline===discipline).map(u=>u.resourceType).filter(Boolean)])];
+ const options=[...new Set([...(window.CadResourceTypes?.forAgency(agency,discipline).map(x=>x.name)||[]),...(p?.resources||[]).map(r=>r.type)])];
  const roster=(window.cadSafetyState?.().units||[]).filter(u=>u.discipline===discipline);
  const agencyFor=u=>master.agencies?.find(a=>a.id===u.agencyId)?.name||'';
- const availableUnits=[...new Map([...roster.map(u=>[u.agency+'|'+u.id,{id:u.id,agency:u.agency,type:(master.units||[]).find(m=>m.id===u.masterUnitId)?.resourceType||''}]),...(master.units||[]).filter(u=>u.discipline===discipline).map(u=>[agencyFor(u)+'|'+u.designator,{id:u.designator,agency:agencyFor(u),type:u.resourceType||''}])].map(([k,v])=>[k,v])).values()];
+ const availableUnits=[...new Map([...roster.filter(u=>u.agency===agency).map(u=>[u.agency+'|'+u.id,{id:u.id,agency:u.agency,type:(master.units||[]).find(m=>m.id===u.masterUnitId)?.resourceType||''}]),...(master.units||[]).filter(u=>u.discipline===discipline&&agencyFor(u)===agency).map(u=>[agencyFor(u)+'|'+u.designator,{id:u.designator,agency:agencyFor(u),type:u.resourceType||''}])].map(([k,v])=>[k,v])).values()];
  const symbols={ENGINE:'🚒',TRUCK:'🪜',LADDER:'🪜',RESCUE:'🚑',BRUSH:'🌲',CHIEF:'⭐',TENDER:'💧',MEDIC:'🚑',AMBULANCE:'🚑',PATROL:'🚓',SUPERVISOR:'⭐',K9:'🐕',SWAT:'🛡️'};
 
  el('rpEditor').innerHTML='<h4>'+(p?'Edit Plan':'New Plan')+' — '+escape(discipline==='LAW'?'Beat ':'ESZ ')+escape(zone)+'</h4>'+
@@ -217,13 +218,13 @@ function edit(id){
  resourceDrop.ondragover=e=>e.preventDefault();
  resourceDrop.ondrop=e=>{const v=e.dataTransfer.getData('text/plain');if(v.startsWith('resource:')){e.preventDefault();addResource(v.slice(9))}};
  el('rpResourceCards').addEventListener('change',e=>{if(e.target.matches('[data-resource-type]'))setTimeout(drawOrders,0)});
- el('rpAddResource').onclick=()=>{resources.push({type:options[0],count:1});drawResources();drawOrders()};
+ el('rpAddResource').onclick=()=>{if(!options.length)return msg('Configure resource types for this agency first.');resources.push({type:options[0],count:1});drawResources();drawOrders()};
  el('rpTest').onclick=()=>{const requested=resources.map(r=>({...r,count:Number(r.count)}));if(!requested.length||requested.some(r=>!r.type||!Number.isInteger(r.count)||r.count<1))return msg('Enter valid resources before testing.');drawTest({discipline,resources:requested,runOrders})};
  function commit(status){
   const type=el('rpType').value.trim();
   if(!type||!resources.length||resources.some(r=>!r.type||!Number.isInteger(r.count)||r.count<1||r.count>99))return msg('Enter a call type and at least one resource with a quantity from 1 to 99.');
   if(Object.values(runOrders).some(steps=>steps.some(step=>step.kind!=='CLOSEST'&&!step.value.trim())))return msg('Complete each run-order step or remove the empty step.');
-  const next={id:id||crypto.randomUUID(),zone,discipline,type,level:el('rpLevel').value,method:el('rpMethod').value,resources:resources.map(r=>({...r})),runOrders,status,savedAt:new Date().toISOString()};
+  const next={id:id||crypto.randomUUID(),zone,agency,discipline,type,level:el('rpLevel').value,method:el('rpMethod').value,resources:resources.map(r=>({...r})),runOrders,status,savedAt:new Date().toISOString()};
   try{plans=plans.filter(x=>x.id!==id);plans.push(next);save();showPlans();const confirmation=(status==='Draft'?'Draft saved':'Plan published locally')+' at '+new Date(next.savedAt).toLocaleTimeString()+'.';const feedback=el('rpSaveFeedback');if(feedback){feedback.textContent='✓ '+confirmation;feedback.style.color='#72e0a2'}msg(confirmation+' No live dispatch changes.')}catch(error){const feedback=el('rpSaveFeedback');if(feedback){feedback.textContent='Save failed: '+error.message;feedback.style.color='#ff9898'}msg('Save failed: '+error.message)}
  }
  el('rpDraft').onclick=()=>commit('Draft');el('rpPublish').onclick=()=>commit('Published');
