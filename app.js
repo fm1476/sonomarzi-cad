@@ -171,7 +171,7 @@ function cadSyncResponseShortfalls(){
  }
 }
 function save(){
- if(cadSharedWorkspaceMode){window.alert('Shared CAD changes must be made through authenticated dispatch controls. No local change was saved.');window.cadSharedRequestRefresh?.();return;}
+ if(cadSharedWorkspaceMode){console.warn('Blocked legacy local CAD save while shared session is active.');const feedback=document.getElementById('cadCommandResults');if(feedback)feedback.textContent='Shared CAD: legacy local action was blocked. Use the authenticated command processor; no local change was saved.';window.cadSharedRequestRefresh?.();return;}
  cadSyncResponseShortfalls();
  for(const u of state.units||[]){
   if(lastSavedStatuses.has(u.id)&&lastSavedStatuses.get(u.id)!==u.status){u.statusChangedAt=Date.now();}
