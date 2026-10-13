@@ -28,16 +28,13 @@ function popup(u){
  <div class="cad-safety-section-title">Change monitoring interval</div>
  <div class="cad-safety-presets">${[2,5,10,15].map(n=>`<button type="button" data-preset="${n}" class="${t.minutes===n?'is-selected':''}">${n} min</button>`).join('')}</div>
  <div class="cad-safety-custom"><label for="cadSafetyMinutes">Custom minutes</label><input id="cadSafetyMinutes" type="number" min="1" max="240" value="${t.minutes}"><button type="button" data-action="change" class="cad-safety-primary">Apply</button></div>
- <div class="cad-safety-reason" hidden><label for="cadSafetyReason">Reason for suspending monitoring <span>(required)</span></label><input id="cadSafetyReason" maxlength="240" placeholder="Enter reason"><div class="cad-safety-reason-buttons"><button type="button" data-action="confirm-stop" class="cad-safety-danger">Confirm stop</button><button type="button" data-action="cancel-stop">Cancel</button></div></div>
  <div class="cad-safety-footer"><button type="button" data-action="automatic">↺ Return to agency rules</button><button type="button" data-action="config">⚙ Agency rules</button></div>
  <p class="cad-safety-disclaimer">Local CAD prototype · Not certified for live officer safety monitoring</p></div>`;
  const close=()=>d.close();
  d.querySelector('.cad-safety-close').onclick=close;
  const act=(action,minutes)=>{
   if(action==='config'){close();configure(rule.agency);return}
-  if(action==='stop'&&t.mode!=='stopped'){d.querySelector('.cad-safety-reason').hidden=false;d.querySelector('#cadSafetyReason').focus();return}
-  if(action==='cancel-stop'){d.querySelector('.cad-safety-reason').hidden=true;return}
-  if(action==='confirm-stop'){const reason=d.querySelector('#cadSafetyReason').value.trim();if(!reason){d.querySelector('#cadSafetyReason').focus();return}t.mode='stopped';t.reason=reason}
+  if(action==='stop'&&t.mode!=='stopped'){t.mode='stopped';t.ack=true;delete t.reason}
   else if(action==='stop'){t.mode='manual';t.due=Date.now()+t.minutes*60000;t.ack=false}
   else if(action==='reset'){t.due=Date.now()+t.minutes*60000;t.ack=false;if(t.mode==='stopped')t.mode='manual'}
   else if(action==='ack'){t.ack=true}
@@ -52,6 +49,6 @@ function popup(u){
 }
 function configure(agency){let d=document.getElementById('cadSafetyRules');if(!d){d=document.createElement('dialog');d.id='cadSafetyRules';d.className='cad-safety-dialog';document.body.append(d)}const current=rules[agency]||{};d.innerHTML='<form method="dialog"><h3>Agency officer safety rules</h3><p>'+agency+' · Local prototype only</p><label>CFS type <input name="type" value="Traffic Stop" required></label><label>Status <select name="status"><option>ONSCENE</option><option>C4</option><option>AVAILABLE</option><option>ENROUTE</option><option>Default</option></select></label><label>Minutes <input name="minutes" type="number" min="1" max="240" value="2" required></label><p>Configured: '+Object.entries(current).map(([k,v])=>k+': '+Object.entries(v).map(([s,m])=>s+' '+m+'m').join(', ')).join(' | ')+'</p><button value="save">Save rule</button><button value="cancel">Close</button></form>';d.onclose=()=>{if(d.returnValue!=='save')return;const form=d.querySelector('form'),type=form.elements.type.value.trim(),status=form.elements.status.value,minutes=Number(form.elements.minutes.value);if(!type||!Number.isFinite(minutes)||minutes<1||minutes>240)return;(rules[agency]??={})[type]??={};rules[agency][type][status]=minutes;persistRules()};d.showModal()}
 document.addEventListener('click',e=>{const b=e.target.closest('.cad-safety-clock');if(!b)return;e.preventDefault();e.stopPropagation();const u=(stateNow().units||[]).find(x=>x.id===b.dataset.safetyUnit);if(u)popup(u)},true);
-const enable=document.createElement('button');enable.type='button';enable.className='cad-safety-enable';enable.textContent='Enable officer safety audio';enable.onclick=()=>{audioEnabled=true;enable.textContent='Officer safety audio enabled';enable.disabled=true};document.querySelector('[data-panel="units"] .filters')?.append(enable);
+const enable=document.createElement('button');enable.type='button';enable.className='cad-safety-enable';enable.textContent='Officer safety audio: Off';enable.setAttribute('aria-pressed','false');enable.onclick=()=>{audioEnabled=!audioEnabled;enable.textContent='Officer safety audio: '+(audioEnabled?'On':'Off');enable.setAttribute('aria-pressed',String(audioEnabled));if(!audioEnabled){lastAudio.clear();try{window.speechSynthesis?.cancel()}catch{}}};document.querySelector('[data-panel="units"] .filters')?.append(enable);
 setInterval(refresh,1000);setTimeout(refresh,500);
 })();
