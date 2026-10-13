@@ -176,10 +176,11 @@
     const [incidents,roster,missing,assignments,dispatchAreas,areaAgencies,incidentEvents,incidentLocations]=await Promise.all([
      client.listIncidents(agency),client.listUnits(agency),client.listOutstanding(agency),client.listAssignments(agency),client.listDispatchAreas(agency),client.listDispatchAreaAgencies(agency),client.listIncidentEvents(agency),client.listIncidentLocations(agency)
     ]);
-    const signature=JSON.stringify({incidents,roster,missing,assignments});
-    const changed=lastSignature!==''&&lastSignature!==signature;
+    const signature=JSON.stringify({incidents,roster,missing,assignments,incidentEvents,incidentLocations});
+    const needsRender=lastSignature!==signature;
+    const changed=lastSignature!==''&&needsRender;
     lastSignature=signature;
-    snapshot={incidents,roster,assignments,dispatchAreas,areaAgencies,incidentEvents,incidentLocations};syncChoices();renderWorkspace();renderSharedBoard();window.cadSharedApplySnapshot?.(snapshot);
+    snapshot={incidents,roster,assignments,dispatchAreas,areaAgencies,incidentEvents,incidentLocations};syncChoices();renderWorkspace();renderSharedBoard();if(needsRender)window.cadSharedApplySnapshot?.(snapshot);
     displayRows(tbody,incidents,['incident_number','status','discipline','created_at']);
     displayRows(units,roster,['call_sign','status','resource_type']);
     displayRows(shortages,missing,['incident_id','resource_type','missing_count']);
