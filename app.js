@@ -536,12 +536,42 @@ $('#reset').onclick=()=>{
  window.location.reload();
 }
 $('#simulateBtn').onclick=()=>simulate();
-function simulate(){toast('Simulation running');let steps=[
-()=>{let i={id:`26-${String(++state.seq).padStart(6,'0')}`,agency:'Petaluma Fire / EMS',discipline:'FIRE',priority:'P1',type:'Structure Fire',location:'450 East Washington St',caller:'Multiple callers',phone:'911',narrative:['Smoke and flames visible from second floor.'],status:'PENDING',units:[],events:[]};event(i,'911_CALL_RECEIVED');state.incidents.push(i);state.selected=i.id;save()},
-()=>{let i=state.incidents.find(x=>x.id===state.selected);i.status='ACTIVE';['E1','E2','M2'].forEach(id=>{let u=state.units.find(x=>x.id===id);u.status='DISPATCHED';u.location=i.location;i.units.push(id);event(i,`UNIT_ASSIGNED ${id}`)});save()},
-()=>{['E1','E2','M2'].forEach(id=>state.units.find(x=>x.id===id).status='ENROUTE');let i=state.incidents.find(x=>x.id===state.selected);event(i,'UNITS_ENROUTE');save()},
-()=>{state.units.find(x=>x.id==='E1').status='ONSCENE';let i=state.incidents.find(x=>x.id===state.selected);i.narrative.push('E1 on scene, working fire declared.');event(i,'E1 ONSCENE / WORKING FIRE');save()}
-];steps.forEach((f,n)=>setTimeout(f,n*1800))}
+function simulate(){
+ toast('Simulation running');
+ let demoId=null;
+ const steps=[
+  ()=>{
+   const i={id:`26-${String(++state.seq).padStart(6,'0')}`,agency:'Petaluma Fire / EMS',discipline:'FIRE',priority:'P1',type:'Structure Fire',location:'450 East Washington St',caller:'Multiple callers',phone:'911',narrative:['Smoke and flames visible from second floor.'],status:'PENDING',units:[],events:[]};
+   event(i,'911_CALL_RECEIVED');state.incidents.push(i);state.selected=i.id;demoId=i.id;save();
+  },
+  ()=>{
+   const incident=state.incidents.find(i=>i.id===demoId);
+   if(!incident)return;
+   const result=window.CadUnitCommands.assignPlan({state,incident,unitIds:['E1','E2','M2'],event,sharedGroups:cadSharedCrewGroups()});
+   if(!result.ok){toast('Simulation dispatch blocked: '+result.message);demoId=null;return}
+   save();
+  },
+  ()=>{
+   const incident=state.incidents.find(i=>i.id===demoId);
+   if(!incident)return;
+   for(const id of ['E1','E2','M2']){
+    const result=window.CadUnitCommands.setStatus({state,unit:state.units.find(u=>u.id===id),status:'ENROUTE',incident,event,source:'SIMULATION'});
+    if(!result.ok){toast('Simulation status blocked: '+result.message);return}
+   }
+   event(incident,'UNITS_ENROUTE');save();
+  },
+  ()=>{
+   const incident=state.incidents.find(i=>i.id===demoId);
+   if(!incident)return;
+   const result=window.CadUnitCommands.setStatus({state,unit:state.units.find(u=>u.id==='E1'),status:'ONSCENE',incident,event,source:'SIMULATION'});
+   if(!result.ok){toast('Simulation status blocked: '+result.message);return}
+   incident.narrative.push('E1 on scene, working fire declared.');
+   event(incident,'E1 ONSCENE / WORKING FIRE');save();
+  }
+ ];
+ steps.forEach((step,index)=>setTimeout(step,index*1800));
+}
+
 window.addEventListener('storage',()=>{state=JSON.parse(localStorage.getItem(KEY)||'null')||state;render()});
 setInterval(()=>$('#clock').textContent=new Date().toLocaleString('en-US',{hour12:false}),1000);
 populate();render();
