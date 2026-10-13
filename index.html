@@ -249,6 +249,31 @@
  apply();
 })();
 </script>
+<script>
+window.CadIncidentZones={async lookup(location,discipline){
+ const original=String(location||'').trim();if(!original)return {ok:false,message:'Enter incident location first.'};
+ const address=/petaluma/i.test(original)?original:original+', Petaluma, California';
+ const endpoint=new URL('https://geocode-api.arcgis.com/arcgis/rest/services/World/GeocodeServer/findAddressCandidates');
+ endpoint.searchParams.set('SingleLine',address);endpoint.searchParams.set('f','json');endpoint.searchParams.set('maxLocations','3');
+ const response=await fetch(endpoint);if(!response.ok)throw Error('Geocoder HTTP '+response.status);
+ const data=await response.json();if(data.error)throw Error(data.error.message);
+ const candidates=(data.candidates||[]).filter(c=>c.location&&Number(c.score)>=90);
+ if(candidates.length!==1)return {ok:false,message:'No unique high-confidence address candidate. Verify the location manually.'};
+ const point=candidates[0].location;const zones={};
+ for(const [name,url,field] of [['esz','https://maps.cityofpetaluma.net/mapping/rest/services/Fire/FireWebApp_MIL/MapServer/11','ESZ_NUM'],['beat','https://maps.cityofpetaluma.net/mapping/rest/services/Police/DistrictPolicing_Public_MIL1/FeatureServer/1','PD_BEAT']]){
+  const query=new URL(url+'/query');
+  for(const [key,value] of Object.entries({geometry:JSON.stringify({x:point.x,y:point.y,spatialReference:{wkid:4326}}),geometryType:'esriGeometryPoint',spatialRel:'esriSpatialRelIntersects',inSR:'4326',outFields:field,returnGeometry:'false',f:'json'}))query.searchParams.set(key,value);
+  const result=await fetch(query);if(!result.ok)throw Error(name+' GIS HTTP '+result.status);
+  const payload=await result.json();if(payload.error)throw Error(name+' GIS: '+payload.error.message);
+  const values=[...new Set((payload.features||[]).map(f=>String(f.attributes?.[field]??'').trim()).filter(Boolean))];
+  if(values.length>1)return {ok:false,message:'Multiple '+name+' areas intersect the point. Review manually.'};
+  if(values.length===1)zones[name]=values[0];
+ }
+ if(!zones.esz&&!zones.beat)return {ok:false,message:'No response areas returned. Verify jurisdiction and location.'};
+ if((discipline==='LAW'&&!zones.beat)||(discipline!=='LAW'&&!zones.esz))return {ok:false,message:'No '+discipline+' response area returned. Verify jurisdiction.'};
+ return {ok:true,original,address:candidates[0].address,lat:point.y,lon:point.x,zones};
+}};
+</script>
 <script src="station-manager.js?v=6"></script><script src="response-plan-designer.js?v=29"></script>
 <script src="alarm-levels.js?v=4"></script>
 <script src="demo-tools.js?v=18"></script>
