@@ -257,7 +257,12 @@ function cadDispatchEdit(i){
  const heading=document.createElement('h3');heading.textContent='Edit Event '+i.id;
  const form=document.createElement('form');form.method='dialog';form.style.cssText='display:grid;gap:12px';
  const field=(name,value)=>{const label=document.createElement('label');label.textContent=name;label.style.cssText='display:grid;gap:5px';const input=document.createElement('input');input.value=value||'';input.style.cssText='padding:10px;background:#18334b;color:white;border:1px solid #527a9a;border-radius:6px';label.append(input);form.append(label);return input};
- const type=field('Incident type',i.type),location=field('Location',i.location),caller=field('Caller',i.caller),phone=field('Phone',i.phone);
+ const typeLabel=document.createElement('label');typeLabel.textContent='Call for Service (CFS) type';typeLabel.style.cssText='display:grid;gap:5px';
+ const type=document.createElement('select');type.style.cssText='padding:10px;background:#18334b;color:white;border:1px solid #527a9a;border-radius:6px';
+ const options=[...new Set([i.type,...(defaultConfig.types?.[i.discipline]||[]),...(config.types?.[i.discipline]||[])].filter(Boolean))];
+ for(const name of options){const option=document.createElement('option');option.value=name;option.textContent=name;type.append(option)}
+ type.value=i.type;typeLabel.append(type);form.append(typeLabel);
+ const location=field('Location',i.location),caller=field('Caller',i.caller),phone=field('Phone',i.phone);
  let verified=null;
  window.cadAddressPicker?.(location,()=>i.discipline,v=>{verified=v});
  const info=document.createElement('p');info.style.cssText='font-size:12px;color:#f4c68c';info.textContent='Unverified locations may be saved. Assigned units must be advised of location changes.';form.append(info);
