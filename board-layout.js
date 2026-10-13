@@ -70,4 +70,6 @@ function initPanelDrag(){const grid=document.querySelector('#dispatch .grid');if
  let dragged=null;grid.querySelectorAll('.panel-drag').forEach(handle=>{const panel=handle.closest('[data-panel]');handle.addEventListener('dragstart',e=>{dragged=panel;e.dataTransfer.setData('text/plain','panel:'+panel.dataset.panel);e.dataTransfer.effectAllowed='move'});handle.addEventListener('dragend',()=>{dragged=null})});
  grid.querySelectorAll('[data-panel]').forEach(panel=>{panel.addEventListener('dragover',e=>{if(dragged&&dragged!==panel)e.preventDefault()});panel.addEventListener('drop',e=>{if(!dragged||dragged===panel)return;e.preventDefault();grid.insertBefore(dragged,panel);localStorage.setItem(orderKey,JSON.stringify([...grid.querySelectorAll('[data-panel]')].map(p=>p.dataset.panel)));renderMap();dragged=null})});}
 initialize();initPanelDrag();
+// app.js initially renders before this module loads; repaint once enhanced boards are installed.
+if(typeof window.render==='function')window.render();
 })();
