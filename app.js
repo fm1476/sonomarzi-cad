@@ -234,9 +234,9 @@ $('#createCall').onclick=()=>{
  toast('Pending call created: '+id);
 };
 
-$('nav [data-view]').forEach(b=>b.onclick=()=>show(b.dataset.view));
+$$('nav [data-view]').forEach(b=>b.onclick=()=>show(b.dataset.view));
 window.cadShowView=show;
-function show(v){$('.view').forEach(x=>x.classList.toggle('active',x.id===v));$('nav [data-view]').forEach(x=>x.classList.toggle('active',x.dataset.view===v));if(v==='calltake')window.cadCallTakeRefresh?.()}
+function show(v){$$('.view').forEach(x=>x.classList.toggle('active',x.id===v));$$('nav [data-view]').forEach(x=>x.classList.toggle('active',x.dataset.view===v));if(v==='calltake')window.cadCallTakeRefresh?.()}
 document.querySelector('[data-panel="units"] .filters')?.addEventListener('click',e=>{
  const btn=e.target.closest('button[data-discipline]');
  if(!btn)return;
