@@ -53,7 +53,16 @@ window.CadMapLayerCatalog=(map,api)=>{
  map.on('popupopen',()=>{for(const request of pending.values())request.abort()});
  function mount(host){if(!host)return;mountNode=host;const wrap=document.createElement('details');wrap.className='cad-gis-layers';wrap.innerHTML='<summary aria-label="Layers">Layers ▾</summary><div class="cad-gis-options"></div>';host.appendChild(wrap);
   let category='';const content=wrap.querySelector('.cad-gis-options');for(const item of LIST){if(item.category!==category){category=item.category;const h=document.createElement('strong');h.textContent=category;content.appendChild(h)}const label=document.createElement('label');const cb=document.createElement('input');cb.type='checkbox';cb.dataset.layer=item.id;cb.disabled=!!item.unavailable;cb.checked=active.has(item.id);cb.onchange=()=>set(item.id,cb.checked);label.append(cb,document.createTextNode(' '+item.name+(item.unavailable?' (feed unavailable)':'')));content.appendChild(label)}
-  wrap.addEventListener('pointerdown',e=>e.stopPropagation());refresh();
+  wrap.addEventListener('pointerdown',e=>e.stopPropagation());
+  // Close the Layers menu when the operator clicks or taps anywhere outside it.
+  // Keep the menu open while selecting multiple checkboxes.
+  document.addEventListener('pointerdown',e=>{
+   if(wrap.open&&!e.composedPath().includes(wrap))wrap.open=false;
+  },{capture:true});
+  document.addEventListener('keydown',e=>{
+   if(e.key==='Escape'&&wrap.open){wrap.open=false;wrap.querySelector('summary')?.focus()}
+  });
+  refresh();
  }
  async function voice(raw){
   const intent=window.CadLayerIntent.parse(raw,LIST);
