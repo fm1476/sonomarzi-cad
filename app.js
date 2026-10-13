@@ -468,24 +468,34 @@ let cadNewVerified=null;
 window.cadAddressPicker(cadNewLocation,()=>$('#discipline').value,v=>{cadNewVerified=v});
 $('#discipline').addEventListener('change',()=>{cadNewVerified=null;cadNewLocation.dispatchEvent(new Event('input'))});
 
-$('#createCall').onclick=()=>{
+const newCallerLocation=$('#newCallerLocation'),newCallerSame=$('#newCallerSameAsEvent'),newPhone=$('#phone');
+ let newCallerVerified=null;
+ window.cadAddressPicker?.(newCallerLocation,()=>$('#discipline').value,v=>{newCallerVerified=v});
+ const syncNewCaller=()=>{newCallerLocation.readOnly=newCallerSame.checked;if(newCallerSame.checked){newCallerLocation.value=$('#location').value;newCallerVerified=null}newCallerLocation.style.opacity=newCallerSame.checked?'.75':'1'};
+ newCallerSame.addEventListener('change',syncNewCaller);
+ $('#location').addEventListener('input',()=>{if(newCallerSame.checked)syncNewCaller()});
+ newPhone.addEventListener('blur',()=>{const result=cadPhoneCanonical(newPhone.value);if(result.ok)newPhone.value=result.formatted});
+ $('#createCall').onclick=()=>{
  const agency=$('#agency').value.trim(),discipline=$('#discipline').value;
  const type=($('#customIncidentType').value.trim()||$('#type').value||'').trim();
  const location=$('#location').value.trim();
  if(!agency){toast('Select an agency');$('#agency').focus();return}
  if(!type){toast('Incident type is required');$('#type').focus();$('#type').style.outline='2px solid #ef7777';return}
  if(!location){toast('Location is required');$('#location').focus();$('#location').style.outline='2px solid #ef7777';return}
+ const checkedPhone=cadPhoneCanonical($('#phone').value);if(!checkedPhone.ok){toast(checkedPhone.message);$('#phone').focus();return}
  const id=`${String(new Date().getFullYear()).slice(-2)}-${String(++state.seq).padStart(6,'0')}`;
  const initialNote=$('#narrative').value.trim();
- const i={id,caseNumber:$('#newCaseNumber').value.trim().slice(0,80),agency,discipline,priority:$('#priority').value,type,location:window.cadCommonPlaces?.resolve(location)?.address||location,caller:$('#caller').value.trim(),phone:$('#phone').value.trim(),narrative:initialNote?[initialNote]:[],status:'PENDING',units:[],events:[]};
+ const i={id,caseNumber:$('#newCaseNumber').value.trim().slice(0,80),agency,discipline,priority:$('#priority').value,type,location:window.cadCommonPlaces?.resolve(location)?.address||location,caller:[$('#callerFirstName').value.trim(),$('#callerLastName').value.trim()].filter(Boolean).join(' '),callerFirstName:$('#callerFirstName').value.trim(),callerLastName:$('#callerLastName').value.trim(),callerLocation:newCallerSame.checked?location:newCallerLocation.value.trim(),callerSameAsEvent:newCallerSame.checked,phone:checkedPhone.formatted,callerPhoneCanonical:checkedPhone.canonical,narrative:initialNote?[initialNote]:[],status:'PENDING',units:[],events:[]};
  if(cadNewVerified&&cadNewVerified.location===location&&cadNewVerified.discipline===discipline){
  const r=cadNewVerified.result;i.location=location;i.esz=r.zones.esz||null;i.beat=r.zones.beat||null;
  i.responseZone=discipline==='LAW'?i.beat:i.esz;i.responseZoneReviewed=true;i.responseZoneSource='GIS_POINT_LOOKUP';
  i.responseZoneLookup={address:r.address,lat:r.lat,lon:r.lon,source:r.source,at:new Date().toISOString(),original:discipline+'|'+location};
 }else{i.responseZoneReviewed=false;i.responseZoneSource='UNVERIFIED';event(i,'LOCATION_NOT_VERIFIED')}
+ cadLocationHistory(i);
+ if(i.callerLocation)cadLocationHistory(i).push(cadLocationRecord(i,i.callerLocation,'CALLER','CALL_TAKING',newCallerSame.checked?cadNewVerified?.result:newCallerVerified?.result));
  event(i,'CALL_CREATED');state.incidents.push(i);state.selected=id;save();
- for(const key of ['newCaseNumber','customIncidentType','location','caller','phone','narrative'])$('#'+key).value='';
- $('#priority').value='P2';cadNewVerified=null;cadNewLocation.dispatchEvent(new Event('input'));
+ for(const key of ['newCaseNumber','customIncidentType','location','callerFirstName','callerLastName','newCallerLocation','phone','narrative'])$('#'+key).value='';
+ $('#priority').value='P2';newCallerSame.checked=false;newCallerVerified=null;syncNewCaller();cadNewVerified=null;cadNewLocation.dispatchEvent(new Event('input'));
  if(document.getElementById('calltake')?.classList.contains('active'))window.cadCallTakeSelect?.(id);else show('dispatch');
  toast('Pending call created: '+id);
 };
