@@ -630,3 +630,58 @@ header :is(button,select){max-width:100%}
 #dispatch .cad-freeform-window>.cad-freeform-edge-se{right:0;bottom:0;width:14px;height:14px;cursor:nwse-resize}
 #dispatch .cad-freeform-window>.cad-freeform-edge-sw{left:0;bottom:0;width:14px;height:14px;cursor:nesw-resize}
 #dispatch .cad-freeform-window>.cad-freeform-resizer{display:none!important}
+
+
+/* Pane-aware layouts: respond to the pane itself, not just browser viewport */
+#dispatch .cad-freeform-window{container-type:inline-size}
+#dispatch .cad-freeform-window :is(.board-controls,.filters,.board-columns,.actions,.detailhead){min-width:0;max-width:100%}
+#dispatch .cad-freeform-window .board-controls{display:flex;flex-wrap:wrap;gap:5px;padding:7px}
+#dispatch .cad-freeform-window .board-controls :is(select,label){flex:1 1 125px;min-width:0;max-width:100%}
+#dispatch .cad-freeform-window .filters{display:flex;flex-wrap:wrap}
+#dispatch .cad-freeform-window :is(.row,.unit,.board-flex)>*{min-width:0;overflow-wrap:anywhere}
+#dispatch .cad-freeform-window :is(.detailwrap,.actions,.detailhead){min-width:0;max-width:100%;box-sizing:border-box}
+#dispatch .cad-freeform-window .actions{flex-wrap:wrap}
+#dispatch .cad-freeform-window :is(input,select,textarea,button){max-width:100%;box-sizing:border-box}
+#dispatch .cad-freeform-window .board-columns[data-columns="units"],#dispatch .cad-freeform-window[data-panel="units"] #units{overflow-x:auto;max-width:100%}
+#dispatch .cad-freeform-window[data-panel="units"] .cad-unit-grid{min-width:max-content}
+#dispatch .cad-freeform-window[data-panel="map"] .map-toolbar{flex-wrap:wrap}
+@container (max-width:520px){
+ #dispatch .cad-freeform-window .board-controls :is(select,label){flex-basis:calc(50% - 8px)}
+ #dispatch .cad-freeform-window[data-panel="pending"] .board-columns,#dispatch .cad-freeform-window[data-panel="active"] .board-columns{display:none}
+ #dispatch .cad-freeform-window[data-panel="pending"] .board-flex,#dispatch .cad-freeform-window[data-panel="active"] .board-flex{display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:5px!important;align-items:start!important}
+ #dispatch .cad-freeform-window[data-panel="pending"] .board-flex>*,#dispatch .cad-freeform-window[data-panel="active"] .board-flex>*{width:100%;min-width:0}
+ #dispatch .cad-freeform-window .detailhead{flex-wrap:wrap}
+}
+@container (max-width:370px){
+ #dispatch .cad-freeform-window .board-controls :is(select,label){flex-basis:100%}
+ #dispatch .cad-freeform-window :is(.actions,.filters) button{font-size:11px;padding:5px 7px}
+ #dispatch .cad-freeform-window .cad-workspace-toolbar{gap:4px}
+}
+/* Call Taking: queue and forms adapt to their actual column widths */
+#calltake .cad-ct-left,#calltake .cad-ct-right{container-type:inline-size}
+#calltake .cad-ct-item{grid-template-columns:repeat(2,minmax(0,1fr));gap:5px 10px;padding:9px}
+#calltake .cad-ct-item>*{min-width:0;overflow-wrap:anywhere}
+#calltake .cad-ct-status{justify-self:start}
+#calltake :is(.cad-ct-fields,.formgrid){min-width:0}
+#calltake :is(.cad-ct-fields,.formgrid) label{min-width:0}
+#calltake :is(input,select,textarea){min-width:0;max-width:100%;box-sizing:border-box}
+@container (max-width:540px){
+ #calltake .cad-ct-fields,#calltake .cad-ct-left .formgrid,#calltake .cad-ct-right .formgrid{grid-template-columns:minmax(0,1fr)}
+ #calltake .formgrid .span2{grid-column:auto}
+ #calltake .cad-ct-toolbar,#calltake .cad-ct-heading{flex-wrap:wrap}
+}
+@container (min-width:650px){
+ #calltake .cad-ct-item{grid-template-columns:115px minmax(110px,1fr) minmax(140px,1.3fr) minmax(100px,1fr) 90px}
+ #calltake .cad-ct-status{justify-self:end}
+}
+/* Configuration cards adapt to available section width */
+#config [data-config-panel="master"],#config [data-config-panel="response"]{container-type:inline-size}
+@container (max-width:850px){
+ #config [data-config-panel="master"] .cad-master-grid{grid-template-columns:minmax(0,1fr)}
+ #config [data-config-panel="master"] .cad-master-form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@container (max-width:520px){
+ #config [data-config-panel="master"] .cad-master-form-grid{grid-template-columns:minmax(0,1fr)}
+ #config [data-config-panel="response"] #rpResourceCards>div{flex-wrap:wrap}
+ #config [data-config-panel="response"] #rpResourceCards label{flex:1 1 100%!important}
+}
