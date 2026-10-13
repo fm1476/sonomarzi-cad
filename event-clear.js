@@ -15,7 +15,28 @@ function show(incident){if(!incident||incident.status==='CLOSED')return;currentI
 window.cadShowClearEvent=show;
 $('cadClearPick').onchange=()=>{if($('cadClearPick').value)$('cadClearFree').value=$('cadClearPick').value};
 $('cadClearCancel').onclick=()=>modal.close();
-$('cadClearConfirm').onclick=()=>{const incident=state.incidents.find(i=>i.id===currentId);const result=window.cadCloseEvent(incident,$('cadClearFree').value,'CONTEXT_MENU');if(!result.ok){$('cadClearError').textContent=result.message;return;}modal.close();};
+$('cadClearConfirm').onclick=async()=>{
+ const incident=state.incidents.find(i=>i.id===currentId);
+ const disposition=$('cadClearFree').value.trim();
+ if(!incident){$('cadClearError').textContent='Incident no longer exists. Refresh the board.';return;}
+ if(!disposition){$('cadClearError').textContent='A disposition is required.';return;}
+ const button=$('cadClearConfirm');
+ if(window.cadSharedIsActive?.()){
+  button.disabled=true;
+  button.textContent='Closing in shared CAD…';
+  $('cadClearError').textContent='Saving closure and releasing assigned units…';
+  try{
+   await window.cadSharedCommand('close',{incidentId:incident.id,disposition});
+   modal.close();
+  }catch(error){
+   $('cadClearError').textContent='Closure not saved: '+error.message;
+  }finally{button.disabled=false;button.textContent='Clear Event';}
+  return;
+ }
+ const result=window.cadCloseEvent(incident,disposition,'CONTEXT_MENU');
+ if(!result.ok){$('cadClearError').textContent=result.message;return;}
+ modal.close();
+};
 // Delegation survives board re-renders, including grouped and sorted rows.
 document.addEventListener('contextmenu',e=>{const row=e.target.closest('#pending [data-id], #activeCalls [data-id]');if(!row)return;const incident=state.incidents.find(i=>i.id===row.dataset.id);if(!incident||incident.status==='CLOSED')return;e.preventDefault();show(incident)});
 const cfg=document.querySelector('#config .config');
