@@ -43,7 +43,7 @@ window.cadSharedApplySnapshot=function(snapshot){
  const units=(snapshot.roster||[]).map(u=>({id:u.call_sign,sharedUuid:u.id,sharedVersion:u.version,
   agency:u.home_agency_name||'SonoMarzi CAD Demo Agency',discipline:u.discipline,
   resourceType:u.resource_type,status:u.status,location:'Shared CAD',x:50,y:50}));
- state={...cadLocalWorkspace,incidents,units,selected:incidents.some(i=>i.id===previous)?previous:null};
+ state={...cadLocalWorkspace,incidents,units,selected:incidents.some(i=>i.id===previous)?previous:(incidents.find(i=>i.status==='ACTIVE')||incidents[0])?.id||null};
  render();
 };
 window.cadSharedRestoreLocal=function(){
@@ -403,6 +403,7 @@ function cadDispatchEdit(i){
 }
 
 function detailAction(i,a){
+ if(a==='shared-dispatch'){window.dispatchEvent(new CustomEvent('cad:shared-dispatch',{detail:{incidentId:i.id}}));return;}
  if(a==='edit'){cadDispatchEdit(i);return;}
  if(a==='location-search'){const q=document.getElementById('cadLocationSearchInput')?.value||'';const matches=window.cadFindEventsByLocation(q);const panel=document.getElementById('cadLocationSearchResults');if(panel)panel.innerHTML=matches.length?matches.map(m=>'<div><button data-location-result="'+escapeCad(m.id)+'">'+escapeCad(m.id)+'</button> · '+escapeCad(m.type)+' · '+m.locations.map(l=>escapeCad(l.role+': '+l.address)).join(' | ')+'</div>').join(''):'No matching locations';panel?.querySelectorAll('[data-location-result]').forEach(b=>b.onclick=()=>{state.selected=b.dataset.locationResult;render()});return;}
  if(a==='activate'){i.status='ACTIVE';event(i,'INCIDENT_ACTIVATED')}
