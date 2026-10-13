@@ -55,3 +55,16 @@ assert.equal(plan.status,'CLOSED');
 assert.equal(e5.status,'AVAILABLE');
 assert.equal(plan.units.length,0);
 assert.equal(closure({state,incident:plan,disposition:'Duplicate',event,now:()=> '13:02'}).ok,false);
+
+const freshIncident={id:'P2',agency:'Fire',status:'PENDING',location:'400 Main',units:[],events:[]};
+state.incidents.push(freshIncident);
+const available={id:'E6',status:'AVAILABLE',location:'Station'};
+const unavailable={id:'E7',status:'ENROUTE',location:'Call'};
+state.units.push(available,unavailable);
+const rejected=context.window.CadUnitCommands.assignPlan({state,incident:freshIncident,unitIds:['E6','E7'],event});
+assert.equal(rejected.ok,false);
+assert.equal(freshIncident.units.length,0,'Batch failure must not partially dispatch');
+assert.equal(available.status,'AVAILABLE','Batch failure must not mutate first unit');
+assert.equal(setStatus({state,unit:available,status:'ENROUTE',event}).ok,false,'Unassigned unit cannot go en route');
+assert.equal(setStatus({state,unit:available,status:'INVALID',event}).ok,false);
+assert.equal(closure({state,incident:freshIncident,disposition:'X'.repeat(501),event,now:()=> '14:00'}).ok,false);
