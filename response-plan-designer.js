@@ -92,7 +92,7 @@ function testPlan(plan,overrides={}){
   if(/^C[0-9]/.test(id))return 'CHIEF';
   return null;
  };
- const candidates=roster.filter(u=>u.discipline===plan.discipline).map(u=>{
+ const candidates=roster.filter(u=>u.discipline===plan.discipline&&(!plan.agency||u.agency===plan.agency)).map(u=>{
   const definition=(master.units||[]).find(m=>(m.id===u.masterUnitId)||(m.designator===u.id&&master.agencies?.some(a=>a.id===m.agencyId&&a.name===u.agency)));
   const group=crews.find(g=>g.units.some(id=>id.toUpperCase()===String(u.id).toUpperCase()));
   return {...u,status:overrides[u.id]?.status||u.status,simStaff:overrides[u.id]?.staff,resourceType:definition?.resourceType||infer(u),crewId:group?.id||null,definition};
@@ -220,7 +220,7 @@ function edit(id){
  resourceDrop.ondrop=e=>{const v=e.dataTransfer.getData('text/plain');if(v.startsWith('resource:')){e.preventDefault();addResource(v.slice(9))}};
  el('rpResourceCards').addEventListener('change',e=>{if(e.target.matches('[data-resource-type]'))setTimeout(drawOrders,0)});
  el('rpAddResource').onclick=()=>{if(!options.length)return msg('Configure resource types for this agency first.');resources.push({type:options[0],count:1});drawResources();drawOrders()};
- el('rpTest').onclick=()=>{const requested=resources.map(r=>({...r,count:Number(r.count)}));if(!requested.length||requested.some(r=>!r.type||!Number.isInteger(r.count)||r.count<1))return msg('Enter valid resources before testing.');drawTest({discipline,resources:requested,runOrders})};
+ el('rpTest').onclick=()=>{const requested=resources.map(r=>({...r,count:Number(r.count)}));if(!requested.length||requested.some(r=>!r.type||!Number.isInteger(r.count)||r.count<1))return msg('Enter valid resources before testing.');drawTest({agency,discipline,resources:requested,runOrders})};
  function commit(status){
   const type=el('rpType').value.trim();
   if(!type||!resources.length||resources.some(r=>!r.type||!Number.isInteger(r.count)||r.count<1||r.count>99))return msg('Enter a call type and at least one resource with a quantity from 1 to 99.');
