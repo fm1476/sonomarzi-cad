@@ -75,6 +75,15 @@ unitMenu.id='cadUnitContextMenu';
 unitMenu.setAttribute('role','menu');
 unitMenu.style.cssText='position:fixed;z-index:99999;min-width:200px;max-height:75vh;overflow:auto;background:#10283e;color:#f1f6fc;border:1px solid #47708f;border-radius:12px;padding:8px;box-shadow:0 12px 36px #0009;display:none';
 document.body.appendChild(unitMenu);
+const unitMenuStyle=document.createElement('style');
+unitMenuStyle.textContent=`
+#cadUnitContextMenu button[role="menuitem"]{transition:background-color .12s ease,box-shadow .12s ease,transform .12s ease;outline-offset:2px}
+#cadUnitContextMenu button[role="menuitem"]:hover,#cadUnitContextMenu button[role="menuitem"]:focus-visible{background:#287fc3!important;box-shadow:inset 3px 0 0 #a6ddff,0 0 0 1px #80c7ff;transform:translateX(2px)}
+#cadUnitContextMenu button[role="menuitem"]:active{background:#135a94!important;transform:translateX(0)}
+#cadUnitContextMenu button[aria-current="true"]{border-left:3px solid #6cd6ad!important;padding-left:9px!important}
+`;
+document.head.appendChild(unitMenuStyle);
+
 function closeUnitMenu(){unitMenu.style.display='none';unitMenu.replaceChildren();}
 document.addEventListener('click',e=>{if(!unitMenu.contains(e.target))closeUnitMenu()});
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeUnitMenu()});
@@ -95,7 +104,7 @@ document.addEventListener('contextmenu',e=>{
  }
  for(const [value,label] of assigned.length?statuses:[]){
   if(value==='AT_HOSPITAL'&&u.discipline!=='EMS')continue;
-  const button=document.createElement('button');button.type='button';button.setAttribute('role','menuitem');button.textContent=label;
+  const button=document.createElement('button');button.type='button';button.setAttribute('role','menuitem');button.textContent=(value===u.status?'✓ ':'')+label;if(value===u.status)button.setAttribute('aria-current','true');
   button.style.cssText='display:block;width:100%;text-align:left;padding:9px 12px;margin:2px 0;background:#183b55;color:#fff;border:0;border-radius:7px;cursor:pointer';
   button.onclick=()=>{
    closeUnitMenu();
@@ -105,6 +114,8 @@ document.addEventListener('contextmenu',e=>{
    // Dispatch is not a status-only operation; do not duplicate assignments.
    if(value==='DISPATCHED'&&assigned.length){window.alert('Unit is already assigned. Select another status.');return;}
    command.value=code+' '+u.id+' #'+assigned[0].id;
+   const feedback=document.getElementById('cadCommandResults');
+   if(feedback)feedback.textContent='Updating '+u.id+' → '+label+'…';
    execute.click();
   };
   unitMenu.append(button);
