@@ -210,6 +210,17 @@
    if(!unit)return window.alert('Unit not available. Refresh and try again.');
    operate(button,(client,agency)=>client.assignUnit({agency,incident:incident.id,unit:unit.id,incidentVersion:incident.version,unitVersion:unit.version}));
   });
+  window.addEventListener('cad:shared-unit-operation',event=>{
+   const {unitId,eventId,action}=event.detail||{};
+   const unit=snapshot.roster.find(u=>u.call_sign===unitId);
+   if(!unit)return window.alert('Unit not found in shared roster.');
+   const incident=action==='assign'?snapshot.incidents.find(i=>i.incident_number===eventId):snapshot.incidents.find(i=>snapshot.assignments.some(a=>a.incident_id===i.id&&a.unit_id===unit.id));
+   if(!incident)return window.alert('Shared incident not found for this unit.');
+   if(action==='assign'&&unit.status!=='AVAILABLE')return window.alert(unitId+' is not available.');
+   const button=document.getElementById('cadSharedToggle');
+   if(action==='assign')operate(button,(client,agency)=>client.assignUnit({agency,incident:incident.id,unit:unit.id,incidentVersion:incident.version,unitVersion:unit.version}));
+   else operate(button,(client,agency)=>client.clearUnit({agency,incident:incident.id,unit:unit.id,incidentVersion:incident.version,unitVersion:unit.version,disposition:'CLEARED'}));
+  });
   form.addEventListener('submit',async event=>{
    event.preventDefault();
    const submit=$('cadSharedSignIn');submit.disabled=true;
