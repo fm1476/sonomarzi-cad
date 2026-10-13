@@ -155,6 +155,7 @@ function edit(id){
  const roster=(window.cadSafetyState?.().units||[]).filter(u=>u.discipline===discipline);
  const agencyFor=u=>master.agencies?.find(a=>a.id===u.agencyId)?.name||'';
  const availableUnits=[...new Map([...roster.filter(u=>u.agency===agency).map(u=>[u.agency+'|'+u.id,{id:u.id,agency:u.agency,type:(master.units||[]).find(m=>m.id===u.masterUnitId)?.resourceType||''}]),...(master.units||[]).filter(u=>u.discipline===discipline&&agencyFor(u)===agency).map(u=>[agencyFor(u)+'|'+u.designator,{id:u.designator,agency:agencyFor(u),type:u.resourceType||''}])].map(([k,v])=>[k,v])).values()];
+ const iconFor=type=>{const id=window.CadResourceTypes?.iconFor(agency,discipline,type);return id&&window.CadVehicleIcons?.items.some(x=>x.id===id)?window.CadVehicleIcons.svg(id):escape(id||symbols[type]||'▣')};
  const symbols={ENGINE:'🚒',TRUCK:'🪜',LADDER:'🪜',RESCUE:'🚑',BRUSH:'🌲',CHIEF:'⭐',TENDER:'💧',MEDIC:'🚑',AMBULANCE:'🚑',PATROL:'🚓',SUPERVISOR:'⭐',K9:'🐕',SWAT:'🛡️'};
 
  el('rpEditor').innerHTML='<h4>'+(p?'Edit Plan':'New Plan')+' — '+escape(discipline==='LAW'?'Beat ':'ESZ ')+escape(zone)+'</h4>'+
@@ -166,9 +167,9 @@ function edit(id){
  '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:18px"><button id="rpDraft" type="button">Save Draft</button><button id="rpPublish" type="button">Publish Locally</button></div><p id="rpSaveFeedback" role="status" aria-live="polite" style="margin-top:10px;font-weight:700"></p>';
  el('rpLevel').value=p?.level||'Standard';el('rpMethod').value=p?.method||'HYBRID';
  function renderPalettes(){
-  el('rpTypePalette').innerHTML=options.map(t=>'<button type="button" draggable="true" class="rp-palette-pill" data-type-pill="'+escape(t)+'">'+escape(symbols[t]||'▣')+' '+escape(t)+'</button>').join('');
+  el('rpTypePalette').innerHTML=options.map(t=>'<button type="button" draggable="true" class="rp-palette-pill" data-type-pill="'+escape(t)+'">'+iconFor(t)+' '+escape(t)+'</button>').join('');
   el('rpTypePalette').querySelectorAll('[data-type-pill]').forEach(b=>{b.onclick=()=>addResource(b.dataset.typePill);b.ondragstart=e=>{e.dataTransfer.setData('text/plain','resource:'+b.dataset.typePill);e.dataTransfer.effectAllowed='copy'}});
-  el('rpUnitPalette').innerHTML=availableUnits.map(u=>'<button type="button" draggable="true" class="rp-palette-pill" data-unit-pill="'+escape(u.id)+'" data-unit-type="'+escape(u.type)+'" title="'+escape(u.agency)+'">'+escape(symbols[u.type]||'▣')+' '+escape(u.id)+' <small>'+escape(u.agency)+'</small></button>').join('')||'<p>No agency units found for this discipline.</p>';
+  el('rpUnitPalette').innerHTML=availableUnits.map(u=>'<button type="button" draggable="true" class="rp-palette-pill" data-unit-pill="'+escape(u.id)+'" data-unit-type="'+escape(u.type)+'" title="'+escape(u.agency)+'">'+iconFor(u.type)+' '+escape(u.id)+' <small>'+escape(u.agency)+'</small></button>').join('')||'<p>No agency units found for this discipline.</p>';
   el('rpUnitPalette').querySelectorAll('[data-unit-pill]').forEach(b=>{b.onclick=()=>addUnit(b.dataset.unitPill,b.dataset.unitType);b.ondragstart=e=>{e.dataTransfer.setData('text/plain','unit:'+b.dataset.unitPill+'|'+b.dataset.unitType);e.dataTransfer.effectAllowed='copy'}});
  }
  function addResource(type){const found=resources.find(r=>r.type===type);if(found)found.count=Math.min(99,Number(found.count)+1);else resources.push({type,count:1});drawResources();drawOrders()}
@@ -179,7 +180,7 @@ function edit(id){
  }
  function drawResources(){
   el('rpResourceCards').innerHTML=resources.map((resource,i)=>'<div data-resource-index="'+i+'" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;border:1px solid #34536d;border-radius:10px;padding:12px;margin:8px 0;background:rgba(31,75,109,.22)">'+
-   '<strong style="min-width:30px">'+(i+1)+'.</strong>'+
+   '<strong style="min-width:30px">'+(i+1)+'.</strong><span class="rp-resource-icon">'+iconFor(resource.type)+'</span>'+
    '<label style="flex:1;min-width:160px">Resource type<select data-resource-type="'+i+'">'+[...new Set([...options,resource.type])].map(type=>'<option value="'+escape(type)+'" '+(resource.type===type?'selected':'')+'>'+escape(type)+'</option>').join('')+'</select></label>'+
    '<label style="min-width:100px">Quantity<input type="number" min="1" max="99" style="width:85px" data-resource-count="'+i+'" value="'+escape(resource.count)+'"></label>'+
    '<button type="button" data-resource-up="'+i+'" '+(i===0?'disabled':'')+' aria-label="Move resource up">↑</button>'+
