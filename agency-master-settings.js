@@ -9,8 +9,8 @@ try{data=M.read(localStorage);}catch(e){message.textContent='Saved master data c
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const opts=(items,value)=>items.map(x=>'<option value="'+esc(x.id)+'"'+(x.id===value?' selected':'')+'>'+esc(x.name)+'</option>').join('');
 const TYPES={LAW:['PATROL','SUPERVISOR','TRAFFIC','K9','DETECTIVE','SWAT','MOTOR','OTHER'],FIRE:['ENGINE','TRUCK','LADDER','RESCUE','BRUSH','CHIEF','TENDER','MEDIC','AMBULANCE','OTHER'],EMS:['AMBULANCE','MEDIC','ENGINE','RESCUE','CHIEF','SUPERVISOR','OTHER']};
-function refreshTypes(){const e=el('cadMasterResourceType');if(!e)return;const previous=e.value;e.innerHTML=(TYPES[el('cadMasterDiscipline').value]||[]).map(t=>'<option>'+t+'</option>').join('');if([...e.options].some(o=>o.value===previous))e.value=previous}
-el('cadMasterDiscipline').addEventListener('change',refreshTypes);refreshTypes();
+function refreshTypes(){const e=el('cadMasterResourceType');if(!e)return;const previous=e.value;const disc=el('cadMasterDiscipline').value,agencyId=el('cadMasterAgencySelect').value,agency=data.agencies.find(a=>a.id===agencyId)?.name||'';const types=window.CadResourceTypes?.forAgency(agency,disc).map(x=>x.name)||[];e.innerHTML=types.map(t=>'<option>'+esc(t)+'</option>').join('');if([...e.options].some(o=>o.value===previous))e.value=previous}
+el('cadMasterDiscipline').addEventListener('change',refreshTypes);el('cadMasterAgencySelect').addEventListener('change',refreshTypes);window.addEventListener('cad-resource-types-updated',refreshTypes);refreshTypes();
 function importDemoRoster(){
  const source=window.cadSafetyState?.();
  if(!source||!Array.isArray(source.units))return message.textContent='CAD roster unavailable.';
@@ -61,7 +61,7 @@ function render(){
  el('cadMasterAgencySelect').innerHTML=opts(data.agencies.map(a=>({id:a.id,name:a.name})));
  el('cadMasterPersonnelAgency').innerHTML=opts(data.agencies.map(a=>({id:a.id,name:a.name})));
  el('cadMasterPersonSelect').innerHTML='<option value="">None / assigned at sign-on</option>'+opts(data.personnel.filter(p=>p.agencyId===el('cadMasterAgencySelect').value).map(p=>({id:p.id,name:p.name+' ('+p.id+')'})));
- renderStaff();
+ renderStaff();refreshTypes();
 }
 function commit(next,success){try{M.save(localStorage,next);data=next;render();message.textContent=success;}catch(e){message.textContent='Not saved: '+e.message;}}
 el('cadMasterAgencySelect').addEventListener('change',()=>{const agencyId=el('cadMasterAgencySelect').value;el('cadMasterPersonSelect').innerHTML='<option value="">None / assigned at sign-on</option>'+opts(data.personnel.filter(p=>p.agencyId===agencyId).map(p=>({id:p.id,name:p.name+' ('+p.id+')'})));});
