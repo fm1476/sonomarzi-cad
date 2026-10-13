@@ -214,7 +214,23 @@ function populate(){
 }
 function updateTypes(){const d=$('#discipline').value;const types=[...new Set([...(defaultConfig.types[d]||[]),...(config.types?.[d]||[])])];$('#type').innerHTML=types.map(t=>`<option value="${escapeCad(t)}">${escapeCad(t)}</option>`).join('')}
 $('#discipline').onchange=updateTypes;
-$('#createCall').onclick=()=>{let id=`${String(new Date().getFullYear()).slice(-2)}-${String(++state.seq).padStart(6,'0')}`,i={id,caseNumber:$('#newCaseNumber').value.trim().slice(0,80),agency:$('#agency').value,discipline:$('#discipline').value,priority:$('#priority').value,type:($('#customIncidentType').value.trim()||$('#type').value),location:(window.cadCommonPlaces?.resolve($('#location').value)?.address||$('#location').value),caller:$('#caller').value,phone:$('#phone').value,narrative:[$('#narrative').value],status:'PENDING',units:[],events:[]};event(i,'CALL_CREATED');state.incidents.push(i);state.selected=id;save();if(document.getElementById('calltake')?.classList.contains('active'))window.cadCallTakeSelect?.(id);else show('dispatch');toast(`Created ${id}`)}
+$('#createCall').onclick=()=>{
+ const agency=$('#agency').value.trim(),discipline=$('#discipline').value;
+ const type=($('#customIncidentType').value.trim()||$('#type').value||'').trim();
+ const location=$('#location').value.trim();
+ if(!agency){toast('Select an agency');$('#agency').focus();return}
+ if(!type){toast('Select a Call for Service type');$('#type').focus();return}
+ if(!location){toast('Enter the call location');$('#location').focus();return}
+ const id=`${String(new Date().getFullYear()).slice(-2)}-${String(++state.seq).padStart(6,'0')}`;
+ const initialNote=$('#narrative').value.trim();
+ const i={id,caseNumber:$('#newCaseNumber').value.trim().slice(0,80),agency,discipline,priority:$('#priority').value,type,location:window.cadCommonPlaces?.resolve(location)?.address||location,caller:$('#caller').value.trim(),phone:$('#phone').value.trim(),narrative:initialNote?[initialNote]:[],status:'PENDING',units:[],events:[]};
+ event(i,'CALL_CREATED');state.incidents.push(i);state.selected=id;save();
+ for(const key of ['newCaseNumber','customIncidentType','location','caller','phone','narrative'])$('#'+key).value='';
+ $('#priority').value='P2';
+ if(document.getElementById('calltake')?.classList.contains('active'))window.cadCallTakeSelect?.(id);else show('dispatch');
+ toast('Pending call created: '+id);
+};
+
 $('nav [data-view]').forEach(b=>b.onclick=()=>show(b.dataset.view));
 window.cadShowView=show;
 function show(v){$('.view').forEach(x=>x.classList.toggle('active',x.id===v));$('nav [data-view]').forEach(x=>x.classList.toggle('active',x.dataset.view===v));if(v==='calltake')window.cadCallTakeRefresh?.()}
