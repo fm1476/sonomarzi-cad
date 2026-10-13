@@ -1,6 +1,7 @@
 /* Optional read-only shared CAD board; local demo stays independent. */
 (()=>{'use strict';
  function boot(){
+  const demoConfig=Object.freeze({url:'https://gtmdigvuwjyfpgpdjmph.supabase.co',publishableKey:'sb_publishable_h8InBmqS_gfcHbgdxGqF6A_s3cf5ShD',agencyId:'ec800f31-c030-438f-9d8f-51c70a75af95'});
   const root=document.getElementById('cadSharedDemo');
   if(!root||!window.CadDemoLogin)return;
   const $=id=>root.querySelector('#'+id);
@@ -39,9 +40,7 @@
    event.preventDefault();
    const submit=$('cadSharedSignIn');submit.disabled=true;
    try{
-    window.CadDemoLogin.configure({
-     url:$('cadSharedUrl').value.trim(),publishableKey:$('cadSharedKey').value.trim(),agencyId:$('cadSharedAgency').value.trim()
-    });
+    window.CadDemoLogin.configure(demoConfig);
     const result=await window.CadDemoLogin.login($('cadSharedUser').value,$('cadSharedPassword').value);
     $('cadSharedPassword').value='';
     loginPanel.hidden=true;board.hidden=false;
