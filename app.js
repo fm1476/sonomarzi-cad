@@ -62,7 +62,10 @@ if(!localStorage.getItem(SIX_UNIT_SEED_KEY)){
 }
 let config=JSON.parse(localStorage.getItem(CFG)||'null')||defaultConfig;
 // Add the new field-initiated CFS to existing configurations without replacing agency-defined types.
-if(!Array.isArray(config.types?.LAW))config.types.LAW=[];
+if(!config||typeof config!=='object')config=structuredClone(defaultConfig);
+if(!config.types||typeof config.types!=='object')config.types={};
+if(!Array.isArray(config.agencies))config.agencies=[];
+if(!Array.isArray(config.types.LAW))config.types.LAW=[];
 if(!config.types.LAW.some(t=>String(t).trim().toLowerCase()==='traffic stop')){config.types.LAW.push('Traffic Stop');localStorage.setItem(CFG,JSON.stringify(config));}
 let filter='ALL';window.cadUnitDisciplineFilter='ALL';
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
