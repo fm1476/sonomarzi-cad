@@ -12,6 +12,7 @@ function forAgency(agencyName,discipline){
  const unique=[...new Set([...entries.map(x=>x.name),...actual])];
  return unique.map(name=>entries.find(x=>x.name===name)||{agency:agencyName,discipline,name,icon:'▣',source:'existing-unit'}).sort((a,b)=>(a.order??999)-(b.order??999));
 }
+function iconFor(agency,discipline,type){return forAgency(agency,discipline).find(x=>x.name===type)?.icon||null}
 function forDiscipline(d){const m=master();return [...new Set([...read().filter(x=>x.discipline===d).map(x=>x.name),...m.units.filter(u=>u.discipline===d).map(u=>u.resourceType).filter(Boolean)])]}
 function render(){
  let host=document.getElementById('cadResourceTypeManager');if(!host){const target=document.getElementById('cadMasterList');if(!target)return;host=document.createElement('section');host.id='cadResourceTypeManager';host.className='cad-resource-type-manager';target.before(host)}
@@ -31,6 +32,6 @@ function render(){
  document.getElementById('crtAdd').onclick=()=>{const name=document.getElementById('crtName').value.trim().toUpperCase(),icon=document.getElementById('crtIcon').value.trim()||'fire-engine';if(!/^[A-Z0-9][A-Z0-9 _-]{0,39}$/.test(name))return status.textContent='Use 1–40 letters, numbers, spaces, underscores or hyphens.';if(forAgency(agency.value,disc.value).some(x=>x.name===name))return status.textContent='Type already exists.';save([...read(),{agency:agency.value,discipline:disc.value,name,icon,order:forAgency(agency.value,disc.value).length}]);document.getElementById('crtName').value='';chosenIcon='fire-engine';updatePick();draw();status.textContent=name+' added.'};draw();
 }
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
-root.CadResourceTypes={forAgency,forDiscipline,render};
+root.CadResourceTypes={forAgency,forDiscipline,iconFor,render};
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',render);else render();
 })(window);
