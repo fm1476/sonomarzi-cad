@@ -486,3 +486,11 @@ header nav.cad-header-tabs button{position:relative;z-index:102;pointer-events:a
 #calltake .cad-ct-event-narrative #cadCTNarrative{flex:1;min-height:180px;overflow-y:auto}
 #calltake .cad-ct-record .cad-ct-fields[hidden]{display:none!important}
 @media(max-width:1150px){#calltake .cad-ct-event-body{display:block;overflow-y:auto}#calltake .cad-ct-event-info,#calltake .cad-ct-event-narrative{overflow:visible;border:0}}
+
+/* CAD full-height Call Taking panels with easy full-width lower resize rails */
+#calltake .cad-calltake-queue,#calltake .cad-ct-right>#cadCTEditor:not([hidden]),#calltake #cadCTNewForm:not([hidden]){resize:none!important;position:relative;box-sizing:border-box;min-height:350px;max-height:none!important;padding-bottom:22px;overflow:hidden}
+#calltake #cadCTNewForm:not([hidden]){display:flex;flex-direction:column;overflow-y:auto}
+#calltake .cad-ct-bottom-handle{position:absolute;bottom:0;left:0;right:0;height:18px;z-index:20;cursor:ns-resize;touch-action:none;background:linear-gradient(180deg,#143149,#1c435d);border-top:1px solid #4b7898;border-radius:0 0 8px 8px}
+#calltake .cad-ct-bottom-handle:hover,#calltake .cad-ct-bottom-handle:focus-visible{background:#296285;outline:2px solid #71b6ec;outline-offset:-2px}
+#calltake .cad-ct-bottom-handle:after{content:'';position:absolute;width:72px;height:3px;left:calc(50% - 36px);top:7px;background:#85b5d1;border-radius:6px}
+#calltake .cad-ct-event-body{min-height:0;overflow:hidden}
