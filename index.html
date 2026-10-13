@@ -271,23 +271,30 @@
 <script src="dispatch-new-info.js?v=2"></script>
 <script src="new-call-picker.js?v=2"></script>
 <script>
-/* Supplemental-resource voice request: resolve and display, never silently dispatch. */
+/* Supplemental resource voice preview. Never auto-dispatch from unverified speech. */
 (()=>{
- const prior=window.cadBeforeVoiceProcess;
+ const previous=window.cadBeforeVoiceProcess;
+ const normalize=s=>String(s||'').toUpperCase().replace(/[^A-Z0-9]+/g,' ').trim();
+ const unitPattern=id=>new RegExp('(?:^|[^A-Z0-9])'+String(id).replace(/[.*+?^\x24{}()|[\]\\]/g,'\\\x24&')+'(?=$|[^A-Z0-9])','i');
  window.cadBeforeVoiceProcess=(spoken,source)=>{
   const text=String(spoken||'').trim();
-  if(!/\b(?:requesting|request|needs?|send|start)\s+(?:an?\s+)?(?:additional|more|backup)\s+(?:units?|officers?|resources?)\b/i.test(text))return prior?.(spoken,source)===true;
-  const unit=window.cadSafetyState?.().units.find(u=>new RegExp('(?:^|\\W)'+u.id.replace(/[.*+?^\x24{}()|[\]\\]/g,'\\\x24&')+'(?:\\W|\x24)','i').test(text));
-  const candidates=(window.cadSafetyState?.().incidents||[]).filter(i=>i.status!=='CLOSED'&&unit&&i.units.includes(unit.id));
-  if(candidates.length!==1){document.getElementById('voiceInterpretation').textContent='Additional resource request needs a unique incident match. Select the incident manually.';return true;}
+  if(!/\b(?:requesting|request|needs?|send|start)\s+(?:an?\s+)?(?:additional|more|backup)\s+(?:units?|officers?|resources?)\b/i.test(text))return previous?.(spoken,source)===true;
+  const state=window.cadSafetyState?.();
+  const output=document.getElementById('voiceInterpretation');
+  const report=message=>{if(output)output.textContent=message;return true};
+  if(!state)return report('CAD state unavailable. No dispatch action taken.');
+  const matched=state.units.filter(u=>unitPattern(u.id).test(text));
+  if(matched.length!==1)return report('Specify one requesting unit. No dispatch action taken.');
+  const unit=matched[0];
+  const candidates=state.incidents.filter(i=>i.status!=='CLOSED'&&(i.units||[]).includes(unit.id));
+  if(candidates.length!==1)return report('Unable to uniquely identify the incident for '+unit.id+'. No dispatch action taken.');
   const incident=candidates[0];
-  const address=text.match(/\b(?:at|for)\s+(\d+\s+[\w\s.]+?)(?:[,.]|\x24)/i);
-  if(address&& !incident.location.toLowerCase().includes(address[1].trim().toLowerCase())){document.getElementById('voiceInterpretation').textContent='Location does not match '+incident.id+'. Verify before dispatch.';return true;}
-  window.cadSafetyState().selected=incident.id;
+  const stated=text.match(/\b(?:at|for)\s+(\d+\s+[\w\s.]+?)(?=\s*(?:[,.]|$))/i);
+  if(stated&&!normalize(incident.location).includes(normalize(stated[1])))return report('Location mismatch for '+incident.id+'. Verify manually. No dispatch action taken.');
+  state.selected=incident.id;
   if(typeof render==='function')render();
-  const recommendation=window.CadPlanDispatch?.preview(incident);
-  document.getElementById('voiceInterpretation').textContent=recommendation?.ok?'SUPPLEMENTAL REQUEST '+incident.id+': '+recommendation.units.join(', ')+' recommended. Review and confirm in incident details.': 'SUPPLEMENTAL REQUEST '+incident.id+': '+(recommendation?.message||'No verified response plan.');
-  return true;
+  const preview=window.CadPlanDispatch?.preview(incident);
+  return report(preview?.ok?'SUPPLEMENTAL REQUEST '+incident.id+': '+preview.units.join(', ')+' recommended. Confirm manually in incident details.':'SUPPLEMENTAL REQUEST '+incident.id+': '+(preview?.message||'No verified response plan.'));
  };
 })();
 </script>
