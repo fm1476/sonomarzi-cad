@@ -39,6 +39,7 @@
    listOutstanding:agency=>read('cad_outstanding_resources',agency,'select=*&order=incident_id,resource_type'),
    listIncidentEvents:agency=>read('cad_incident_events',agency,'select=*&order=occurred_at.desc&limit=500'),
    listIncidentLocations:agency=>read('cad_incident_locations',agency,'select=*&order=recorded_at.desc&limit=500'),
+   setCaseNumber:({agency,incident,caseNumber,incidentVersion})=>rpc('cad_set_case_number',{p_agency:id(agency),p_incident:id(incident),p_case_number:caseNumber,p_expected_version:incidentVersion}),
    addNarrative:({agency,incident,text,incidentVersion})=>rpc('cad_add_narrative',{p_agency:id(agency),p_incident:id(incident),p_text:text,p_expected_version:incidentVersion}),
    closeIncident:({agency,incident,disposition,incidentVersion})=>rpc('cad_close_incident',{p_agency:id(agency),p_incident:id(incident),p_disposition:disposition,p_expected_version:incidentVersion}),
    correctLocation:({agency,incident,location,incidentVersion,source})=>rpc('cad_correct_location',{p_agency:id(agency),p_incident:id(incident),p_location:location,p_expected_version:incidentVersion,p_source:source||'DISPATCH'}),
