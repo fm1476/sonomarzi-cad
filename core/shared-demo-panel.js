@@ -191,6 +191,19 @@
     if(refreshAgain){refreshAgain=false;queueMicrotask(()=>refresh({quiet:true}));}
    }
   }
+  // Apply the confirmed close result immediately; polling reconciles every other session.
+  function applyConfirmedClose(incidentId,disposition){
+   const existing=snapshot.incidents.find(i=>i.id===incidentId);
+   if(!existing)return;
+   snapshot.incidents=snapshot.incidents.map(i=>i.id===incidentId?{...i,status:'CLOSED',closed_at:new Date().toISOString(),version:i.version+1}:i);
+   const released=snapshot.assignments.filter(a=>a.incident_id===incidentId);
+   const releasedIds=new Set(released.map(a=>a.unit_id));
+   snapshot.assignments=snapshot.assignments.filter(a=>a.incident_id!==incidentId);
+   snapshot.roster=snapshot.roster.map(u=>releasedIds.has(u.id)?{...u,status:'AVAILABLE',version:u.version+1}:u);
+   snapshot.incidentEvents=[...(snapshot.incidentEvents||[]),{incident_id:incidentId,event_type:'INCIDENT_CLOSED',payload:{disposition},occurred_at:new Date().toISOString()}];
+   lastSignature='';
+   window.cadSharedApplySnapshot?.(snapshot);
+  }
   // Original CAD controls use this single authenticated command gateway.
   window.cadSharedCommand=async function(action,args={}){
    const session=window.CadDemoLogin.current();
@@ -206,7 +219,7 @@
      if(!incident)throw Error('Incident not found. Refresh and retry.');
      if(action==='case')result=await client.setCaseNumber({agency,incident:incident.id,caseNumber:args.caseNumber||'',incidentVersion:incident.version});
      else if(action==='note')result=await client.addNarrative({agency,incident:incident.id,text:args.text,incidentVersion:incident.version});
-     else if(action==='close')result=await client.closeIncident({agency,incident:incident.id,disposition:args.disposition||'CLOSED',incidentVersion:incident.version});
+     else if(action==='close'){result=await client.closeIncident({agency,incident:incident.id,disposition:args.disposition||'CLOSED',incidentVersion:incident.version});applyConfirmedClose(incident.id,args.disposition||'CLOSED');}
      else if(action==='location')result=await client.correctLocation({agency,incident:incident.id,location:args.location,incidentVersion:incident.version,source:'DISPATCH'});
      else{
       if(!unit)throw Error('Unit not found. Refresh and retry.');
