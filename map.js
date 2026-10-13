@@ -87,7 +87,28 @@ async function showHydrants(incident=null){
  const scope=incident?`near:${incident.id}:${incident.location}`:'viewport';
  try{
   const q=`mode=near&lat=${encodeURIComponent(viewCenter[0])}&lon=${encodeURIComponent(viewCenter[1])}&radius=${radius}`;
-  const res=await fetch('/.netlify/functions/hydrants?'+q);const json=await res.json();if(!res.ok)throw new Error(json.error||'GIS query failed');
+  let json=null;
+  const endpoint='/.netlify/functions/hydrants?'+q;
+  try{
+   const res=await fetch(endpoint,{headers:{Accept:'application/json'}});
+   const contentType=res.headers.get('content-type')||'';
+   if(!res.ok||!contentType.includes('json'))throw new Error('Hydrant API not available on this server');
+   json=await res.json();
+   if(json.error)throw new Error(json.error);
+  }catch(apiError){
+   // The Python local server serves index.html/404 HTML for Netlify function routes.
+   // Use the same read-only municipal GIS layer directly when the function is absent.
+   const gis='https://maps.cityofpetaluma.net/mapping/rest/services/PublicWorks/LUCITY_Water_Distribution/MapServer/6/query';
+   const params=new URLSearchParams({f:'geojson',where:'1=1',outFields:'OBJECTID,FACILITYID,LOCDESC,ACTIVEFLAG,PSI,LASTUPDATE',outSR:'4326',geometry:JSON.stringify({x:viewCenter[1],y:viewCenter[0],spatialReference:{wkid:4326}}),geometryType:'esriGeometryPoint',inSR:'4326',spatialRel:'esriSpatialRelIntersects',distance:String(radius),units:'esriSRUnit_Meter',resultRecordCount:'2000'});
+   let direct;
+   try{direct=await fetch(gis+'?'+params,{headers:{Accept:'application/json'}})}
+   catch{throw new Error('Local hydrant GIS request blocked. Use Netlify Dev for the hydrant API.')}
+   if(!direct.ok)throw new Error('City hydrant GIS returned '+direct.status);
+   const ct=direct.headers.get('content-type')||'';
+   if(!ct.includes('json')&&!ct.includes('geo+json'))throw new Error('City hydrant GIS returned a non-JSON response');
+   json=await direct.json();
+   if(json.error)throw new Error(json.error.message||'City hydrant GIS query failed');
+  }
   hydrantItems=(json.features||[]).filter(f=>f.geometry?.type==='Point'&&Array.isArray(f.geometry.coordinates));hydrantsVisible=true;hydrantScope=scope;drawHydrants();hydrantText();
   setResult(`${hydrantItems.length} mapped hydrants retrieved near ${incident?incident.id:'the current map view'}; only those in the visible map area are displayed. No automatic zoom. Reference only.`);
  }catch(err){setResult(`Hydrant layer unavailable: ${err.message}`)}
