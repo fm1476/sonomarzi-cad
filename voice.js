@@ -606,7 +606,37 @@ function splitArrivalAndDispatch(text){
  return {report,dispatch};
 }
 
+async function processSharedRadio(text,source){
+ const output=el('voiceInterpretation');
+ const heard=el('voiceHeard');
+ const show=(message,kind='REVIEW')=>{heard.textContent=text;output.textContent=message;indicator(kind);activity(source+' | '+message);renderActivity();};
+ const matched=contextUnits(text,unitMatches(text));
+ const units=matched.units;
+ const parsed=parseStatus(window.CadRadioStatusRepair.repair(text,matched.resolution==='explicit'&&units.length===1));
+ const explicitRef=text.match(/#(\\d{2}-\\d{6}|\\d{4,6})\\b/);
+ const selected=state.incidents.find(i=>i.id===state.selected&&i.status!=='CLOSED');
+ const linked=association(units,source,parsed.status);
+ const incident=explicitRef?state.incidents.find(i=>i.id===explicitRef[1]||i.id.endsWith(explicitRef[1])):linked||selected;
+ if(!window.cadSharedCommand){show('Shared CAD is not connected. Sign in to Dispatcher first.');return;}
+ if(/\\b(?:never|do not|don't|cancel|disregard|hold off)\\b/i.test(text)){show('Command negated; no changes made.');return;}
+ if(/\\b(?:close (?:the )?(?:event|incident|call)|clear (?:the )?(?:event|incident|call))\\b/i.test(text)){
+  show('For event closure, right-click the incident and choose a disposition. No event was closed.');return;
+ }
+ if(!units.length){show('No unique unit recognized. No shared CAD records changed.');return;}
+ if(units.length!==1){show('Multiple units recognized. Issue one unit command at a time in shared CAD.');return;}
+ if(!incident){show('No unique incident associated with '+units[0].id+'. Select the incident first.');return;}
+ const unit=units[0];
+ let action,args={incidentId:incident.id,unitId:unit.id};
+ if(parsed.status==='DISPATCHED'&&source==='DISPATCH'&&!incident.units.includes(unit.id)){action='assign';}
+ else if(parsed.status==='CLEAR'&&incident.units.includes(unit.id)){action='clear';args.disposition='CLEARED BY RADIO';}
+ else if(['ENROUTE','ONSCENE','TRANSPORTING','AT_HOSPITAL'].includes(parsed.status)&&incident.units.includes(unit.id)){action='status';args.status=parsed.status;}
+ else {show('Voice heard, but this command needs dispatcher review or an active assignment. No shared changes made.');return;}
+ show('Processing '+unit.id+' → '+(args.status||action)+' through shared CAD…','TRANSCRIBING');
+ try{await window.cadSharedCommand(action,args);show(unit.id+' → '+(args.status||action)+' confirmed in shared CAD.','PROCESSED');}
+ catch(error){show('Shared CAD command failed: '+error.message);}
+}
 process=function(text,source=el('voiceSource').value){
+ if(window.cadSharedIsActive?.()){void processSharedRadio(String(text||'').trim(),source);return;}
  // Preserve the spoken common name until the self-initiated parser resolves it.
  if(window.cadBeforeVoiceProcess?.(text,source)===true)return;
  const compound=splitArrivalAndDispatch(text);
