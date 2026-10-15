@@ -36,6 +36,7 @@
    createIncidentAuto:({agency,discipline,type,priority,location})=>rpc('cad_create_incident_auto',{p_agency:id(agency),p_discipline:discipline,p_type:type,p_priority:priority,p_location:location}),
    createIncident:({agency,number,discipline,type,priority,location})=>rpc('cad_create_incident',{p_agency:id(agency),p_number:number,p_discipline:discipline,p_type:type,p_priority:priority,p_location:location}),
    assignUnit:({agency,incident,unit,incidentVersion,unitVersion})=>rpc('cad_assign_unit',{p_agency:id(agency),p_incident:id(incident),p_unit:id(unit),p_expected_incident_version:incidentVersion,p_expected_unit_version:unitVersion}),
+   reclassifyIncident:({agency,incident,unit,type,incidentVersion,report})=>rpc('cad_reclassify_incident',{p_agency:id(agency),p_incident:id(incident),p_unit:id(unit),p_type:type,p_expected_version:incidentVersion,p_report:report}),
    changeUnitStatus:({agency,incident,unit,status,unitVersion})=>rpc('cad_change_unit_status',{p_agency:id(agency),p_incident:id(incident),p_unit:id(unit),p_status:status,p_expected_unit_version:unitVersion}),
    listOutstanding:agency=>read('cad_outstanding_resources',agency,'select=*&order=incident_id,resource_type'),
    listIncidentEvents:agency=>read('cad_incident_events',agency,'select=*&order=occurred_at.desc&limit=500'),
