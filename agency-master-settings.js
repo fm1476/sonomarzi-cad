@@ -36,6 +36,22 @@ function importDemoRoster(){
  try{M.save(localStorage,next);data=next;render();message.textContent='Imported '+added.agencies+' agencies and '+added.units+' unit definitions; '+skipped.length+' skipped. Existing master records were preserved. Staffing requirements remain unverified and unset.';window.dispatchEvent(new Event('cad-master-updated'))}
  catch(e){message.textContent='Import failed; nothing changed: '+e.message}
 }
+async function logOnDuty(masterUnitId){
+ const def=data.units.find(u=>u.id===masterUnitId);
+ if(!def)throw Error('Unit definition not found.');
+ const agency=data.agencies.find(a=>a.id===def.agencyId);
+ if(!agency)throw Error('Owning agency not found.');
+ if(window.cadSharedIsActive?.()){
+  if(typeof window.cadSharedRegisterMasterUnit!=='function')throw Error('Shared CAD logon unavailable. Check dispatcher connection.');
+  return await window.cadSharedRegisterMasterUnit(def,agency.name);
+ }
+ const current=window.cadMasterActiveUnits?.().find(u=>u.masterUnitId===masterUnitId);
+ if(current)return {ok:true,alreadyOnDuty:true,callSign:current.id};
+ const result=window.cadActivateMasterUnit?.(masterUnitId);
+ if(!result?.ok)throw Error(result?.error||'Local activation failed');
+ return {ok:true,callSign:def.designator};
+}
+window.cadLogOnConfiguredUnit=logOnDuty;
 function renderStaff(){
  const unitSelect=el('cadStaffUnit'),crewSelect=el('cadStaffCrew'),status=el('cadStaffCurrent');
  const active=window.cadMasterActiveUnits?.()||[];
@@ -166,9 +182,16 @@ function editRecord(kind,id){
  });
  dialog.showModal();
 }
-list.addEventListener('click',e=>{
+list.addEventListener('click',async e=>{
  const editKind=e.target?.getAttribute('data-master-edit');if(editKind){editRecord(editKind,e.target.getAttribute('data-master-id'));return;}
- const activateId=e.target?.getAttribute('data-unit-activate');if(activateId){const result=window.cadActivateMasterUnit?.(activateId);message.textContent=result?.ok?'Unit activated in live CAD roster.':'Activation failed: '+(result?.error||'CAD integration unavailable');renderStaff();return;}
+ const activateId=e.target?.getAttribute('data-unit-activate');if(activateId){
+  message.textContent='Logging unit on duty…';
+  try{
+   const result=await logOnDuty(activateId);
+   message.textContent=result.alreadyOnDuty?'Unit '+result.callSign+' is already on duty.':'Unit '+result.callSign+' logged on duty and available.';
+  }catch(error){message.textContent='Log On Duty failed: '+error.message;}
+  renderStaff();return;
+ }
  const id=e.target?.getAttribute('data-unit-delete');if(!id)return;
  if(!confirm('Remove this unit master definition? This does not change active demo CAD units.'))return;
  commit({...data,units:data.units.filter(u=>u.id!==id)},'Unit definition removed.');
