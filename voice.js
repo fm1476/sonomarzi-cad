@@ -764,7 +764,13 @@ async function processSharedVoiceReclassification(text,parsed){
   indicator('REVIEW');activity('SHARED RECLASS REVIEW | '+reason);renderActivity();
  };
  if(sharedVoiceDispatchPending)return fail('Another shared command is processing');
- if(candidates.length!==1)return fail('Exactly one existing reporting unit required');
+ if(candidates.length!==1){
+  const possible=state.incidents.filter(i=>i.status==='ACTIVE'&&i.discipline==='FIRE'&&/fire alarm|alarm/i.test(i.type||''))
+    .flatMap(i=>(i.units||[]).map(id=>({id,event:i.id})))
+    .filter(({id})=>/^E\d+$/i.test(id));
+  const hint=possible.length===1?' Possible assigned engine: '+possible[0].id+' on '+possible[0].event+'; operator confirmation required.':'';
+  return fail('No uniquely recognized reporting unit.'+hint+' Repeat the callsign; no changes were made');
+ }
  const unit=candidates[0];
  const owned=state.incidents.filter(i=>i.status==='ACTIVE'&&(i.units||[]).includes(unit.id));
  if(owned.length!==1||!owned[0].sharedUuid||!unit.sharedUuid)return fail('Reporting unit needs one uniquely assigned active shared incident');
