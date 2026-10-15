@@ -1,7 +1,7 @@
 /* Voice incident creation for the hackathon prototype. Never uses an LLM to mutate CAD records. */
 (()=>{'use strict';
  const priorVoiceHandler=window.cadBeforeVoiceProcess;
- const norm=s=>String(s||'').toLowerCase().replace(/[.,!?]/g,' ').replace(/\s+/g,' ').trim();
+ const norm=s=>String(s||'').toLowerCase().replace(/\b(?:atom|addam)\b/g,'adam').replace(/[.,!?]/g,' ').replace(/\s+/g,' ').trim();
  const html=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const stopWords=/\b(?:vehicle|veh|blue|black|white|gray|grey|silver|red|green|brown|toyota|toyoate|honda|ford|chevy|chevrolet|4\s*runner|four\s*runner|license|licence|plate|registration|california|ca)\b/i;
  const numberWords={one:'1',two:'2',three:'3',four:'4',five:'5',six:'6',seven:'7',eight:'8',nine:'9',ten:'10',twelve:'12',thirteen:'13',fourteen:'14',fourteens:'14',twenty:'20'};
@@ -63,7 +63,7 @@
   const raw=String(text||'').trim();const s=norm(raw);
   if(!raw||/\b(?:cancel|disregard|do not|don't|negative)\b/.test(s))return false;
   // Field-initiated traffic stop: unit, call type, street number and street required.
-  const traffic=/^(?:copy\s+)?((?:\d+\s*(?:adam|alpha|a|out of)\s*\d+|\d+[a-z]\d+|\d{2,5}))(?:['’]s)?[\s,.:;]+(?:(?:is\s+)?on\s+(?:a\s+)?)?traffic\s+stop\b[,.:;\s]*(?:at\s+)?(.+)$/i.exec(wordDigits(raw));
+  const traffic=/^(?:copy\s+)?((?:\d+\s*(?:adam|alpha|a|out of)\s*\d+|\d+[a-z]\d+|\d{2,5}))(?:['’]s)?[\s,.:;]+(?:(?:is\s+)?on\s+(?:a\s+)?)?traffic\s+stop\b[,.:;\s]*(?:at\s+)?(.+)$/i.exec(wordDigits(norm(raw)));
   if(traffic){
    if(priorVoiceHandler?.(text,source)===true)return true;
    const unitId=toUnit(traffic[1]),unit=state.units.find(u=>u.id.toUpperCase()===unitId.toUpperCase());
