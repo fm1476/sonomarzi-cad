@@ -16,8 +16,19 @@
    const headers={apikey:anonKey,Authorization:'Bearer '+token,Accept:'application/json'};
    if(body!==undefined)headers['Content-Type']='application/json';
    if(prefer)headers.Prefer=prefer;
-   const response=await transport(base+path,{method,headers,body:body===undefined?undefined:JSON.stringify(body),cache:'no-store'});
-   const data=await response.json().catch(()=>null);
+   // Bound RPC waits: the database can commit even if a response times out.
+   // Callers must refresh and verify before considering a timed-out action failed.
+   const controller=new AbortController();
+   const timeout=setTimeout(()=>controller.abort(),20000);
+   let response,data;
+   try{
+    response=await transport(base+path,{method,headers,body:body===undefined?undefined:JSON.stringify(body),cache:'no-store',signal:controller.signal});
+    data=await response.json().catch(()=>null);
+   }catch(error){
+    if(controller.signal.aborted)throw Error('Supabase request timed out after 20 seconds. Outcome unverified: refresh the shared board before retrying');
+    throw error;
+   }finally{clearTimeout(timeout);}
+
    if(!response.ok)throw Error('CAD request failed ('+response.status+'): '+(data?.message||data?.error||'Server rejected request'));
    return data;
   }
