@@ -262,6 +262,7 @@
     throw Error(error.message+' — Check the shared roster before retrying.');
    }
   };
+  window.cadSharedRoster=()=>snapshot.roster.slice();
   window.cadSharedSetUnitDuty=async function(unitId,onDuty){
    const session=window.CadDemoLogin.current();
    if(!session)throw Error('Sign in to shared CAD first.');
