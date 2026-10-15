@@ -729,7 +729,19 @@ async function processSharedVoiceCompound(text){
  el('voiceHeard').textContent=heard;
  const review=(reason)=>{el('voiceInterpretation').textContent='HEARD: '+heard+' | COMPOUND RADIO REVIEW: '+reason+' No unverified changes made.';indicator('REVIEW');activity('SHARED COMPOUND REVIEW | '+reason);renderActivity();return true;};
  const segments=heard.split(/\s*\b(?:break|brake)\b\s*[,.!?;]*\s*/i).map(s=>s.trim()).filter(Boolean);
- if(segments.length!==2)return review('Transmission did not contain exactly two identifiable clauses. Repeat each command separately.');
+ if(segments.length===1){
+  // A terminating BREAK/ BRAKE is radio punctuation, not a missing second order.
+  // Process the single complete report with the same authoritative shared path.
+  const report=segments[0];
+  const intelligence=window.cadIncidentIntelligence?.classification(report);
+  if(intelligence?.type==='Structure Fire'&&/\b(?:confirmed|working)\b/i.test(report)){
+   await processSharedVoiceReclassification(report,intelligence);
+   el('voiceHeard').textContent=heard;
+   return true;
+  }
+  return review('Only one clause was transcribed, and it did not contain a confirmed working-fire report. No second command attempted.');
+ }
+ if(segments.length!==2)return review('Transmission contained multiple unclear clauses. Repeat the commands separately.');
  const first=segments[0],second=segments[1];
  const intelligence=window.cadIncidentIntelligence?.classification(first);
  const firstUnits=window.CadSharedVoiceIntents?.unitList(first,state.units,window.CadVoiceText)||[];
