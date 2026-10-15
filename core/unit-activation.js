@@ -25,7 +25,8 @@ function logOff(state,unitId){
  const unit=state.units.find(u=>u.id===unitId);
  if(!unit)throw Error('Active CAD unit not found.');
  if(!unit.masterUnitId)throw Error('Only configured master units can be logged off here.');
- if(unit.staffing?.active)throw Error('Sign off the crew before logging off the unit.');
+ // End-of-shift logoff includes signing off the crew; preserve the roster definition.
+ // Other active assignments or committed statuses still block the transition.
  if(!['AVAILABLE','OUTOFSERVICE'].includes(unit.status))throw Error('Unit must be available or out of service before logoff.');
  if((state.incidents||[]).some(i=>i.status!=='CLOSED'&&(i.units||[]).includes(unitId)))throw Error('Unit is still assigned to an open incident.');
  return {...state,units:state.units.filter(u=>u.id!==unitId)};
