@@ -22,7 +22,7 @@ Scope: `fm1476/sonomarzi-cad`, shared Supabase demo workspace vs prior browser-l
 | Save & Clear from call-taking editor | Implemented, awaiting browser verification | Uses authenticated `cad_close_incident` via shared gateway |
 | Voice-created traffic stops, subject contacts, follow-ups | **NOT PARITY** | Shared mode recognizes or reviews, does not commit atomic self-init creation + assignment |
 | Multiple-unit and linked cross-discipline voice dispatch | **PARTIAL** | Shared voice guard intentionally limits simple dispatch to one same-discipline unit |
-| Plan dispatch, custom incident forms, specialty statuses, response shortfalls, map and station edits | **NEEDS EXPLICIT LIVE PARITY TEST** | Local logic exists; each mutation needs matching shared RPC or clear read-only treatment |
+| Map voice commands (layers, zoom, location, units/calls filters) | Restored routing, browser verification pending | Map commands bypass shared CAD mutation guard; layers retain map viewport; localhost microphone uses Web Speech API where supported |\n| Plan dispatch, custom incident forms, specialty statuses, response shortfalls, station edits | **NEEDS EXPLICIT LIVE PARITY TEST** | Local logic exists; each mutation needs matching shared RPC or clear read-only treatment |
 | Existing local CAD demo | Available | Sign out of Shared CAD; local browser state returns. **Not shared across dispatchers.** |
 
 ## Demo-safe manual verification (two signed-in browsers, fictional records only)
@@ -35,8 +35,8 @@ Scope: `fm1476/sonomarzi-cad`, shared Supabase demo workspace vs prior browser-l
 6. Dispatch E1 to a Fire Alarm; say confirmed working structure fire; verify reclassified Structure Fire and historical event.
 7. Dispatcher edit: location, type, priority, case number; confirm after refresh and in second browser.
 8. Call-taking editor: change location or priority, save, verify after refresh. Add narrative; verify history.
-9. Test ambiguous commands and unavailable units: must show REVIEW, **never** false success.
-10. To demonstrate caller details or extended parties/vehicles **without shared functionality**, log out of shared CAD and use the original local demo. Do not describe that mode as multi-dispatcher.
+9. Test map voice commands: show/hide hydrants and GIS layers, clear layers without changing zoom, go to address, show P1 calls, and find a unit. Test both radio PTT and Ask the Map on localhost.\n10. Test ambiguous commands and unavailable units: must show REVIEW, **never** false success.
+11. To demonstrate caller details or extended parties/vehicles **without shared functionality**, log out of shared CAD and use the original local demo. Do not describe that mode as multi-dispatcher.
 
 ## Shipping gate
 
