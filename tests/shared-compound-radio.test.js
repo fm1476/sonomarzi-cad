@@ -18,7 +18,10 @@ const compound=voice.slice(voice.indexOf('async function processSharedVoiceCompo
 assert(compound.includes('processSharedVoiceReclassification(first,intelligence)'));
 assert(compound.includes('processSharedVoiceBatchDispatch(second)'));
 assert(compound.indexOf('processSharedVoiceReclassification(first,intelligence)')<compound.indexOf('processSharedVoiceBatchDispatch(second)'));
-assert(compound.includes('owned[0].sharedUuid!==target.sharedUuid'),'validate same existing call');
+assert(compound.includes('destination?.sharedUuid===owned[0].sharedUuid'),'validate same existing call');
+assert(compound.includes('break|brake'),'ASR brake must separate commands');
+assert(compound.includes('if(!canDispatch)'),'incomplete second command must be held');
+assert(compound.indexOf('processSharedVoiceReclassification(first,intelligence)')<compound.indexOf('if(!canDispatch)'),'trusted first report should be processed independently of missing second order');
 const batch=voice.slice(voice.indexOf('async function processSharedVoiceBatchDispatch('),voice.indexOf('async function processSharedVoiceCompound('));
 assert(batch.includes("window.cadSharedCommand('batch-assign'"),'multiunit shared transaction');
 assert(batch.includes("response?.incomplete"),'partial assignments must never report full success');
