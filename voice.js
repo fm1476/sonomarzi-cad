@@ -707,6 +707,15 @@ async function processSharedRadio(text,source){
   catch(e){show('Case-number request failed: '+e.message);}
   return;
  }
+ const noteMatch=radioText.match(/\\b(?:add note|add narrative|note that)\\s+(.+)$/i);
+ if(noteMatch){
+  const assigned=state.incidents.filter(i=>i.status==='ACTIVE'&&units.some(u=>i.units.includes(u.id)));
+  const target=explicitRef?incident:assigned.length===1?assigned[0]:null;
+  if(!target){show('Narrative recognized but incident ambiguous. Specify event number.');return;}
+  try{await window.cadSharedCommand('note',{incidentId:target.id,text:noteMatch[1]});show('Narrative added to '+target.id+'.','PROCESSED');}
+  catch(e){show('Narrative failed: '+e.message);}
+  return;
+ }
  if(!incident){show(dispatchRequested?'Cannot uniquely resolve dispatch incident ('+(dispatchMatch?.reason||'no match')+'). Say the event number or full address; no changes made.':'No unique incident associated with '+units[0].id+'. Select the incident first.');return;}
  const unit=units[0];
  let action,args={incidentId:incident.id,unitId:unit.id};
