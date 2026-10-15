@@ -1,8 +1,4 @@
-const HOSTED_CLEAN_MODE=typeof location!=='undefined'&&!['localhost','127.0.0.1','[::1]'].includes(location.hostname);
-// Keep the hosted CAD workspace independent of legacy browser demo data.
-// Nothing is deleted: existing demo localStorage and Supabase records remain intact.
-const KEY=HOSTED_CLEAN_MODE?'smcad-hosted-workspace-v1':'smcad-poc-v1', CFG=HOSTED_CLEAN_MODE?'smcad-hosted-config-v1':'smcad-config-v1';
-window.cadHostedCleanMode=HOSTED_CLEAN_MODE;
+const KEY='smcad-poc-v1', CFG='smcad-config-v1';
 const defaultConfig={agencies:['Sonoma County Sheriff','Petaluma Police','Petaluma Fire / EMS','REDCOM'],types:{LAW:['Traffic Stop','Domestic','Suspicious Person','Alarm','Traffic Collision','Welfare Check','Disturbance'],FIRE:['Structure Fire','Vegetation Fire','Vehicle Fire','Alarm','Hazard'],EMS:['Medical Aid','Cardiac Arrest','Fall','Overdose','Traffic Collision']}};
 const defaultState=()=>({seq:4525,selected:null,incidents:[
 {id:'26-004518',agency:'Petaluma Police',discipline:'LAW',priority:'P1',type:'Domestic',location:'725 D St',caller:'RP',phone:'707-555-0144',narrative:['Caller reports physical fight, possible weapon.'],status:'ACTIVE',units:['3A21'],events:[]},
@@ -26,8 +22,7 @@ const defaultState=()=>({seq:4525,selected:null,incidents:[
 {id:'M2',agency:'Petaluma Fire / EMS',discipline:'EMS',status:'AVAILABLE',location:'Station 2',x:82,y:71},
 {id:'M3',agency:'Petaluma Fire / EMS',discipline:'EMS',status:'TRANSPORTING',location:'Hospital',x:16,y:24}
 ]});
-const freshWorkspaceState=()=>HOSTED_CLEAN_MODE?{seq:4525,selected:null,incidents:[],units:[]}:defaultState();
-let state=window.CadPersistence.read(KEY)||freshWorkspaceState();
+let state=window.CadPersistence.read(KEY)||defaultState();
 let cadLocalWorkspace=null;
 let cadSharedWorkspaceMode=false;
 window.cadSharedApplySnapshot=function(snapshot){
@@ -67,7 +62,6 @@ window.cadCallTakeSave=()=>save();
 window.CadPlanDispatch={preview(incident){const result=window.CadResponsePlans?.recommendIncident(incident);if(incident.responseZoneSource==='MANUAL_UNVERIFIED'&&!incident.responseZoneReviewed)return {ok:false,message:'Operator-entered response zone requires explicit review before plan dispatch.'};if(result?.status!=='ready')return {ok:false,message:result?.message||'No verified response plan.'};if(incident.status==='CLOSED')return {ok:false,message:'Incident closed.'};const assigned=new Set(incident.units||[]);const units=[...new Set(result.rows.flatMap(r=>r.selected))].filter(id=>!assigned.has(id));if(!units.length)return {ok:false,message:'No additional eligible resources in the plan. The published plan may already be satisfied; supplemental requests need an explicitly configured increment.'};const sharedGroups=(()=>{try{return JSON.parse(localStorage.getItem('smcad-shared-crews-v1')||'[]')}catch{return []}})();const busy=new Set(state.incidents.filter(x=>x.status!=='CLOSED').flatMap(x=>x.units||[]));for(const id of units){const group=sharedGroups.find(g=>(!g.agency||g.agency===incident.agency)&&(g.units||[]).includes(id));if(group){const occupied=(group.units||[]).find(other=>other!==id&&busy.has(other));if(occupied)return {ok:false,message:'Shared crew conflict: '+id+' shares a crew with committed '+occupied+'.'};}}for(const id of units){const u=state.units.find(x=>x.id===id);if(!u||u.status!=='AVAILABLE'||state.incidents.some(x=>x.status!=='CLOSED'&&x.id!==incident.id&&x.units.includes(id)))return {ok:false,message:'Unit '+id+' is no longer available. Refresh recommendations.'};}return {ok:true,units,incidentId:incident.id,message:'Plan '+result.plan.type+' / '+result.plan.zone+'. Manual confirmation required.'}},commit(incident,preview){const fresh=this.preview(incident);if(!fresh.ok)return fresh;if(fresh.incidentId!==preview.incidentId||fresh.units.join('|')!==preview.units.join('|'))return {ok:false,message:'Recommendations changed. Review and confirm again.'};const result=window.CadUnitCommands.assignPlan({state,incident,unitIds:fresh.units,event,sharedGroups:cadSharedCrewGroups()});if(!result.ok)return result;const updated=window.CadResponsePlans?.recommendIncident(incident);if(updated?.status==='ready'){incident.responseShortfalls=updated.rows.filter(row=>Number(row.short)>0).map(row=>({type:row.type,missing:Number(row.short)}));if(incident.responseShortfalls.length)event(incident,'RESPONSE_INCOMPLETE '+incident.responseShortfalls.map(row=>row.type+': '+row.missing+' still needed').join('; '));else event(incident,'RESPONSE_REQUIREMENTS_FILLED');}state.selected=incident.id;save();return result}};
 window.cadCallTakeEvent=(inc,msg)=>event(inc,msg);
 window.cadRestoreMissingDemoCalls=()=>{
- if(HOSTED_CLEAN_MODE)return 0; // Never auto-populate hosted CAD with fictional incidents.
  const existing=new Set((state.incidents||[]).map(i=>i.id));
  const missing=defaultState().incidents.filter(i=>!existing.has(i.id));
  if(!missing.length)return 0;
@@ -81,7 +75,7 @@ window.cadDemoDataHealth=()=>({incidentCount:state.incidents?.length||0,openCoun
 // Add the expanded incident roster once when upgrading an untouched original 3-call demo.
 // Never overwrite or replace saved user-created incidents.
 const EIGHT_CALL_SEED_KEY='smcad-eight-call-seed-v15';
-if(!HOSTED_CLEAN_MODE&&!localStorage.getItem(EIGHT_CALL_SEED_KEY)){
+if(!localStorage.getItem(EIGHT_CALL_SEED_KEY)){
  const originals=['26-004518','26-004519','26-004520'];
  if(state.incidents.length===3 && originals.every(id=>state.incidents.some(i=>i.id===id))){
   for(const incident of defaultState().incidents){if(!state.incidents.some(i=>i.id===incident.id))state.incidents.push(incident);}
@@ -94,14 +88,14 @@ if(!HOSTED_CLEAN_MODE&&!localStorage.getItem(EIGHT_CALL_SEED_KEY)){
 // Seed three additional patrol units into existing browser demo data, once only.
 // Preserve any existing incidents, statuses, assignments, and transcript history.
 const SIX_UNIT_SEED_KEY='smcad-six-patrol-seed-v1';
-if(!HOSTED_CLEAN_MODE&&!localStorage.getItem(SIX_UNIT_SEED_KEY)){
+if(!localStorage.getItem(SIX_UNIT_SEED_KEY)){
   if(!Array.isArray(state.units)) state.units=[];
   const seeds=defaultState().units.filter(u=>['3A16','3A18','3A22'].includes(u.id));
   for(const u of seeds) if(!state.units.some(existing=>existing.id===u.id)) state.units.push(u);
   localStorage.setItem(KEY,JSON.stringify(state));
   localStorage.setItem(SIX_UNIT_SEED_KEY,'1');
 }
-let config=JSON.parse(localStorage.getItem(CFG)||'null')||(HOSTED_CLEAN_MODE?{agencies:[],types:structuredClone(defaultConfig.types)}:defaultConfig);
+let config=JSON.parse(localStorage.getItem(CFG)||'null')||defaultConfig;
 // Add the new field-initiated CFS to existing configurations without replacing agency-defined types.
 if(!config||typeof config!=='object')config=structuredClone(defaultConfig);
 if(!config.types||typeof config.types!=='object')config.types={};
@@ -472,9 +466,9 @@ function renderMap(){
  state.units.forEach(u=>{let m=document.createElement('div');m.className='marker '+u.discipline.toLowerCase();m.style.left=u.x+'%';m.style.top=u.y+'%';m.title=`${u.id} ${u.status}`;$('#map').appendChild(m)})
 }
 function availableAgencies(){
- const names=[];
+ const names=['Petaluma Police'];
  const add=a=>{const n=String(a??'').trim();if(n&&!names.some(x=>x.toLowerCase()===n.toLowerCase()))names.push(n)};
- if(!HOSTED_CLEAN_MODE)for(const a of defaultConfig.agencies)add(a);
+ for(const a of defaultConfig.agencies)add(a);
  for(const a of config.agencies||[])add(a);
  for(const a of state.incidents||[])add(a.agency);
  for(const u of state.units||[])add(u.agency);
@@ -484,7 +478,7 @@ function availableAgencies(){
 function populate(){
  const agency=$('#agency'),previous=agency.value;
  agency.innerHTML=availableAgencies().map(a=>`<option value="${escapeCad(a)}">${escapeCad(a)}</option>`).join('');
- agency.value=availableAgencies().includes(previous)?previous:(availableAgencies()[0]||'');
+ agency.value=availableAgencies().includes(previous)?previous:'Petaluma Police';
  updateTypes();
  $('#cfgAgencies').value=(config.agencies||[]).join('\n');$('#cfgLaw').value=(config.types?.LAW||[]).join('\n');$('#cfgFire').value=(config.types?.FIRE||[]).join('\n');$('#cfgEms').value=(config.types?.EMS||[]).join('\n');
 }
@@ -626,7 +620,7 @@ window.cadSignOffMasterUnit=function(unitId){
 };
 window.cadMasterActiveUnits=function(){return state.units.filter(u=>u.masterUnitId).map(u=>({id:u.id,masterUnitId:u.masterUnitId,status:u.status,staffing:u.staffing||null}));};
 // Demo incidents are optional and can be reloaded without touching Agency Master or unit status.
-if(!HOSTED_CLEAN_MODE&&$('#reset')&&!document.getElementById('cadLoadDemoCalls')){
+if($('#reset')&&!document.getElementById('cadLoadDemoCalls')){
  const btn=document.createElement('button');
  btn.id='cadLoadDemoCalls';btn.type='button';btn.textContent='Load Demo Calls';
  btn.title='Restore missing fictional sample incidents without resetting agencies, units or existing calls';
@@ -637,15 +631,15 @@ if(!HOSTED_CLEAN_MODE&&$('#reset')&&!document.getElementById('cadLoadDemoCalls')
  });
 }
 $('#reset').onclick=()=>{
- if(!confirm(HOSTED_CLEAN_MODE?'RESET THIS HOSTED WORKSPACE?\n\nThis removes the browser-local CAD workspace on this device only. Shared Supabase agencies, incidents and units are NOT deleted. This cannot be undone.':'RESET ENTIRE DEMO?\n\nThis will erase all browser-saved incidents, cases, unit assignments/statuses, radio transcripts, AI summaries, activity history, and legacy demo settings. Permanent Agency Master records will NOT be erased. It will restore the original sample data.\n\nThis cannot be undone.'))return;
- localStorage.setItem(KEY,JSON.stringify(freshWorkspaceState()));
+ if(!confirm('RESET ENTIRE DEMO?\n\nThis will erase all browser-saved incidents, cases, unit assignments/statuses, radio transcripts, AI summaries, activity history, and legacy demo settings. Permanent Agency Master records will NOT be erased. It will restore the original sample data.\n\nThis cannot be undone.'))return;
+ localStorage.setItem(KEY,JSON.stringify(defaultState()));
  localStorage.removeItem(CFG);
  localStorage.removeItem('smcad-agency-phrase-preview-v1');
  localStorage.setItem(SIX_UNIT_SEED_KEY,'1');
  // Reload cancels any pending summary requests and resets voice/operations UI.
  window.location.reload();
 }
-if(HOSTED_CLEAN_MODE){$('#simulateBtn').hidden=true;}else $('#simulateBtn').onclick=()=>simulate();
+$('#simulateBtn').onclick=()=>simulate();
 function simulate(){
  toast('Simulation running');
  let demoId=null;
