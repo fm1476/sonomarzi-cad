@@ -120,6 +120,20 @@ document.addEventListener('contextmenu',e=>{
   };
   unitMenu.append(button);
  }
+ // End-of-shift action belongs on the unit pill, not in Agency Master.
+ // Shared CAD requires a durable agency-wide state change; don't pretend a
+ // browser-only deletion has removed a unit for other dispatchers.
+ if(!window.cadSharedIsActive?.() && u.masterUnitId && ['AVAILABLE','CLEAR'].includes(u.status) && !assigned.length){
+  const off=document.createElement('button');off.type='button';off.setAttribute('role','menuitem');
+  off.textContent='Off Duty';off.style.cssText='display:block;width:100%;text-align:left;padding:9px 12px;margin:4px 0 2px;background:#28516a;color:#fff;border:1px solid #5888a2;border-radius:7px;cursor:pointer';
+  off.onclick=()=>{
+   closeUnitMenu();
+   if(!window.confirm('Log '+u.id+' off duty? The unit will disappear from Unit Status and remain configured for the next shift.'))return;
+   const result=window.cadLogOffMasterUnit?.(u.id);
+   if(!result?.ok)window.alert(result?.error||'Unable to log unit off duty.');
+  };
+  unitMenu.append(off);
+ }
  unitMenu.style.display='block';
  unitMenu.style.left=Math.max(8,Math.min(e.clientX,window.innerWidth-unitMenu.offsetWidth-8))+'px';
  unitMenu.style.top=Math.max(8,Math.min(e.clientY,window.innerHeight-unitMenu.offsetHeight-8))+'px';
