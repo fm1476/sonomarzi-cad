@@ -610,9 +610,12 @@ async function processSharedRadio(text,source){
  const output=el('voiceInterpretation');
  const heard=el('voiceHeard');
  const show=(message,kind='REVIEW')=>{heard.textContent=text;output.textContent=message;indicator(kind);activity(source+' | '+message);renderActivity();};
- const matched=contextUnits(text,unitMatches(text));
+ // Normalize ASR substitutions only for interpretation, never overwrite the transcript.
+ const radioText=String(text).replace(/\b([1-9])\s+(?:out of|outta|addam)\s+(\d{1,3})\b/gi,'$1 Adam $2')
+  .replace(/\b(?:engine|medic|truck|rescue|battalion)\s*(\d+)\b/gi,(whole,n)=>whole.replace(/\s*\d+$/, ' '+n));
+ const matched=contextUnits(radioText,unitMatches(radioText));
  const units=matched.units;
- const parsed=parseStatus(window.CadRadioStatusRepair.repair(text,matched.resolution==='explicit'&&units.length===1));
+ const parsed=parseStatus(window.CadRadioStatusRepair.repair(radioText,matched.resolution==='explicit'&&units.length===1));
  const explicitRef=text.match(/#(\d{2}-\d{6}|\d{4,6})\b/);
  const selected=state.incidents.find(i=>i.id===state.selected&&i.status!=='CLOSED');
  const linked=association(units,source,parsed.status);
@@ -622,7 +625,7 @@ async function processSharedRadio(text,source){
  if(/\b(?:close (?:the )?(?:event|incident|call)|clear (?:the )?(?:event|incident|call))\b/i.test(text)){
   show('For event closure, right-click the incident and choose a disposition. No event was closed.');return;
  }
- if(!units.length){show('No unique unit recognized. No shared CAD records changed.');return;}
+ if(!units.length){show('No unique unit recognized from: '+text+'. Check the callsign in Heard; no shared records changed.');return;}
  if(units.length!==1){show('Multiple units recognized. Issue one unit command at a time in shared CAD.');return;}
  if(!incident){show('No unique incident associated with '+units[0].id+'. Select the incident first.');return;}
  const unit=units[0];
@@ -630,7 +633,7 @@ async function processSharedRadio(text,source){
  if(parsed.status==='DISPATCHED'&&source==='DISPATCH'&&!incident.units.includes(unit.id)){action='assign';}
  else if(parsed.status==='CLEAR'&&incident.units.includes(unit.id)){action='clear';args.disposition='CLEARED BY RADIO';}
  else if(['ENROUTE','ONSCENE','TRANSPORTING','AT_HOSPITAL'].includes(parsed.status)&&incident.units.includes(unit.id)){action='status';args.status=parsed.status;}
- else {show('Voice heard, but this command needs dispatcher review or an active assignment. No shared changes made.');return;}
+ else {show('Heard '+unit.id+'; interpreted status '+(parsed.status||'UNKNOWN')+'. This requires an active assignment or dispatcher review. No shared changes made.');return;}
  show('Processing '+unit.id+' → '+(args.status||action)+' through shared CAD…','TRANSCRIBING');
  try{await window.cadSharedCommand(action,args);show(unit.id+' → '+(args.status||action)+' confirmed in shared CAD.','PROCESSED');}
  catch(error){show('Shared CAD command failed: '+error.message);}
