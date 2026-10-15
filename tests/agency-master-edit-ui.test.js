@@ -1,0 +1,15 @@
+const assert=require('node:assert/strict'),fs=require('node:fs');
+const markup=fs.readFileSync('index.html','utf8'),settings=fs.readFileSync('agency-master-settings.js','utf8'),app=fs.readFileSync('app.js','utf8'),css=fs.readFileSync('agency-master-polish.css','utf8');
+assert(markup.includes('cad-master-balanced'),'symmetric form sections');
+assert(markup.includes('cadStaffLogOff'),'logoff control');
+assert(markup.includes('agency-master-polish.css?v=1'),'responsive stylesheet linked');
+assert(settings.includes("data-master-edit"),'edit buttons');
+assert(settings.includes('function editRecord(kind,id)'),'edit handler');
+assert(settings.includes('M.validate(next)'),'validated edits');
+assert(settings.includes("Internal ID:"),'protect stable references');
+assert(settings.includes("data-master-record-actions")===false);
+assert(settings.includes("cadLogOffMasterUnit"),'logoff wired');
+assert(app.includes("window.cadLogOffMasterUnit=function"),'operational logoff endpoint');
+assert(app.includes("CadUnitActivation.logOff(state,unitId)"),'guarded logoff transition');
+assert(css.includes('grid-template-columns:repeat(3,minmax(0,1fr))'),'balanced record columns');
+console.log('PASS: symmetric configuration and edit controls wired without automatic deletion');
