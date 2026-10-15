@@ -12,6 +12,9 @@ assert.deepStrictEqual(matches('E2 and E3 respond to the working fire'),['E2','E
 assert.deepStrictEqual(matches('Battalion 1 and Truck 1 respond to E1 location'),['B1','E1','T1']);
 assert.deepStrictEqual(matches('3 Adam 21 and 3 Adam 22 respond'),['3A21','3A22']);
 assert.deepStrictEqual(matches('three atom 21 respond traffic collision 123 Main Street'),['3A21']);
+assert.deepStrictEqual(matches('three item 21 respond traffic collision 123 Main Street'),['3A21']);
+assert.deepStrictEqual(matches('three item 14 respond traffic collision 123 Main Street'),['3A14']);
+assert.deepStrictEqual(matches('three items 21 respond traffic collision 123 Main Street'),[]);
 assert.deepStrictEqual(matches('three atom 14 respond traffic collision 123 Main Street'),['3A14']);
 assert.deepStrictEqual(matches('three alpha fourteen respond traffic collision 123 Main Street'),['3A14']);
 assert.deepStrictEqual(matches('3 A 14 respond traffic collision 123 Main Street'),['3A14']);
@@ -23,4 +26,5 @@ assert.deepStrictEqual(logs('logging on Battalion 1 and Truck 1'),['B1','T1']);
 assert.deepStrictEqual(logs('Engine 2 and Engine 3 logging on'),['E2','E3']);
 assert.deepStrictEqual(logs('Three Adam Twenty One and Engine 2 logging on'),['3A21','E2']);
 assert.deepStrictEqual(logs('logging on three atom twenty one'),['3A21']);
+assert.deepStrictEqual(logs('logging on three item twenty one'),['3A21']);
 console.log('PASS: multiple unit callsigns in dispatch and logon phrases');
