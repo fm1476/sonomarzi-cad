@@ -15,6 +15,8 @@
   return String(hundreds[a.toLowerCase()]*100+tens[b.toLowerCase()]+(ones[c?.toLowerCase()]||Number(c)||0));
  });
  const toUnit=(raw)=>{
+  const phonetic=window.CadVoiceText?.numericCallsigns(raw)||[];
+  if(phonetic.length===1)return phonetic[0];
   const t=wordDigits(norm(raw)).replace(/(\d)\s*(adam|alpha)\s*(?=\d)/gi,'$1a').replace(/\b(?:adam|alpha|out of)\b/g,'a').replace(/\b(?:boy|bravo)\b/g,'b').replace(/\s+/g,'');
   const lead=t.match(/^(\d+)a(\d+)/);if(lead)return lead[1]+'A'+lead[2];
   const short=t.match(/^(\d{2,5})$/);if(short){const matching=state.units.filter(u=>{const m=u.id.match(/^(\d+)[A-Z](\d+)$/);return m&&m[1]+m[2]===short[1]});if(matching.length===1)return matching[0].id;}
