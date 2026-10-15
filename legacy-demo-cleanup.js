@@ -1,83 +1,112 @@
-/* Explicit, reversible browser-local legacy CAD cleanup. Never calls Supabase. */
+/* Hosted CAD explicit cleanup: remove exactly three legacy browser-local agencies.
+ * Always requires backup and human confirmation; never invokes Supabase APIs.
+ */
 (()=>{
 'use strict';
+const TARGETS=Object.freeze([
+ {id:'AG-SONOMA-COUNTY-SHERIFF',name:'Sonoma County Sheriff'},
+ {id:'AG-PETALUMA-FIRE-EMS',name:'Petaluma Fire / EMS'},
+ {id:'AG-REDCOM',name:'REDCOM'}
+]);
+const KEY={local:'smcad-poc-v1',config:'smcad-config-v1',master:'smcad-agency-master-v1',resources:'smcad-resource-types-v1',clean:'smcad-original-demo-cleaned-v1'};
 const $=id=>document.getElementById(id);
-const SAMPLE_AGENCIES=['Sonoma County Sheriff','Petaluma Police','Petaluma Fire / EMS','REDCOM'];
-const SAMPLE_UNITS=new Set(['3A12','3A14','3A16','3A18','3A21','3A22','SO12','E1','E2','M2','M3']);
-const LOCAL_KEY='smcad-poc-v1',CONFIG_KEY='smcad-config-v1',CLEAN_KEY='smcad-original-demo-cleaned-v1';
-const MASTER_KEY='smcad-agency-master-v1',RESOURCE_KEY='smcad-resource-types-v1';
-const state=()=>JSON.parse(localStorage.getItem(LOCAL_KEY)||'null')||{units:[],incidents:[]};
-const config=()=>JSON.parse(localStorage.getItem(CONFIG_KEY)||'null')||{agencies:[]};
-const master=()=>window.CadAgencyMaster?.read(localStorage);
-const escape=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c]));
+const safe=t=>String(t??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c]));
+const load=(key,fallback)=>{const raw=localStorage.getItem(key);return raw===null?fallback:JSON.parse(raw)};
 function inspect(){
- const local=state(),cfg=config(),m=master()||{agencies:[],units:[],personnel:[]};
- const originalUnits=(local.units||[]).filter(u=>SAMPLE_UNITS.has(u.id)&&SAMPLE_AGENCIES.includes(u.agency));
- const importedUnits=(m.units||[]).filter(u=>u.source==='demo-roster-import');
- const originalIncidents=(local.incidents||[]).filter(i=>/^26-0045(?:18|19|20|21|22|23|24|25)$/.test(i.id)&&SAMPLE_AGENCIES.includes(i.agency));
- const candidateAgencies=(m.agencies||[]).filter(a=>SAMPLE_AGENCIES.includes(a.name)&&a.id==='AG-'+a.name.toUpperCase().replace(/[^A-Z0-9]+/g,'-').replace(/^-|-$/g,''));
- return {local,cfg,m,originalUnits,originalIncidents,importedUnits,candidateAgencies};
+ const master=window.CadAgencyMaster.read(localStorage);
+ const local=load(KEY.local,{incidents:[],units:[]}),config=load(KEY.config,{agencies:[]});
+ const resources=load(KEY.resources,[]);
+ if(!Array.isArray(resources)||!Array.isArray(local.incidents)||!Array.isArray(local.units)||!Array.isArray(config.agencies))throw Error('Browser CAD data invalid. Export before editing.');
+ return {master,local,config,resources};
+}
+function affected(data,selected){
+ const names=new Set(selected.map(t=>t.name)),ids=new Set(selected.map(t=>t.id));
+ const matchingMaster=data.master.agencies.filter(a=>ids.has(a.id)&&names.has(a.name));
+ const actualIds=new Set(matchingMaster.map(a=>a.id));
+ const masterUnits=data.master.units.filter(u=>actualIds.has(u.agencyId));
+ const personnel=data.master.personnel.filter(p=>actualIds.has(p.agencyId));
+ return {
+  masterAgencies:matchingMaster,
+  masterUnits,personnel,
+  operationalUnits:data.local.units.filter(u=>names.has(u.agency)),
+  incidents:data.local.incidents.filter(i=>names.has(i.agency)),
+  resourceTypes:data.resources.filter(x=>names.has(x.agency)),
+  configAgencies:data.config.agencies.filter(x=>names.has(x))
+ };
 }
 function mount(){
- if(typeof location==='undefined'||['localhost','127.0.0.1','[::1]'].includes(location.hostname))return;
+ if(['localhost','127.0.0.1','[::1]'].includes(location.hostname))return;
  const anchor=$('cadMasterList');if(!anchor)return;
- const section=document.createElement('section');section.id='cadLegacyCleanup';section.style.cssText='margin:18px 0;padding:16px;border:1px solid var(--border,#5a6880);border-radius:12px';
- section.innerHTML='<h4>Clean up original demo records</h4><p>Review original sample agency and unit entries. Your new configurations and resource types are preserved. Supabase data is never changed.</p><button id="cadLegacyPreview" type="button">Preview demo cleanup</button><div id="cadLegacyCandidates"></div><p id="cadLegacyStatus" role="status" aria-live="polite"></p>';
+ const section=document.createElement('section');section.id='cadLegacyCleanup';
+ section.style.cssText='margin:18px 0;padding:16px;border:1px solid var(--border,#5a6880);border-radius:12px';
+ section.innerHTML='<h4>Remove original demo agencies</h4><p>Select the legacy agency records to remove, along with their associated browser-local personnel, units, calls and agency-specific resource types. Petaluma Police and Supabase records are never changed.</p><div id="cadLegacyCandidates"></div><p id="cadLegacyStatus" role="status" aria-live="polite"></p>';
  anchor.before(section);
  const candidate=$('cadLegacyCandidates'),status=$('cadLegacyStatus');
- const preview=()=>{
-  const {local,m,originalUnits,originalIncidents,importedUnits,candidateAgencies}=inspect();
-  const assigned=new Set((local.incidents||[]).filter(i=>i.status!=='CLOSED').flatMap(i=>i.units||[]));
-  const rows=[
-   ...originalUnits.map(u=>({kind:'local-unit',id:u.id,title:'Operational demo unit '+u.id+' · '+u.agency,blocked:assigned.has(u.id),reason:'assigned to an open incident'})),
-   ...originalIncidents.map(i=>({kind:'local-incident',id:i.id,title:'Original sample call '+i.id+' · '+i.agency,blocked:i.status==='ACTIVE'||(i.units||[]).length>0,reason:'active or assigned incident'})),
-   ...importedUnits.map(u=>({kind:'master-unit',id:u.id,title:'Imported demo master unit '+u.designator+' · '+(m.agencies.find(a=>a.id===u.agencyId)?.name||u.agencyId),blocked:!!u.personId,reason:'assigned master personnel'})),
-   ...candidateAgencies.map(a=>({kind:'master-agency',id:a.id,title:'Imported demo agency '+a.name,blocked:(m.units||[]).some(u=>u.agencyId===a.id&&u.source!=='demo-roster-import')||(m.personnel||[]).some(p=>p.agencyId===a.id),reason:'contains new unit definitions or personnel'}))
-  ];
-  // No defaults are silently selected. The operator confirms exact identities.
-  candidate.innerHTML='<p><strong>Original hard-coded agency names will stop appearing automatically after cleanup.</strong> Existing configured agencies with the same names are retained.</p>'+
-   (rows.length?rows.map((r,i)=>'<label style="display:block;margin:7px 0"><input type="checkbox" data-clean-row="'+i+'" '+(r.blocked?'disabled':'')+'> '+escape(r.title)+(r.blocked?' — protected ('+escape(r.reason)+')':'')+'</label>').join(''):'<p>No removable imported demo definitions identified. Default sample names can still be hidden.</p>')+
-   '<button type="button" id="cadLegacyBackup">1. Download full browser backup</button> <button type="button" id="cadLegacyApply" disabled>2. Apply selected cleanup</button>';
-  let backedUp=false;
-  $('cadLegacyBackup').onclick=()=>{
-   const keys=[LOCAL_KEY,CONFIG_KEY,MASTER_KEY,RESOURCE_KEY,CLEAN_KEY,'smcad-eight-call-seed-v15','smcad-six-patrol-seed-v1'];
-   const data={kind:'cad-browser-backup',exportedAt:new Date().toISOString(),origin:location.origin,values:Object.fromEntries(keys.map(k=>[k,localStorage.getItem(k)]))};
-   const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
-   const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='cad-browser-backup-'+new Date().toISOString().slice(0,10)+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),30000);
-   backedUp=true;$('cadLegacyApply').disabled=false;status.textContent='Backup download started. Save the file somewhere safe before proceeding.';
+ let previewData;
+ function render(){
+  try{previewData=inspect();}catch(e){status.textContent='Unable to read CAD configuration: '+e.message;return;}
+  candidate.innerHTML=TARGETS.map(t=>{
+   const counts=affected(previewData,[t]);
+   return '<label style="display:block;margin:10px 0"><input type="checkbox" data-agency="'+safe(t.id)+'"> <strong>'+safe(t.name)+'</strong> ('+safe(t.id)+') — '+counts.masterUnits.length+' master units, '+counts.personnel.length+' personnel, '+counts.operationalUnits.length+' operational units, '+counts.incidents.length+' browser calls, '+counts.resourceTypes.length+' resource types</label>';
+  }).join('')+'<button type="button" id="cadLegacyPreview">Preview selected records</button><div id="cadLegacyDetail"></div><button type="button" id="cadLegacyBackup" disabled>1. Download full browser backup</button> <button type="button" id="cadLegacyApply" disabled>2. Delete selected agency data</button>';
+  const chosen=()=>TARGETS.filter(t=>candidate.querySelector('[data-agency="'+t.id+'"]')?.checked);
+  const details=$('cadLegacyDetail'),backup=$('cadLegacyBackup'),apply=$('cadLegacyApply');
+  let backedUp=false,selected=[],signature='';
+  candidate.querySelectorAll('[data-agency]').forEach(x=>x.onchange=()=>{backup.disabled=true;apply.disabled=true;backedUp=false;details.textContent='Selection changed. Preview again.';});
+  $('cadLegacyPreview').onclick=()=>{
+   if(window.cadSharedIsActive?.()){status.textContent='Switch out of Shared CAD before using this browser-only cleanup.';return;}
+   selected=chosen();if(!selected.length){status.textContent='Select at least one agency.';return;}
+   const fresh=inspect(),records=affected(fresh,selected);
+   signature=JSON.stringify({selected,records});
+   const lines=[
+    ['Agency masters',records.masterAgencies.map(x=>x.name+' ('+x.id+')')],
+    ['Personnel',records.personnel.map(x=>x.name+' ('+x.id+')')],
+    ['Master unit definitions',records.masterUnits.map(x=>x.designator+' ('+x.id+')')],
+    ['Operational units',records.operationalUnits.map(x=>x.id)],
+    ['Browser-local calls',records.incidents.map(x=>x.id)],
+    ['Resource types',records.resourceTypes.map(x=>x.agency+' — '+x.discipline+' — '+x.name)],
+    ['Agency configuration',records.configAgencies]
+   ];
+   details.innerHTML='<p><strong>Preview of records to remove:</strong></p>'+lines.map(([title,values])=>'<details><summary>'+safe(title)+' ('+values.length+')</summary><p>'+safe(values.join(', ')||'None')+'</p></details>').join('')+'<p>All other agency and resource-type records will be preserved. Shared CAD Supabase records will not be modified.</p>';
+   backedUp=false;apply.disabled=true;backup.disabled=false;
+   status.textContent='Review the counts, then download the backup before applying.';
   };
-  $('cadLegacyApply').onclick=()=>{
-   if(!backedUp)return;
-   if(window.cadSharedIsActive?.()){status.textContent='Switch out of Shared CAD before making browser-local changes. Supabase is not affected.';return;}
-   const chosen=rows.filter((r,i)=>!r.blocked&&candidate.querySelector('[data-clean-row="'+i+'"]')?.checked);
-   const unitIds=chosen.filter(r=>r.kind==='local-unit').map(r=>r.id);
-   const incidentIds=chosen.filter(r=>r.kind==='local-incident').map(r=>r.id);
-   const removeMaster=new Set(chosen.filter(r=>r.kind==='master-unit').map(r=>r.id));
-   const removeAgencies=new Set(chosen.filter(r=>r.kind==='master-agency').map(r=>r.id));
-   const fresh=inspect(),next=structuredClone(fresh.m);
-   const stale=chosen.some(r=>r.kind==='local-unit'?!fresh.originalUnits.some(u=>u.id===r.id):r.kind==='local-incident'?!fresh.originalIncidents.some(i=>i.id===r.id):r.kind==='master-unit'?!fresh.importedUnits.some(u=>u.id===r.id):!fresh.candidateAgencies.some(a=>a.id===r.id));
-   if(stale){status.textContent='Records changed since preview. Review the cleanup again.';return;}
-   next.units=next.units.filter(u=>!removeMaster.has(u.id));
-   if([...removeAgencies].some(id=>next.units.some(u=>u.agencyId===id)||next.personnel.some(p=>p.agencyId===id))){status.textContent='An agency still has units or personnel. Remove those first and preview again.';return;}
-   next.agencies=next.agencies.filter(a=>!removeAgencies.has(a.id));
-   try{window.CadAgencyMaster.validate(next);}catch(e){status.textContent='Cleanup blocked: '+e.message;return;}
-   if(!confirm('Apply cleanup to this browser only? Remove '+unitIds.length+' operational demo units, '+incidentIds.length+' idle demo calls, '+removeMaster.size+' imported unit definitions, '+removeAgencies.size+' imported agencies, and hide hard-coded sample agencies? Resource types and Supabase records are preserved.'))return;
-   const keys=[LOCAL_KEY,CONFIG_KEY,MASTER_KEY,CLEAN_KEY];
-   const snapshot=Object.fromEntries(keys.map(k=>[k,localStorage.getItem(k)]));
+  backup.onclick=()=>{
+   if(!selected.length||!signature)return;
+   const values={};
+   for(let i=0;i<localStorage.length;i++){const key=localStorage.key(i);if(key?.startsWith('smcad-'))values[key]=localStorage.getItem(key);}
+   const data={kind:'cad-hosted-browser-backup',origin:location.origin,exportedAt:new Date().toISOString(),values};
+   const url=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));
+   const link=document.createElement('a');link.href=url;link.download='cad-hosted-backup-'+new Date().toISOString().slice(0,10)+'.json';link.click();
+   setTimeout(()=>URL.revokeObjectURL(url),30000);
+   backedUp=true;apply.disabled=false;status.textContent='Backup download started. Verify you saved it before deleting.';
+  };
+  apply.onclick=()=>{
+   if(!backedUp||!selected.length||window.cadSharedIsActive?.())return;
+   const fresh=inspect(),records=affected(fresh,selected);
+   if(signature!==JSON.stringify({selected,records})){status.textContent='Configuration changed since preview. Preview and download another backup.';apply.disabled=true;return;}
+   const selectedIds=new Set(records.masterAgencies.map(x=>x.id)),names=new Set(selected.map(x=>x.name));
+   const next=structuredClone(fresh.master);
+   next.agencies=next.agencies.filter(x=>!selectedIds.has(x.id));
+   next.units=next.units.filter(x=>!selectedIds.has(x.agencyId));
+   next.personnel=next.personnel.filter(x=>!selectedIds.has(x.agencyId));
+   try{window.CadAgencyMaster.validate(next);}catch(e){status.textContent='Validation blocked cleanup: '+e.message;return;}
+   if(!confirm('DELETE all browser-local records belonging to '+selected.map(x=>x.name).join(', ')+'? This includes personnel, unit definitions, calls and resource types. Keep your downloaded backup. Shared Supabase records will NOT be deleted.'))return;
+   const keys=Object.values(KEY),before=Object.fromEntries(keys.map(k=>[k,localStorage.getItem(k)]));
    try{
-    // All validation precedes writes; restore values if an unexpected exception occurs.
     window.CadAgencyMaster.save(localStorage,next);
-    window.cadApplyOriginalDemoCleanup({unitIds,incidentIds,agencyNames:[]});
-    status.textContent='Cleanup completed. Your resource types and new agency definitions were preserved. Reloading…';
+    localStorage.setItem(KEY.resources,JSON.stringify(fresh.resources.filter(x=>!names.has(x.agency))));
+    window.cadApplyOriginalDemoCleanup({agencyNames:selected.map(x=>x.name)});
+    status.textContent='Selected browser-local agency data removed. Reloading…';
     location.reload();
-   }catch(error){
-    for(const k of keys){if(snapshot[k]===null)localStorage.removeItem(k);else localStorage.setItem(k,snapshot[k]);}
-    status.textContent='Cleanup aborted and browser records restored: '+error.message;
+   }catch(e){
+    for(const k of keys){if(before[k]===null)localStorage.removeItem(k);else localStorage.setItem(k,before[k]);}
+    status.textContent='Cleanup failed; stored data restored: '+e.message;
    }
   };
-  status.textContent='Select only the original demo entries you recognize. Nothing is selected by default.';
- };
- $('cadLegacyPreview').onclick=preview;
+  status.textContent='Nothing is selected or deleted automatically. This operates only on this browser profile.';
+ }
+ render();
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount);else mount();
 })();
