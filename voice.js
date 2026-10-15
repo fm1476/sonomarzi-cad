@@ -802,6 +802,33 @@ async function processSharedVoiceReclassification(text,parsed){
  }catch(error){fail(error?.message||'Shared reclassification failed');return false}
  finally{sharedVoiceDispatchPending=false;}
 }
+async function processSharedVoiceCaseNumber(text){
+ const heard=String(text||'').trim();
+ const fail=reason=>{
+  el('voiceHeard').textContent=heard;
+  el('voiceInterpretation').textContent='HEARD: '+heard+' | REQUEST: Case number | REVIEW: '+reason+'. No case number assignment confirmed.';
+  activity('SHARED CASE NUMBER REVIEW | '+reason);renderActivity();indicator('REVIEW');
+ };
+ if(sharedVoiceDispatchPending)return fail('A shared command is already processing');
+ if(/\b(?:cancel|disregard|negative|do not|don't|not requesting)\b/i.test(heard))return fail('Negated request');
+ const unit=window.CadSharedVoiceIntents?.callsigns(heard,state.units,window.CadVoiceText);
+ if(!unit?.sharedUuid)return fail('Exactly one reporting unit must be identified');
+ const assigned=state.incidents.filter(i=>i.status==='ACTIVE'&&(i.units||[]).includes(unit.id));
+ if(assigned.length!==1||!assigned[0].sharedUuid)return fail('Reporting unit needs exactly one active incident assignment');
+ const incident=assigned[0];
+ if(typeof window.cadSharedCommand!=='function')return fail('Authenticated case number command unavailable');
+ sharedVoiceDispatchPending=true;el('voiceHeard').textContent=heard;
+ el('voiceInterpretation').textContent='HEARD: '+heard+' | UNIT: '+unit.id+' | EVENT: '+incident.id+' | PENDING: case number allocation…';
+ indicator('PROCESSING');
+ try{
+  const assignedResult=await window.cadSharedCommand('allocate-case',{incidentId:incident.sharedUuid});
+  const current=window.cadSafetyState?.().incidents?.find(i=>i.sharedUuid===incident.sharedUuid);
+  if(!current?.caseNumber||assignedResult?.case_number!==current.caseNumber)return fail('Allocation returned but case number was not verified in shared CAD');
+  el('voiceInterpretation').textContent='HEARD: '+heard+' | UNIT: '+unit.id+' | EVENT: '+current.id+' | CONFIRMED CASE NUMBER: '+current.caseNumber;
+  activity('SHARED CASE NUMBER | '+current.id+' '+current.caseNumber);renderActivity();indicator('PROCESSED');
+ }catch(error){fail(error?.message||'Case number allocation failed')}
+ finally{sharedVoiceDispatchPending=false;}
+}
 async function processSharedVoiceStatus(text){
  const heard=String(text||'').trim();
  const intents=window.CadSharedVoiceIntents;
@@ -856,7 +883,8 @@ process=function(text,source=el('voiceSource').value){
   if(/\bbreak\b/i.test(text)){void processSharedVoiceCompound(text);return;}
   const parsed=window.CadSharedVoiceIntents?.classify(text);
   const classification=window.cadIncidentIntelligence?.classification(text);
-  if(/\bpreempt\b/i.test(text))void processSharedVoicePreempt(text);
+  if(/\b(?:request(?:ing)?|need|give|assign|issue|allocate)\s+(?:me\s+)?(?:a\s+|the\s+)?case\s*(?:number|#)|\bcase\s*number\s*(?:request|please)\b/i.test(text))void processSharedVoiceCaseNumber(text);
+  else if(/\bpreempt\b/i.test(text))void processSharedVoicePreempt(text);
   else if(classification?.type||classification?.review&&/\b(?:working|structure fire|vegetation fire|vehicle fire|cardiac arrest|overdose|reclassify|upgrade)\b/i.test(text))
    void processSharedVoiceReclassification(text,classification);
   else if(parsed?.kind==='STATUS'||parsed?.kind==='CLEAR')void processSharedVoiceStatus(text);
