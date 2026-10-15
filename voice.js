@@ -716,6 +716,18 @@ async function processSharedRadio(text,source){
   catch(e){show('Narrative failed: '+e.message);}
   return;
  }
+ const locationMatch=radioText.match(/\\b(?:update|correct|change)\\s+(?:the\\s+)?(?:incident\\s+|event\\s+|call\\s+|true\\s+)?location\\s+(?:to|is|at)\\s+(.+)$/i);
+ if(locationMatch){
+  const assigned=state.incidents.filter(i=>i.status==='ACTIVE'&&units.some(u=>i.units.includes(u.id)));
+  const target=explicitRef?incident:assigned.length===1?assigned[0]:null;
+  if(!target){show('Location correction recognized but event ambiguous. Specify event number.');return;}
+  const address=locationMatch[1].trim();
+  if(address.length<5||!/[0-9]/.test(address)){show('Location requires a complete street address.');return;}
+  if(!window.confirm('Change '+target.id+' location to '+address+'?')){show('Location update cancelled.');return;}
+  try{await window.cadSharedCommand('location',{incidentId:target.id,location:address});show('Location updated for '+target.id+'.','PROCESSED');}
+  catch(e){show('Location update failed: '+e.message);}
+  return;
+ }
  if(!incident){show(dispatchRequested?'Cannot uniquely resolve dispatch incident ('+(dispatchMatch?.reason||'no match')+'). Say the event number or full address; no changes made.':'No unique incident associated with '+units[0].id+'. Select the incident first.');return;}
  const unit=units[0];
  let action,args={incidentId:incident.id,unitId:unit.id};
