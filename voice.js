@@ -822,7 +822,7 @@ async function processSharedVoiceReclassification(text,parsed,confirmedUnitId=nu
  const incident=owned[0];
  if(parsed.review)return fail(parsed.review);
  if(!parsed.type||parsed.discipline!==incident.discipline)return fail('Classification not supported for this incident discipline');
- if(parsed.type===incident.type)return fail('Incident is already classified as '+parsed.type);
+ const alreadyClassified=parsed.type===incident.type;
  if(!['Structure Fire','Vegetation Fire','Vehicle Fire','Fire Alarm','Cardiac Arrest','Medical Aid','Overdose','Burglary','Robbery','Domestic','Traffic Collision','Welfare Check'].includes(parsed.type))
   return fail('This classification requires agency configuration and server validation');
  if(/\b(?:possible|possibly|potential|suspected|maybe|might|may be|unconfirmed|negative|not|no evidence|cancel|disregard)\b/i.test(heard))
@@ -836,7 +836,7 @@ async function processSharedVoiceReclassification(text,parsed,confirmedUnitId=nu
   if(status?.kind==='STATUS'&&status.status==='ONSCENE'&&unit.status!=='ONSCENE'){
    await window.cadSharedCommand('status',{incidentId:incident.sharedUuid,unitId:unit.sharedUuid,status:'ONSCENE'});
   }
-  await window.cadSharedCommand('reclassify',{incidentId:incident.sharedUuid,unitId:unit.sharedUuid,type:parsed.type,report:heard});
+  if(!alreadyClassified)await window.cadSharedCommand('reclassify',{incidentId:incident.sharedUuid,unitId:unit.sharedUuid,type:parsed.type,report:heard});
   const current=window.cadSafetyState?.();
   const latest=current?.incidents?.find(i=>i.sharedUuid===incident.sharedUuid);
   const latestUnit=current?.units?.find(u=>u.sharedUuid===unit.sharedUuid);
@@ -847,7 +847,7 @@ async function processSharedVoiceReclassification(text,parsed,confirmedUnitId=nu
   if(/\brequesting (?:the )?balance of (?:the )?assignment\b/i.test(heard)){
    await window.cadSharedCommand('note',{incidentId:incident.sharedUuid,text:'FIELD REQUEST — balance of assignment requested by '+unit.id+'. Dispatch additional resources according to the agency response plan; request not automatically filled.'});
   }
-  const message=incident.type+' → '+parsed.type;
+  const message=alreadyClassified?'Already '+parsed.type+' (no duplicate reclassification)':incident.type+' → '+parsed.type;
   el('voiceInterpretation').textContent='HEARD: '+heard+' | UNIT: '+unit.id+' | EVENT: '+latest.id+' | CONFIRMED SHARED CFS UPDATE: '+message;
   activity('SHARED CFS RECLASSIFIED | '+latest.id+' '+message);renderActivity();indicator('PROCESSED');return true;
  }catch(error){fail(error?.message||'Shared reclassification failed');return false}
