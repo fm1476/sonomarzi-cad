@@ -651,6 +651,45 @@ async function processSharedVoiceDispatch(text){
 }
 // Explicitly confirmed reports can change the shared call type. When the same
 // transmission reports arrival, first persist the status, then the classification.
+// PREEMPT is one atomic shared transaction. Do not clear and then separately
+// assign: a failed second command would strand a unit between incidents.
+async function processSharedVoicePreempt(text){
+ const heard=String(text||'').trim();
+ const fail=reason=>{
+  el('voiceHeard').textContent=heard;
+  el('voiceInterpretation').textContent='HEARD: '+heard+' | REQUEST: PREEMPT | REVIEW: '+reason+'. No transfer confirmed.';
+  indicator('REVIEW');activity('SHARED PREEMPT REVIEW | '+reason);renderActivity();
+ };
+ if(sharedVoiceDispatchPending)return fail('Another shared CAD transaction is processing');
+ if(/\b(?:cancel|disregard|negative|not|do not|don't|hold off)\b/i.test(heard))return fail('Negated PREEMPT requires operator review');
+ const targets=unitMatches(heard);
+ if(targets.length!==1)return fail('Exactly one existing roster unit must be identified');
+ const unit=targets[0];
+ const source=state.incidents.filter(i=>i.status==='ACTIVE'&&(i.units||[]).includes(unit.id));
+ if(source.length!==1||!source[0].sharedUuid||!unit.sharedUuid)return fail('Unit must be assigned to exactly one active shared incident');
+ const found=matchDispatchIncident(heard);
+ const destination=found.incident;
+ if(!destination?.sharedUuid)return fail('Destination event is not uniquely identified: '+found.reason);
+ if(destination.sharedUuid===source[0].sharedUuid)return fail('Destination must be different from current incident');
+ if(destination.discipline!==unit.discipline)return fail('Cross-discipline transfer needs an explicit linked event');
+ if(typeof window.cadSharedCommand!=='function')return fail('Authenticated shared command unavailable');
+ sharedVoiceDispatchPending=true;
+ el('voiceHeard').textContent=heard;
+ el('voiceInterpretation').textContent='HEARD: '+heard+' | UNIT: '+unit.id+' | PREEMPT '+source[0].id+' → '+destination.id+' | PENDING shared confirmation…';
+ indicator('PROCESSING');
+ try{
+  await window.cadSharedCommand('preempt',{incidentId:destination.sharedUuid,fromIncidentId:source[0].sharedUuid,unitId:unit.sharedUuid});
+  const latest=window.cadSafetyState?.();
+  const previous=latest?.incidents?.find(i=>i.sharedUuid===source[0].sharedUuid);
+  const next=latest?.incidents?.find(i=>i.sharedUuid===destination.sharedUuid);
+  const rosterUnit=latest?.units?.find(u=>u.sharedUuid===unit.sharedUuid);
+  if(!previous||!next||(previous.units||[]).includes(unit.id)||!(next.units||[]).includes(unit.id)||next.status!=='ACTIVE'||rosterUnit?.status!=='DISPATCHED')
+   return fail('Transaction returned but source removal, destination assignment and DISPATCHED status were not all verified');
+  el('voiceInterpretation').textContent='HEARD: '+heard+' | UNIT: '+unit.id+' | CONFIRMED SHARED PREEMPT: '+previous.id+' → '+next.id+' | STATUS: DISPATCHED';
+  activity('SHARED PREEMPT CONFIRMED | '+unit.id+' '+previous.id+' → '+next.id);renderActivity();indicator('PROCESSED');
+ }catch(error){fail(error?.message||'Shared PREEMPT transaction failed')}
+ finally{sharedVoiceDispatchPending=false;}
+}
 async function processSharedVoiceReclassification(text,parsed){
  const heard=String(text||'').trim();
  const candidates=unitMatches(heard);
@@ -740,7 +779,8 @@ process=function(text,source=el('voiceSource').value){
  if(window.cadSharedIsActive?.()){
   const parsed=window.CadSharedVoiceIntents?.classify(text);
   const classification=window.cadIncidentIntelligence?.classification(text);
-  if(classification?.type||classification?.review&&/\b(?:working|structure fire|vegetation fire|vehicle fire|cardiac arrest|overdose|reclassify|upgrade)\b/i.test(text))
+  if(/\bpreempt\b/i.test(text))void processSharedVoicePreempt(text);
+  else if(classification?.type||classification?.review&&/\b(?:working|structure fire|vegetation fire|vehicle fire|cardiac arrest|overdose|reclassify|upgrade)\b/i.test(text))
    void processSharedVoiceReclassification(text,classification);
   else if(parsed?.kind==='STATUS'||parsed?.kind==='CLEAR')void processSharedVoiceStatus(text);
   else if(source==='DISPATCH'&&dispatchIntent(text,source)&&!/\b(?:traffic stop|out with|follow[ -]?up|cancel|disregard|do not|don't|preempt)\b/i.test(text))void processSharedVoiceDispatch(text);
