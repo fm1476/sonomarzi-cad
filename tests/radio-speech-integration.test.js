@@ -4,5 +4,7 @@ const voice=fs.readFileSync(require('node:path').join(__dirname,'../voice.js'),'
 assert.match(voice,/code\\s\+\(\?:four\|for\)/,'Chrome code-for variant must be normalized');
 assert.match(voice,/parseStatus\(window\.CadRadioStatusRepair\.repair/,'Repair must be in operational status path');
 assert.match(voice,/CadRadioIncomplete\.inspect/,'Incomplete speech must be detected');
-assert.match(voice,/setTimeout\(\(\)=>stopRecorder\(id\),350\)/,'PTT release tail must remain');
+assert.match(voice,/minCaptureMs=900/,'PTT must capture enough audio before stopping');
+assert.match(voice,/if\(releasing\)stopRecorder\(id\)/,'PTT release during microphone initialization must be honored');
+assert.match(voice,/Math\.max\(100,minCaptureMs-\(Date\.now\(\)-recordingStartedAt\)\)/,'PTT stop must defer until minimum capture duration');
 console.log('Radio speech integration guards passed.');
