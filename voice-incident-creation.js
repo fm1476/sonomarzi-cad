@@ -1,7 +1,7 @@
 /* Voice incident creation for the hackathon prototype. Never uses an LLM to mutate CAD records. */
 (()=>{'use strict';
  const priorVoiceHandler=window.cadBeforeVoiceProcess;
- const norm=s=>String(s||'').toLowerCase().replace(/\b(?:atom|addam)\b/g,'adam').replace(/[.,!?]/g,' ').replace(/\s+/g,' ').trim();
+ const norm=s=>String(s||'').toLowerCase().replace(/\b(?:atom|addam)\b/g,'adam').replace(/\b(\d+|one|two|three|four|five|six|seven|eight|nine)\s+item\s+(?=\d+|one\b|two\b|three\b|four\b|five\b|six\b|seven\b|eight\b|nine\b|ten\b|eleven\b|twelve\b|thirteen\b|fourteen\b|fifteen\b|sixteen\b|seventeen\b|eighteen\b|nineteen\b|twenty\b|thirty\b|forty\b|fifty\b)/g,'$1 adam ').replace(/[.,!?]/g,' ').replace(/\s+/g,' ').trim();
  const html=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const stopWords=/\b(?:vehicle|veh|blue|black|white|gray|grey|silver|red|green|brown|toyota|toyoate|honda|ford|chevy|chevrolet|4\s*runner|four\s*runner|license|licence|plate|registration|california|ca)\b/i;
  const numberWords={one:'1',two:'2',three:'3',four:'4',five:'5',six:'6',seven:'7',eight:'8',nine:'9',ten:'10',twelve:'12',thirteen:'13',fourteen:'14',fourteens:'14',twenty:'20'};
