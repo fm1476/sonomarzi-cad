@@ -300,6 +300,8 @@ window.voiceBindDetail=i=>{
 // a fallback candidate and cannot modify CAD until the server transcription fails.
 let recorder=null, microphone=null, chunks=[], browserFinal='', browserInterim='', fallbackRecognition=null;
 let audioSession=0, releasing=false, apiPending=false, captureStarting=false, captureFailed=false;
+let recordingStartedAt=0;
+const minCaptureMs=900;
 const maxAudioMs=30000;
 function supportedAudioType(){
  const choices=['audio/webm;codecs=opus','audio/webm','audio/mp4'];
@@ -326,7 +328,7 @@ async function transcribeAudio(id,blob){
  if(id!==audioSession)return;
  apiPending=true;el('voiceInterpretation').textContent='Transcribing radio audio securely through OpenAI…';indicator('TRANSCRIBING');
  try{
-  if(blob.size<150)throw new Error('Recording too short');
+  if(blob.size<150)throw new Error('No audio captured; verify microphone permissions and input device');
   if(blob.size>3_500_000)throw new Error('Recording exceeded maximum size');
   const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),25000);
   let response;try{response=await fetch('/.netlify/functions/transcribe',{method:'POST',headers:{'Content-Type':blob.type||'audio/webm'},body:blob,signal:controller.signal});}finally{clearTimeout(timer);}
@@ -351,14 +353,17 @@ async function start(){
   activeRecorder.ondataavailable=e=>{if(e.data?.size)chunks.push(e.data);};
   activeRecorder.onstop=()=>{if(id!==audioSession)return;releaseMicrophone();const blob=new Blob(chunks,{type:activeRecorder.mimeType||'audio/webm'});transcribeAudio(id,blob);};
   activeRecorder.onerror=()=>{captureFailed=true;};
-  activeRecorder.start();chromeFallback(id);
-  if(releasing)setTimeout(()=>stopRecorder(id),350);
+  activeRecorder.start();recordingStartedAt=Date.now();chromeFallback(id);
+  if(releasing)stopRecorder(id);
   setTimeout(()=>{if(id===audioSession&&holding)stop();},maxAudioMs);
  }catch(e){releaseMicrophone();captureFailed=true;holding=false;indicator('REVIEW');el('voiceInterpretation').textContent='Microphone capture failed: '+e.message+'. Use typed fallback.';}
  finally{captureStarting=false;}
 }
 function stopRecorder(id){
  if(id!==audioSession)return;
+ if(recorder?.state==='recording' && Date.now()-recordingStartedAt<minCaptureMs){
+  setTimeout(()=>stopRecorder(id),Math.max(100,minCaptureMs-(Date.now()-recordingStartedAt)));return;
+ }
  if(fallbackRecognition){try{fallbackRecognition.stop();}catch{}fallbackRecognition=null;}
  if(recorder?.state==='recording'){try{recorder.stop();}catch{useChromeFallback(id,'Recorder stop failed');}}
  else if(!captureStarting){releaseMicrophone();useChromeFallback(id,'No recorded audio');}
@@ -367,7 +372,7 @@ function stop(){
  if(!holding)return;
  holding=false;releasing=true;indicator('PROCESSING');
  const id=audioSession;
- if(!captureStarting)setTimeout(()=>stopRecorder(id),350);
+ if(!captureStarting)stopRecorder(id);
 }
 const ptt=el('voicePTT');ptt.addEventListener('pointerdown',e=>{if(e.button!==0&&e.pointerType==='mouse')return;e.preventDefault();ptt.setPointerCapture?.(e.pointerId);start();});ptt.addEventListener('pointerup',e=>{e.preventDefault();stop();});ptt.addEventListener('pointercancel',stop);window.addEventListener('blur',stop);ptt.addEventListener('keydown',e=>{if((e.key===' '||e.key==='Enter')&&!e.repeat){e.preventDefault();start();}});ptt.addEventListener('keyup',e=>{if(e.key===' '||e.key==='Enter'){e.preventDefault();stop();}});
 el('voiceSubmit').onclick=()=>{process(el('voiceManual').value);el('voiceManual').value='';};el('voiceManual').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();el('voiceSubmit').click();}};
