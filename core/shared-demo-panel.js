@@ -209,6 +209,27 @@
    window.cadSharedApplySnapshot?.(snapshot);
   }
   // Original CAD controls use this single authenticated command gateway.
+  // Unit duty is incident-independent. A confirmed RPC changes the agency-wide
+  // roster, not merely this dispatcher's browser view.
+  window.cadSharedSetUnitDuty=async function(unitId,onDuty){
+   const session=window.CadDemoLogin.current();
+   if(!session)throw Error('Sign in to shared CAD first.');
+   const unit=snapshot.roster.find(u=>u.id===unitId||u.call_sign===unitId);
+   if(!unit)throw Error('Unit not found. Refresh the shared roster.');
+   const assigned=snapshot.assignments.some(a=>a.unit_id===unit.id);
+   if(assigned)throw Error('Unit is assigned to an incident. Clear it first.');
+   if(onDuty?unit.status!=='OFF_DUTY':unit.status!=='AVAILABLE')throw Error('Unit status changed; refresh before modifying duty.');
+   const client=window.CadDemoLogin.client();
+   let result;
+   try{
+    result=await client.setUnitDuty({agency:session.agencyId,unit:unit.id,unitVersion:unit.version,onDuty});
+    await refresh({quiet:true});
+    return result;
+   }catch(error){
+    await refresh({quiet:true});
+    throw Error(error.message+' — Refresh shared roster and verify duty status before retrying.');
+   }
+  };
   window.cadSharedCommand=async function(action,args={}){
    const session=window.CadDemoLogin.current();
    if(!session)throw Error('Sign in to shared CAD first.');
