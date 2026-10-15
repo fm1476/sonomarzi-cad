@@ -627,6 +627,7 @@ async function processSharedRadio(text,source){
  const parsed=parseStatus(window.CadRadioStatusRepair.repair(radioText,matched.resolution==='explicit'&&units.length===1));
  const explicitRef=text.match(/#(\d{2}-\d{6}|\d{4,6})\b/);
  const selected=state.incidents.find(i=>i.id===state.selected&&i.status!=='CLOSED');
+ const caseRequested=caseRequest(radioText)||/\b(?:request|requesting|need|give|issue|assign|start|get)\b.{0,25}\b(?:case|report)\b/i.test(radioText);
  const dispatchRequested=/\b(?:respond(?:ing)?|dispatch|send|assign|start)\b/i.test(radioText);
  const dispatchMatch=dispatchRequested?matchDispatchIncident(radioText):null;
  const linked=association(units,source,parsed.status);
@@ -638,6 +639,13 @@ async function processSharedRadio(text,source){
  }
  if(!units.length){show('No unique unit recognized from: '+text+'. Check the callsign in Heard; no shared records changed.');return;}
  if(units.length!==1){show('Multiple units recognized. Issue one unit command at a time in shared CAD.');return;}
+ if(caseRequested){
+  const assignedIncidents=state.incidents.filter(i=>i.status==='ACTIVE'&&units.some(u=>i.units.includes(u.id)));
+  const caseIncident=explicitRef?incident:assignedIncidents.length===1?assignedIncidents[0]:null;
+  if(!caseIncident){show('Case-number request recognized for '+units.map(u=>u.id).join(', ')+'. Unable to identify one assigned incident; select or specify the event number. No case number assigned.');return;}
+  show('Case-number request recognized for '+units.map(u=>u.id).join(', ')+' on '+caseIncident.id+'. Shared CAD requires a server-allocated case number; request noted for dispatcher review. No number invented.');
+  return;
+ }
  if(!incident){show(dispatchRequested?'Cannot uniquely resolve dispatch incident ('+(dispatchMatch?.reason||'no match')+'). Say the event number or full address; no changes made.':'No unique incident associated with '+units[0].id+'. Select the incident first.');return;}
  const unit=units[0];
  let action,args={incidentId:incident.id,unitId:unit.id};
