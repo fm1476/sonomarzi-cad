@@ -8,7 +8,7 @@ assert.equal(result.units.length,0);
 assert.equal(activated.units.length,1,'original input must remain intact');
 assert.equal(master.units.length,1,'master definition must remain');
 assert.throws(()=>logOff(activated,'bad'),/not found/);
-assert.throws(()=>logOff({...activated,units:[{...activated.units[0],staffing:{active:true}}]},'3A14'),/Sign off the crew/);
+assert.equal(logOff({...activated,units:[{...activated.units[0],staffing:{active:true}}]},'3A14').units.length,0,'end-of-shift logoff also ends staffing');
 assert.throws(()=>logOff({...activated,units:[{...activated.units[0],status:'ENROUTE'}]},'3A14'),/must be available or out of service/);
 assert.throws(()=>logOff({...activated,incidents:[{id:'1',status:'ACTIVE',units:['3A14']}]},'3A14'),/assigned to an open incident/);
 assert.equal(logOff({...activated,units:[{...activated.units[0],status:'OUTOFSERVICE'}]},'3A14').units.length,0);
