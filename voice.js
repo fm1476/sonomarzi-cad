@@ -726,7 +726,7 @@ async function processSharedVoiceBatchDispatch(text){
 }
 async function processSharedVoiceCompound(text){
  const heard=String(text||'').trim();
- const segments=heard.split(/\s*\bbreak\b\s*[,.!?;]*\s*/i).map(s=>s.trim()).filter(Boolean);
+ const segments=heard.split(/\s*\b(?:break|brake)\b\s*[,.!?;]*\s*/i).map(s=>s.trim()).filter(Boolean);
  if(segments.length!==2)return false;
  const first=segments[0],second=segments[1];
  const intelligence=window.cadIncidentIntelligence?.classification(first);
@@ -735,24 +735,34 @@ async function processSharedVoiceCompound(text){
   el('voiceInterpretation').textContent='COMPOUND RADIO REVIEW: First clause requires one identified unit and confirmed classification. No second command attempted.';
   indicator('REVIEW');return true;
  }
- const secondUnits=window.CadSharedVoiceIntents?.unitList(second,state.units,window.CadVoiceText)||[];
- if(secondUnits.length<1||!/\b(?:respond|dispatch|assign|send|start)\b/i.test(second)){
-  el('voiceInterpretation').textContent='COMPOUND RADIO REVIEW: Second clause must identify dispatch units and a clear order. No actions taken.';
-  indicator('REVIEW');return true;
- }
- // Verify destination first: never infer the second call from a selected card.
- const target=matchDispatchIncident(second).incident;
  const owned=state.incidents.filter(i=>i.status==='ACTIVE'&&(i.units||[]).includes(firstUnits[0].id));
- if(!target?.sharedUuid||owned.length!==1||owned[0].sharedUuid!==target.sharedUuid){
-  el('voiceInterpretation').textContent='COMPOUND RADIO REVIEW: Address/type and reporting unit must resolve to the SAME existing incident. No changes made.';
+ if(owned.length!==1||!owned[0].sharedUuid){
+  el('voiceInterpretation').textContent='COMPOUND RADIO REVIEW: Reporting unit has no unique active incident. No changes made.';
   indicator('REVIEW');return true;
  }
+ const secondUnits=window.CadSharedVoiceIntents?.unitList(second,state.units,window.CadVoiceText)||[];
+ const explicitOrder=/\b(?:respond|dispatch|assign|send|start)\b/i.test(second);
+ const destination=explicitOrder?matchDispatchIncident(second).incident:null;
+ const sameCall=destination?.sharedUuid===owned[0].sharedUuid;
+ // Never guess a missing dispatch address/order from a truncated ASR transcript.
+ // A complete second clause is checked before committing the first, but a
+ // trustworthy first clause can still be processed independently.
+ const canDispatch=explicitOrder&&secondUnits.length>=1&&sameCall;
  const firstDone=await processSharedVoiceReclassification(first,intelligence);
  if(firstDone!==true)return true;
+ el('voiceHeard').textContent=heard;
+ if(!canDispatch){
+  const reason=!explicitOrder?'No dispatch verb was transcribed':secondUnits.length===0?'No dispatch unit was identified':!destination?'Destination incident was not uniquely identified':'Destination does not match E1\'s incident';
+  el('voiceInterpretation').textContent='COMPOUND RADIO: Confirmed working-fire report from '+firstUnits[0].id+' on '+owned[0].id+'; ADDITIONAL DISPATCH HELD: '+reason+'. Repeat the complete order. On-scene status is confirmed only when clearly recognized.';
+  indicator('REVIEW');activity('SHARED COMPOUND PARTIAL | '+reason);renderActivity();return true;
+ }
  const secondDone=secondUnits.length>1?await processSharedVoiceBatchDispatch(second):await processSharedVoiceDispatch(second);
  el('voiceHeard').textContent=heard;
- if(secondDone!==true)el('voiceInterpretation').textContent='COMPOUND RADIO: Arrival/reclassification completed on '+owned[0].id+'; additional dispatch NOT fully confirmed. Inspect command review and board.';
- else el('voiceInterpretation').textContent='COMPOUND RADIO: Confirmed '+firstUnits[0].id+' on scene / Structure Fire; additional units '+secondUnits.map(u=>u.id).join(', ')+' dispatched to '+owned[0].id;
+ if(secondDone!==true){
+  el('voiceInterpretation').textContent='COMPOUND RADIO: Working-fire report processed on '+owned[0].id+'; additional dispatch NOT fully confirmed. Inspect shared board.';
+  indicator('REVIEW');
+ }else el('voiceInterpretation').textContent='COMPOUND RADIO: Working-fire report processed for '+firstUnits[0].id+'; additional units '+secondUnits.map(u=>u.id).join(', ')+' dispatched to '+owned[0].id;
+
  return true;
 }
 async function processSharedVoiceReclassification(text,parsed){
@@ -886,7 +896,7 @@ process=function(text,source=el('voiceSource').value){
  // Shared workspace is database-authoritative: never invoke legacy voice
  // handlers that mutate projected local state or show false success.
  if(window.cadSharedIsActive?.()){
-  if(/\bbreak\b/i.test(text)){void processSharedVoiceCompound(text);return;}
+  if(/\b(?:break|brake)\b/i.test(text)){void processSharedVoiceCompound(text);return;}
   const parsed=window.CadSharedVoiceIntents?.classify(text);
   const classification=window.cadIncidentIntelligence?.classification(text);
   if(/\b(?:request(?:ing)?|need|give|assign|issue|allocate)\s+(?:me\s+)?(?:a\s+|the\s+)?case\s*(?:number|#)|\bcase\s*number\s*(?:request|please)\b/i.test(text))void processSharedVoiceCaseNumber(text);
