@@ -779,13 +779,13 @@ async function processSharedVoiceReclassification(text,parsed,confirmedUnitId=nu
  if(reportingUnits.length!==1){
   const possible=state.incidents.filter(i=>i.status==='ACTIVE'&&i.discipline==='FIRE'&&/fire alarm|alarm/i.test(i.type||''))
     .flatMap(i=>(i.units||[]).map(id=>({id,event:i.id,uuid:i.sharedUuid})))
-    .filter(({id})=>/^E\\d+$/i.test(id));
+    .filter(({id})=>/^E\d+$/i.test(id));
   const hint=possible.length===1?' Possible assigned engine: '+possible[0].id+' on '+possible[0].event+'; confirm before any changes.':'';
   fail('No uniquely recognized reporting unit.'+hint);
   const old=document.getElementById('cadVoiceConfirmReporter');old?.remove();
   if(candidates.length===0&&possible.length===1&&!parsed?.review&&parsed?.type==='Structure Fire'&&
-      /\\bconfirmed working (?:structure )?fire\\b/i.test(heard)&&
-      !/\\b(?:possible|maybe|unconfirmed|negative|cancel|disregard)\\b/i.test(heard)){
+      /\bconfirmed working (?:structure )?fire\b/i.test(heard)&&
+      !/\b(?:possible|maybe|unconfirmed|negative|cancel|disregard)\b/i.test(heard)){
     const wrapper=document.createElement('div');wrapper.id='cadVoiceConfirmReporter';
     wrapper.setAttribute('role','group');wrapper.setAttribute('aria-label','Confirm reporting unit');
     wrapper.style.cssText='display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px;margin:8px 0;border:1px solid #d1a45c;border-radius:8px';
