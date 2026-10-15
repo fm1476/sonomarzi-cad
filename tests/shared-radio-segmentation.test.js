@@ -1,0 +1,16 @@
+const assert=require('node:assert/strict');const fs=require('node:fs');const vm=require('node:vm');
+const source=fs.readFileSync('voice.js','utf8');
+const start=source.indexOf('function sharedRadioSegments(text){');
+const end=source.indexOf('async function processSharedVoiceCompound(',start);
+assert(start>=0&&end>start);
+const ctx={};vm.createContext(ctx);vm.runInContext(source.slice(start,end),ctx);
+const parse=t=>Array.from(ctx.sharedRadioSegments(t));
+const first='copy engine one is on scene with a confirmed working structure fire requesting balance of assignment';
+const dispatch='Engine 2, Medic 2 respond structure fire 450 East Washington';
+assert.deepStrictEqual(parse(first+' break'),[first],'trailing break is a terminator');
+assert.deepStrictEqual(parse(first+' brake '+dispatch),[first,dispatch],'brake is recognized as separator');
+assert.deepStrictEqual(parse(first+' '+dispatch),[first,dispatch],'recover second dispatch when ASR loses break');
+assert.deepStrictEqual(parse('Engine 2 Medic 2 respond structure fire 450 East Washington'),['Engine 2 Medic 2 respond structure fire 450 East Washington'],'simple dispatch stays one command');
+assert.deepStrictEqual(parse('engine one on scene confirmed working structure fire'),['engine one on scene confirmed working structure fire'],'standalone scene report stays intact');
+assert.deepStrictEqual(parse(first+' Engine 2'),[first+' Engine 2'],'missing dispatch verb must not create second command');
+console.log('PASS: explicit, missing, and trailing radio break; dispatch separation requires explicit order');
