@@ -31,7 +31,7 @@
    if(p&&p[1]+p[2]===head[1])ids.add(u.id.toUpperCase());
   }
   // "three out of 14th" -> 3A14, only when first segment and suffix are clear.
-  const expanded=t.replace(/\b(one|two|three|four|five|six|seven|eight|nine)\s+(?:out of|outta)\s+(\d{1,3})\b/g,(_,n,m)=>({one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9})[n]+' adam '+m);
+  const expanded=t.replace(/\b(\d{1,2}|one|two|three|four|five|six|seven|eight|nine)\s+(?:out of|outta)\s+(\d{1,3})\b/g,(_,n,m)=>({one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9})[n]||Number(n))+' adam '+m);
   for(const id of voiceText.numericCallsigns(expanded))ids.add(id);
   const matched=units.filter(u=>ids.has(String(u.id||'').toUpperCase()));
   return matched.length===1?matched[0]:null;
