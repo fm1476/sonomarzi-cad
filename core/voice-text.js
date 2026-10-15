@@ -42,7 +42,7 @@
     sixty:60,seventy:70,eighty:80,ninety:90};
   function numberAt(words,i) {
     const first=words[i];
-    if (/^\\d{1,3}$/.test(first||'')) return {value:Number(first),length:1};
+    if (/^\d{1,3}$/.test(first||'')) return {value:Number(first),length:1};
     if (!Object.hasOwn(digits,first))return null;
     let value=digits[first],length=1;
     if(value>=20&&value%10===0 && words[i+1] && Object.hasOwn(digits,words[i+1]) && digits[words[i+1]]>0 && digits[words[i+1]]<10){
@@ -53,10 +53,10 @@
   function numericCallsigns(text) {
     // Interpret phonetics only inside full prefix + phonetic + suffix patterns.
     // The returned IDs are candidates; callers MUST require exact roster matches.
-    const normalized=normalize(text).replace(/(\\d)([a-z]{2,})(?=\\d)/g,'$1 $2 ')
-      .replace(/(\\d)([a-z]{2,})\\s+(?=\\d)/g,'$1 $2 ')
-      .replace(/\\bx[ -]?ray\\b/g,'xray');
-    const words=normalized.split(/\\s+/).filter(Boolean),ids=[];
+    const normalized=normalize(text).replace(/(\d)([a-z]{2,})(?=\d)/g,'$1 $2 ')
+      .replace(/(\d)([a-z]{2,})\s+(?=\d)/g,'$1 $2 ')
+      .replace(/\bx[ -]?ray\b/g,'xray');
+    const words=normalized.split(/\s+/).filter(Boolean),ids=[];
     for(let i=0;i<words.length;i++){
       const left=numberAt(words,i);
       if(!left||left.value<1||left.value>99)continue;
@@ -70,7 +70,7 @@
       if(!ids.includes(id))ids.push(id);
     }
     // Explicit alphanumeric identifiers also work without spoken phonetics.
-    for(const match of normalized.matchAll(/\\b(\\d{1,2})([a-z])(\\d{1,3})\\b/g)){
+    for(const match of normalized.matchAll(/\b(\d{1,2})([a-z])(\d{1,3})\b/g)){
       const id=Number(match[1])+match[2].toUpperCase()+Number(match[3]);
       if(!ids.includes(id))ids.push(id);
     }
