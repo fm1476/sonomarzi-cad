@@ -610,7 +610,57 @@ function splitArrivalAndDispatch(text){
  return {report,dispatch};
 }
 
+// Shared voice dispatch must write through authenticated Supabase RPC, never
+// through a temporary projection of the shared board.
+let sharedVoiceDispatchPending=false;
+async function processSharedVoiceDispatch(text){
+ const heard=String(text||'').trim();
+ const found=matchDispatchIncident(heard);
+ const units=unitMatches(heard);
+ const failure=reason=>{
+  el('voiceHeard').textContent=heard;
+  el('voiceInterpretation').textContent='HEARD: '+heard+' | REQUEST: Shared dispatch | REVIEW: '+reason+'. No shared dispatch confirmed.';
+  indicator('REVIEW');activity('SHARED VOICE REVIEW | '+reason);renderActivity();
+ };
+ if(sharedVoiceDispatchPending)return failure('Previous shared dispatch is still processing');
+ if(!found.incident)return failure('No unique incident: '+found.reason);
+ if(units.length!==1)return failure(units.length?'Multiple units identified; review separately':'No uniquely recognized unit');
+ if(/\b(?:preempt|override|cancel|disregard|hold off|do not|don't)\b/i.test(heard))return failure('Sensitive or negated dispatch requires manual review');
+ const incident=found.incident,unit=units[0];
+ if(!incident.sharedUuid||!unit.sharedUuid)return failure('Shared incident or unit record not available');
+ if(incident.status==='CLOSED')return failure('Incident closed');
+ if(unit.discipline!==incident.discipline)return failure('Cross-discipline linked dispatch needs explicit shared workflow');
+ if(!['AVAILABLE','CLEAR'].includes(unit.status))return failure(unit.id+' is '+unit.status+'; cannot dispatch');
+ if(state.incidents.some(i=>i.status==='ACTIVE'&&(i.units||[]).includes(unit.id)))return failure(unit.id+' has an existing assignment');
+ if(typeof window.cadSharedCommand!=='function')return failure('Authenticated shared command gateway unavailable');
+ sharedVoiceDispatchPending=true;
+ el('voiceHeard').textContent=heard;
+ el('voiceInterpretation').textContent='HEARD: '+heard+' | UNIT: '+unit.id+' | EVENT: '+incident.id+' | REQUEST: Shared dispatch | PENDING: verifying database assignment…';
+ indicator('PROCESSING');
+ try{
+  await window.cadSharedCommand('assign',{incidentId:incident.sharedUuid,unitId:unit.sharedUuid});
+  const projected=window.cadSafetyState?.();
+  const confirmed=projected?.incidents?.find(i=>i.sharedUuid===incident.sharedUuid);
+  const confirmedUnit=projected?.units?.find(u=>u.sharedUuid===unit.sharedUuid);
+  if(!confirmed||(confirmed.status!=='ACTIVE')||!(confirmed.units||[]).includes(unit.id)||confirmedUnit?.status!=='DISPATCHED')
+   return failure('Shared command returned, but refreshed incident assignment and DISPATCHED status were not both confirmed');
+  el('voiceInterpretation').textContent='HEARD: '+heard+' | UNIT: '+unit.id+' | EVENT: '+confirmed.id+' | REQUEST: Dispatch | CONFIRMED IN SHARED CAD: '+unit.id+' DISPATCHED and event ACTIVE';
+  activity('SHARED VOICE DISPATCH CONFIRMED | '+unit.id+' → '+confirmed.id);renderActivity();indicator('PROCESSED');
+ }catch(error){failure(error?.message||'Shared dispatch failed')}
+ finally{sharedVoiceDispatchPending=false;}
+}
 process=function(text,source=el('voiceSource').value){
+ // Shared workspace is database-authoritative: never invoke legacy voice
+ // handlers that mutate projected local state or show false success.
+ if(window.cadSharedIsActive?.()){
+  if(source==='DISPATCH'&&dispatchIntent(text,source))void processSharedVoiceDispatch(text);
+  else{
+   el('voiceHeard').textContent=String(text||'');
+   el('voiceInterpretation').textContent='SHARED CAD REVIEW: This voice action is not connected to a verified shared transaction. No shared change made.';
+   indicator('REVIEW');
+  }
+  return;
+ }
  // Preserve the spoken common name until the self-initiated parser resolves it.
  if(window.cadBeforeVoiceProcess?.(text,source)===true)return;
  const compound=splitArrivalAndDispatch(text);
