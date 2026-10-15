@@ -324,7 +324,7 @@ function useChromeFallback(id,reason){
  if(id!==audioSession)return;
  const text=(browserFinal||browserInterim).trim();
  if(text){activity('OpenAI transcription unavailable: '+reason+'; using Chrome fallback');renderActivity();process(text);}
- else{indicator('REVIEW');el('voiceInterpretation').textContent='Audio transcription unavailable ('+reason+'). Chrome did not capture usable text. Try again or use typed fallback.';}
+ else{indicator('REVIEW');el('voiceHeard').textContent='No usable speech transcription';el('voiceInterpretation').textContent='Audio transcription unavailable ('+reason+'). Chrome did not capture usable text. Try again or use typed fallback.';}
 }
 async function transcribeAudio(id,blob){
  if(id!==audioSession)return;
@@ -358,7 +358,7 @@ async function start(){
   activeRecorder.start();chromeFallback(id);
   if(releasing)setTimeout(()=>stopRecorder(id),350);
   setTimeout(()=>{if(id===audioSession&&holding)stop();},maxAudioMs);
- }catch(e){releaseMicrophone();captureFailed=true;holding=false;indicator('REVIEW');el('voiceInterpretation').textContent='Microphone capture failed: '+e.message+'. Use typed fallback.';}
+ }catch(e){releaseMicrophone();captureFailed=true;holding=false;indicator('REVIEW');el('voiceHeard').textContent='No recording captured';el('voiceInterpretation').textContent='Microphone capture failed: '+e.message+'. Use typed fallback.';}
  finally{captureStarting=false;}
 }
 function stopRecorder(id){
@@ -726,19 +726,19 @@ async function processSharedVoiceBatchDispatch(text){
 }
 async function processSharedVoiceCompound(text){
  const heard=String(text||'').trim();
+ el('voiceHeard').textContent=heard;
+ const review=(reason)=>{el('voiceInterpretation').textContent='HEARD: '+heard+' | COMPOUND RADIO REVIEW: '+reason+' No unverified changes made.';indicator('REVIEW');activity('SHARED COMPOUND REVIEW | '+reason);renderActivity();return true;};
  const segments=heard.split(/\s*\b(?:break|brake)\b\s*[,.!?;]*\s*/i).map(s=>s.trim()).filter(Boolean);
- if(segments.length!==2)return false;
+ if(segments.length!==2)return review('Transmission did not contain exactly two identifiable clauses. Repeat each command separately.');
  const first=segments[0],second=segments[1];
  const intelligence=window.cadIncidentIntelligence?.classification(first);
  const firstUnits=window.CadSharedVoiceIntents?.unitList(first,state.units,window.CadVoiceText)||[];
  if(firstUnits.length!==1||intelligence?.type!=='Structure Fire'||!(/\b(?:confirmed|working)\b/i.test(first))){
-  el('voiceInterpretation').textContent='COMPOUND RADIO REVIEW: First clause requires one identified unit and confirmed classification. No second command attempted.';
-  indicator('REVIEW');return true;
+  return review('First clause must contain a clear reporting unit and confirmed CFS classification. No second command attempted.');
  }
  const owned=state.incidents.filter(i=>i.status==='ACTIVE'&&(i.units||[]).includes(firstUnits[0].id));
  if(owned.length!==1||!owned[0].sharedUuid){
-  el('voiceInterpretation').textContent='COMPOUND RADIO REVIEW: Reporting unit has no unique active incident. No changes made.';
-  indicator('REVIEW');return true;
+  return review('Reporting unit has no unique active incident.');
  }
  const secondUnits=window.CadSharedVoiceIntents?.unitList(second,state.units,window.CadVoiceText)||[];
  const explicitOrder=/\b(?:respond|dispatch|assign|send|start)\b/i.test(second);
