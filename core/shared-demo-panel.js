@@ -234,6 +234,34 @@
   // Original CAD controls use this single authenticated command gateway.
   // Unit duty is incident-independent. A confirmed RPC changes the agency-wide
   // roster, not merely this dispatcher's browser view.
+  // Configure-and-log-on is distinct from incident dispatch. Reuse the
+  // database's authenticated idempotent register RPC, then refresh the shared board.
+  window.cadSharedRegisterMasterUnit=async function(def,agencyName){
+   const session=window.CadDemoLogin.current();
+   if(!session)throw Error('Sign in to shared CAD first.');
+   if(!def||!def.designator||!def.discipline||!def.resourceType)throw Error('Unit needs a designator, discipline, and resource type.');
+   const callSign=String(def.designator).trim().toUpperCase();
+   if(!/^[A-Z0-9]{1,12}$/.test(callSign))throw Error('Shared CAD callsigns must be 1–12 letters or digits, no spaces.');
+   const previous=snapshot.roster.find(u=>u.call_sign.toUpperCase()===callSign);
+   if(previous){
+    if(previous.discipline!==def.discipline||previous.resource_type!==String(def.resourceType).trim().toUpperCase())
+     throw Error(callSign+' already exists with different discipline or resource type. Resolve the conflict before logon.');
+    if(previous.status==='AVAILABLE')return {ok:true,alreadyOnDuty:true,callSign};
+    if(previous.status!=='OFF_DUTY')throw Error(callSign+' is already in service ('+previous.status+').');
+   }
+   const client=window.CadDemoLogin.client();
+   let result;
+   try{
+    result=await client.registerUnit({agency:session.agencyId,callSign,discipline:def.discipline,resourceType:def.resourceType,temporary:false,homeAgency:agencyName});
+    await refresh({quiet:true});
+    const now=snapshot.roster.find(u=>u.call_sign.toUpperCase()===callSign);
+    if(!now||now.status!=='AVAILABLE')throw Error('Shared CAD logon response could not be confirmed. Review roster before retrying.');
+    return {ok:true,callSign,unitId:now.id,result};
+   }catch(error){
+    await refresh({quiet:true});
+    throw Error(error.message+' — Check the shared roster before retrying.');
+   }
+  };
   window.cadSharedSetUnitDuty=async function(unitId,onDuty){
    const session=window.CadDemoLogin.current();
    if(!session)throw Error('Sign in to shared CAD first.');
