@@ -115,6 +115,8 @@ if(/\b(en\s?route|responding|on the way|10\s*76|ten seventy six)\b/.test(t))retu
 if(/\b(dispatched|respond to|send (out|over)|assign)\b/.test(t))return {status:'DISPATCHED'};
 if(/\b(out of service|10\s*7|ten seven)\b/.test(t))return {status:'OUT_OF_SERVICE'};
 if(/\b(available|back in service)\b/.test(t))return {status:'AVAILABLE'};
+const operational=window.CadRadioPhraseIntents?.classify(text);
+if(operational)return {status:null,reason:operational.label+' recognized: review unit and '+operational.requires.join(', ')+' before creating or updating a record'};
 return {status:null,reason:'No status command detected'};}
 function details(text){
  const t=normalize(text), parts=[];
