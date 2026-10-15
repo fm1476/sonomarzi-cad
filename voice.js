@@ -765,23 +765,46 @@ async function processSharedVoiceCompound(text){
 
  return true;
 }
-async function processSharedVoiceReclassification(text,parsed){
+async function processSharedVoiceReclassification(text,parsed,confirmedUnitId=null){
  const heard=String(text||'').trim();
  const candidates=window.CadSharedVoiceIntents?.unitList(heard,state.units,window.CadVoiceText)||[];
+ const confirmedUnit=confirmedUnitId&&state.units.find(u=>u.id===confirmedUnitId);
+ const reportingUnits=confirmedUnit?[confirmedUnit]:candidates;
  const fail=reason=>{
   el('voiceHeard').textContent=heard;
   el('voiceInterpretation').textContent='HEARD: '+heard+' | REQUEST: CFS reclassification | REVIEW: '+reason+'. No CFS type change confirmed.';
   indicator('REVIEW');activity('SHARED RECLASS REVIEW | '+reason);renderActivity();
  };
  if(sharedVoiceDispatchPending)return fail('Another shared command is processing');
- if(candidates.length!==1){
+ if(reportingUnits.length!==1){
   const possible=state.incidents.filter(i=>i.status==='ACTIVE'&&i.discipline==='FIRE'&&/fire alarm|alarm/i.test(i.type||''))
-    .flatMap(i=>(i.units||[]).map(id=>({id,event:i.id})))
-    .filter(({id})=>/^E\d+$/i.test(id));
-  const hint=possible.length===1?' Possible assigned engine: '+possible[0].id+' on '+possible[0].event+'; operator confirmation required.':'';
-  return fail('No uniquely recognized reporting unit.'+hint+' Repeat the callsign; no changes were made');
+    .flatMap(i=>(i.units||[]).map(id=>({id,event:i.id,uuid:i.sharedUuid})))
+    .filter(({id})=>/^E\\d+$/i.test(id));
+  const hint=possible.length===1?' Possible assigned engine: '+possible[0].id+' on '+possible[0].event+'; confirm before any changes.':'';
+  fail('No uniquely recognized reporting unit.'+hint);
+  const old=document.getElementById('cadVoiceConfirmReporter');old?.remove();
+  if(candidates.length===0&&possible.length===1&&!parsed?.review&&parsed?.type==='Structure Fire'&&
+      /\\bconfirmed working (?:structure )?fire\\b/i.test(heard)&&
+      !/\\b(?:possible|maybe|unconfirmed|negative|cancel|disregard)\\b/i.test(heard)){
+    const wrapper=document.createElement('div');wrapper.id='cadVoiceConfirmReporter';
+    wrapper.setAttribute('role','group');wrapper.setAttribute('aria-label','Confirm reporting unit');
+    wrapper.style.cssText='display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px;margin:8px 0;border:1px solid #d1a45c;border-radius:8px';
+    const label=document.createElement('span');label.textContent='Unclear unit audio. Confirm '+possible[0].id+' reporting working fire on '+possible[0].event+'?';
+    const button=document.createElement('button');button.type='button';button.textContent='Confirm '+possible[0].id+' and apply';button.className='primary';
+    const dismiss=document.createElement('button');dismiss.type='button';dismiss.textContent='Dismiss';
+    button.onclick=()=>{
+      wrapper.remove();
+      const current=state.incidents.find(i=>i.sharedUuid===possible[0].uuid&&i.status==='ACTIVE'&&(i.units||[]).includes(possible[0].id));
+      if(!current){fail('Incident assignment changed. Review current CAD before confirming');return}
+      void processSharedVoiceReclassification(heard,parsed,possible[0].id);
+    };
+    dismiss.onclick=()=>wrapper.remove();
+    wrapper.append(label,button,dismiss);
+    el('voiceInterpretation')?.parentElement?.append(wrapper);
+  }
+  return false;
  }
- const unit=candidates[0];
+ const unit=reportingUnits[0];
  const owned=state.incidents.filter(i=>i.status==='ACTIVE'&&(i.units||[]).includes(unit.id));
  if(owned.length!==1||!owned[0].sharedUuid||!unit.sharedUuid)return fail('Reporting unit needs one uniquely assigned active shared incident');
  const incident=owned[0];
@@ -885,6 +908,7 @@ async function processSharedVoiceStatus(text){
  finally{sharedVoiceDispatchPending=false;}
 }
 process=function(text,source=el('voiceSource').value){
+ document.getElementById('cadVoiceConfirmReporter')?.remove();
  // Map requests are view-only: let the dedicated map parser handle them
  // before any shared/local radio dispatch/status handlers.
  if(window.cadMapVoiceCommand?.(text)){
