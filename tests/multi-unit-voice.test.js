@@ -2,7 +2,7 @@ const fs=require('fs'),vm=require('vm'),assert=require('assert');
 const base=__dirname+'/../';
 const voice=fs.readFileSync(base+'voice.js','utf8');
 const extended=fs.readFileSync(base+'extended-ops.js','utf8');
-const units=['E1','E2','E3','B1','T1','3A21','3A22'].map(id=>({id}));
+const units=['E1','E2','E3','B1','T1','3A14','3A21','3A22'].map(id=>({id}));
 const ctx={state:{units},console,normalize:require('../core/voice-text.js').normalize};vm.createContext(ctx);
 const voiceSubset=voice.slice(voice.indexOf('const digitNames='),voice.indexOf('function normalizeRadioStatus('));
 vm.runInContext(voiceSubset+'\nthis.extract=unitMatches',ctx);
@@ -12,6 +12,9 @@ assert.deepStrictEqual(matches('E2 and E3 respond to the working fire'),['E2','E
 assert.deepStrictEqual(matches('Battalion 1 and Truck 1 respond to E1 location'),['B1','E1','T1']);
 assert.deepStrictEqual(matches('3 Adam 21 and 3 Adam 22 respond'),['3A21','3A22']);
 assert.deepStrictEqual(matches('three atom 21 respond traffic collision 123 Main Street'),['3A21']);
+assert.deepStrictEqual(matches('three atom 14 respond traffic collision 123 Main Street'),['3A14']);
+assert.deepStrictEqual(matches('three alpha fourteen respond traffic collision 123 Main Street'),['3A14']);
+assert.deepStrictEqual(matches('3 A 14 respond traffic collision 123 Main Street'),['3A14']);
 assert.deepStrictEqual(matches('3 Atom 21 and 3 Alpha 22 respond'),['3A21','3A22']);
 const extSubset=extended.slice(extended.indexOf('const normalize='),extended.indexOf('function feedback('));
 const ec={console};vm.createContext(ec);vm.runInContext(extSubset+'\nthis.logonCalls=getCallsigns',ec);
