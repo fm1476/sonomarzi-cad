@@ -774,6 +774,14 @@ async function processSharedVoiceStatus(text){
  finally{sharedVoiceDispatchPending=false;}
 }
 process=function(text,source=el('voiceSource').value){
+ // Map requests are view-only: let the dedicated map parser handle them
+ // before any shared/local radio dispatch/status handlers.
+ if(window.cadMapVoiceCommand?.(text)){
+  el('voiceHeard').textContent=String(text||'');
+  el('voiceInterpretation').textContent='MAP REQUEST: '+text+' | Read-only map command forwarded. Check Ask the Map for the result.';
+  indicator('PROCESSED');
+  return;
+ }
  // Shared workspace is database-authoritative: never invoke legacy voice
  // handlers that mutate projected local state or show false success.
  if(window.cadSharedIsActive?.()){
