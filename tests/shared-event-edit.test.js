@@ -1,0 +1,17 @@
+const assert=require('node:assert/strict'),fs=require('node:fs');
+const app=fs.readFileSync('app.js','utf8');
+const call=fs.readFileSync('call-taking-workspace.js','utf8');
+const shared=fs.readFileSync('core/shared-demo-panel.js','utf8');
+const client=fs.readFileSync('core/supabase-client.js','utf8');
+assert(app.includes('data-act="shared-edit"'), 'Dispatcher shared mode must expose Edit Event');
+assert(app.includes('function cadSharedEditEvent(i)'), 'Dispatcher shared editor must exist');
+assert(app.includes("window.cadSharedCommand('edit'"),'Dispatcher must save through authenticated shared gateway');
+assert(app.includes("latest.type!==values.type"),'Dispatcher editor must verify refreshed type');
+assert(call.includes("window.cadSharedCommand('edit'"),'Call taker must use authenticated shared edit');
+assert(call.includes("window.cadSharedCommand('note'"),'Call taker narrative must use authenticated gateway');
+assert(!call.includes('<select id="cadCTDisposition" required>'),'Closure disposition cannot block unrelated event Save form');
+assert(call.includes('const sharedOriginalForm=new Map('),'Unsupported field review must compare actual edits, not defaults');
+assert(call.includes('const unsupported='),'Unsaved extended fields must produce an explicit warning');
+assert(shared.includes("client.editIncident("),'shared authenticated edit RPC is wired');
+assert(client.includes("rpc('cad_edit_incident'"),'database edit RPC is wired');
+console.log('PASS: dispatcher and call-taker shared edit UI, RPC save, and no false saved message');
