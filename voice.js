@@ -29,6 +29,16 @@ function leadingRadioUnit(text){
   });
   return candidates.length===1?candidates:null;
  }
+ // ASR sometimes hears the phonetic A as zero: "3014" for "3 Adam 14".
+ // Only accept a unique, existing A-series callsign, never an arbitrary numeric guess.
+ match=head.match(/^([1-9]\\d?)0(\\d{1,3})\\b(?=\\s+(?:respond|responding|take|go|show|enroute|on|code|clear|available|dispatched|assign|to|for|and)\\b)/);
+ if(match){
+  const candidates=state.units.filter(u=>{
+   const parts=u.id.toUpperCase().match(/^(\\d+)A(\\d+)$/);
+   return parts&&parts[1]===match[1]&&parts[2]===match[2];
+  });
+  if(candidates.length===1)return candidates;
+ }
  // A flattened numeric call sign (321 -> 3A21), only at start or after a radio prefix.
  match=head.match(/^(\d{2,5})\b/);
  if(match){
