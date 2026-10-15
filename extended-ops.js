@@ -2,7 +2,7 @@
 (()=>{
 'use strict';
 const previous=window.cadBeforeVoiceProcess;
-const normalize=text=>String(text||'').toLowerCase().replace(/\bbatallion\b/g,'battalion').replace(/\b(?:atom|addam)\b/g,'adam').replace(/[.,!?]/g,' ').replace(/\s+/g,' ').trim();
+const normalize=text=>String(text||'').toLowerCase().replace(/\bbatallion\b/g,'battalion').replace(/\b(?:atom|addam)\b/g,'adam').replace(/\b(\d+|one|two|three|four|five|six|seven|eight|nine)\s+item\s+(?=\d+|one\b|two\b|three\b|four\b|five\b|six\b|seven\b|eight\b|nine\b|ten\b|eleven\b|twelve\b|thirteen\b|fourteen\b|fifteen\b|sixteen\b|seventeen\b|eighteen\b|nineteen\b|twenty\b|thirty\b|forty\b|fifty\b)/g,'$1 adam ').replace(/[.,!?]/g,' ').replace(/\s+/g,' ').trim();
 const numbers={zero:0,one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10,eleven:11,twelve:12,thirteen:13,fourteen:14,fifteen:15,sixteen:16,seventeen:17,eighteen:18,nineteen:19,twenty:20,thirty:30,forty:40,fifty:50};
 function readNumber(text){if(/^\d+$/.test(text))return String(Number(text));const tokens=text.trim().split(/\s+/),values=tokens.map(x=>numbers[x]);if(values.some(x=>x===undefined))return null;if(values.length===2&&values[0]>=20&&values[1]<10)return String(values[0]+values[1]);if(values.length===1)return String(values[0]);return null;}
 function getCallsign(text){
