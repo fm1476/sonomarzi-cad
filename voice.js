@@ -694,7 +694,7 @@ process=function(text,source=el('voiceSource').value){
  if(window.cadSharedIsActive?.()){
   const parsed=window.CadSharedVoiceIntents?.classify(text);
   if(parsed?.kind==='STATUS'||parsed?.kind==='CLEAR')void processSharedVoiceStatus(text);
-  else if(source==='DISPATCH'&&dispatchIntent(text,source)&&parsed?.kind!=='REVIEW')void processSharedVoiceDispatch(text);
+  else if(source==='DISPATCH'&&dispatchIntent(text,source)&&!/\b(?:traffic stop|out with|follow[ -]?up|cancel|disregard|do not|don't|preempt)\b/i.test(text))void processSharedVoiceDispatch(text);
   else{
    el('voiceHeard').textContent=String(text||'');
    el('voiceInterpretation').textContent='SHARED CAD REVIEW: '+(parsed?.reason||'This voice action lacks a verified shared workflow')+'. No shared change made.';
