@@ -223,6 +223,10 @@
      if(!incident)throw Error('Incident not found. Refresh and retry.');
      if(action==='case')result=await client.setCaseNumber({agency,incident:incident.id,caseNumber:args.caseNumber||'',incidentVersion:incident.version});
      else if(action==='note')result=await client.addNarrative({agency,incident:incident.id,text:args.text,incidentVersion:incident.version});
+     else if(action==='reclassify'){
+      if(!unit)throw Error('Reporting unit not found in shared roster.');
+      result=await client.reclassifyIncident({agency,incident:incident.id,unit:unit.id,type:args.type,incidentVersion:incident.version,report:args.report});
+     }
      else if(action==='close'){result=await client.closeIncident({agency,incident:incident.id,disposition:args.disposition||'CLOSED',incidentVersion:incident.version});applyConfirmedClose(incident.id,args.disposition||'CLOSED');}
      else if(action==='location')result=await client.correctLocation({agency,incident:incident.id,location:args.location,incidentVersion:incident.version,source:'DISPATCH'});
      else{
