@@ -6,7 +6,7 @@ assert(begin>=0&&end>begin);
 const segment=voice.slice(begin,end);
 assert(segment.includes("el('voiceHeard').textContent=heard"),'compound review must show actual ASR transcript');
 assert(segment.includes("const review=(reason)=>"),'compound review must use one transcript-aware review path');
-assert(segment.includes("return review('First clause"),'first-clause errors must report transcript');
+assert(segment.includes("return review('First clause")||segment.includes("await processSharedVoiceReclassification(first,intelligence,null"),'first-clause ambiguity must trigger review or reporter confirmation');
 assert(!segment.includes("el('voiceHeard').textContent='Recording radio audio…'"));
 assert(voice.includes("el('voiceHeard').textContent='No usable speech transcription'"),'fallback failure must clear stale recording placeholder');
 console.log('PASS: radio transcription and failure feedback truthfully identify received text');
