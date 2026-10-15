@@ -85,7 +85,7 @@
           </div>
           <div id="cadStaffCurrent" class="cad-staff-current" aria-live="polite"></div>
           <div id="cadStaffMessage" role="status" aria-live="polite"></div>
-          <div class="cad-staff-actions"><button type="button" class="primary" id="cadStaffSignOn">Sign On Crew</button><button type="button" id="cadStaffSignOff">Sign Off Crew</button></div>
+          <div class="cad-staff-actions"><button type="button" class="primary" id="cadStaffSignOn">Sign On Crew</button><button type="button" id="cadStaffSignOff">Sign Off Crew</button><button type="button" id="cadStaffLogOff">Log Off Unit</button></div>
         </div>
       </details>
     </article>
@@ -162,7 +162,7 @@
     <div data-config-panel="master" hidden>
       <h3>Agency Master Configuration</h3>
       <p>Permanent browser-local definitions, separate from resettable demonstration incidents and live unit statuses. Select Activate in CAD on a unit definition to add it to the live demo roster without replacing existing units.</p>
-      <div class="cad-master-grid"><div class="cad-master-section"><h4>Add Agency</h4>
+      <div class="cad-master-grid cad-master-balanced"><div class="cad-master-section"><h4>Add Agency</h4>
       <label>Agency ID<input id="cadMasterAgencyId" placeholder="PETPD"></label>
       <label>Agency name<input id="cadMasterAgencyName" placeholder="Petaluma Police"></label>
       <label>Default unit identification model<select id="cadMasterAgencyModel"><option value="HYBRID">Hybrid</option><option value="FIXED">Fixed beat</option><option value="PERSONNEL">Personnel ID</option><option value="APPARATUS">Apparatus</option></select></label>
@@ -172,7 +172,7 @@
       <label>Display name<input id="cadMasterPersonName" placeholder="Deputy Smith"></label>
       <label>Home agency<select id="cadMasterPersonnelAgency"></select></label>
       <button type="button" id="cadMasterAddPerson">Add Personnel</button>
-      </div></div><div class="cad-master-section"><h4>Add Unit Definition</h4><div class="cad-master-form-grid">
+      </div></div><div class="cad-master-section cad-master-unit-section"><h4>Add Unit Definition</h4><div class="cad-master-form-grid">
       <label>Internal unit ID<input id="cadMasterUnitId" placeholder="petpd-3a12"></label>
       <label>Radio designator<input id="cadMasterDesignator" placeholder="3A12"></label>
       <label>Owning agency<select id="cadMasterAgencySelect"></select></label>
@@ -269,7 +269,7 @@
 <script src="core/unit-staffing.js?v=1"></script>
 <script src="vehicle-icon-library.js?v=1"></script>
 <script src="resource-types.js?v=4"></script>
-<script src="agency-master-settings.js?v=7"></script>
+<script src="agency-master-settings.js?v=8"></script>\n<link rel="stylesheet" href="agency-master-polish.css?v=1">
 <script src="legacy-demo-cleanup.js?v=1"></script>
 
 <script src="board-layout.js?v=25"></script>

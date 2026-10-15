@@ -34,9 +34,22 @@ function affected(data,selected){
   configAgencies:data.config.agencies.filter(x=>names.has(x))
  };
 }
+function hasAgencyRecords(data,target){
+ const found=affected(data,[target]);
+ return found.masterAgencies.length+found.masterUnits.length+found.personnel.length+
+ found.operationalUnits.length+found.incidents.length+found.resourceTypes.length+found.configAgencies.length>0;
+}
 function mount(){
  if(['localhost','127.0.0.1','[::1]'].includes(location.hostname))return;
  const anchor=$('cadMasterList');if(!anchor)return;
+ // Completed cleanup should disappear, not remain as a permanent warning.
+ // On first run the original built-in sample labels may still be present even
+ // without browser records, so only auto-hide after a confirmed cleanup.
+ try{
+  const data=inspect();
+  if(localStorage.getItem(KEY.clean)==='1'&&!TARGETS.some(t=>hasAgencyRecords(data,t)))return;
+ }catch(e){/* Keep recovery UI visible when the browser data needs inspection. */}
+
  const section=document.createElement('section');section.id='cadLegacyCleanup';
  section.style.cssText='margin:18px 0;padding:16px;border:1px solid var(--border,#5a6880);border-radius:12px';
  section.innerHTML='<h4>Remove original demo agencies</h4><p>Select the legacy agency records to remove, along with their associated browser-local personnel, units, calls and agency-specific resource types. Petaluma Police and Supabase records are never changed.</p><div id="cadLegacyCandidates"></div><p id="cadLegacyStatus" role="status" aria-live="polite"></p>';
@@ -45,7 +58,9 @@ function mount(){
  let previewData;
  function render(){
   try{previewData=inspect();}catch(e){status.textContent='Unable to read CAD configuration: '+e.message;return;}
-  candidate.innerHTML=TARGETS.map(t=>{
+  const pending=TARGETS.filter(t=>hasAgencyRecords(previewData,t));
+  if(localStorage.getItem(KEY.clean)==='1'&&!pending.length){section.remove();return;}
+  candidate.innerHTML=(localStorage.getItem(KEY.clean)==='1'?pending:TARGETS).map(t=>{
    const counts=affected(previewData,[t]);
    return '<label style="display:block;margin:10px 0"><input type="checkbox" data-agency="'+safe(t.id)+'"> <strong>'+safe(t.name)+'</strong> ('+safe(t.id)+') — '+counts.masterUnits.length+' master units, '+counts.personnel.length+' personnel, '+counts.operationalUnits.length+' operational units, '+counts.incidents.length+' browser calls, '+counts.resourceTypes.length+' resource types</label>';
   }).join('')+'<button type="button" id="cadLegacyPreview">Preview selected records</button><div id="cadLegacyDetail"></div><button type="button" id="cadLegacyBackup" disabled>1. Download full browser backup</button> <button type="button" id="cadLegacyApply" disabled>2. Delete selected agency data</button>';

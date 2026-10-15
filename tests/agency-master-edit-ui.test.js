@@ -1,0 +1,18 @@
+const assert=require('node:assert/strict'),fs=require('node:fs');
+const markup=fs.readFileSync('index.html','utf8'),settings=fs.readFileSync('agency-master-settings.js','utf8'),app=fs.readFileSync('app.js','utf8'),css=fs.readFileSync('agency-master-polish.css','utf8');
+assert(markup.includes('cad-master-balanced'),'symmetric form sections');
+assert(markup.includes('cadStaffLogOff'),'logoff control');
+assert(markup.includes('agency-master-polish.css?v=1'),'responsive stylesheet linked');
+assert(settings.includes("data-master-edit"),'edit buttons');
+assert(settings.includes('function editRecord(kind,id)'),'edit handler');
+assert(settings.includes('M.validate(next)'),'validated edits');
+assert(settings.includes("Internal ID:"),'protect stable references');
+assert(settings.includes("data-master-record-actions")===false);
+assert(settings.includes("cadLogOffMasterUnit"),'logoff wired');
+assert(app.includes("window.cadLogOffMasterUnit=function"),'operational logoff endpoint');
+assert(app.includes("CadUnitActivation.logOff(state,unitId)"),'guarded logoff transition');
+assert(css.includes('grid-template-columns:repeat(3,minmax(0,1fr))'),'balanced record columns');
+const cleanup=fs.readFileSync('legacy-demo-cleanup.js','utf8');
+assert(cleanup.includes("localStorage.getItem(KEY.clean)==='1'&&!TARGETS.some(t=>hasAgencyRecords(data,t))"),'hide completed cleanup tool');
+assert(cleanup.includes("if(localStorage.getItem(KEY.clean)==='1'&&!pending.length){section.remove();return;}"),'remove completed panel after refreshed state');
+console.log('PASS: symmetric configuration and edit controls wired without automatic deletion');
