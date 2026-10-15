@@ -740,7 +740,7 @@ function sharedRadioSegments(text){
  }
  return explicit;
 }
-async function processSharedVoiceCompound(text){
+async function processSharedVoiceCompound(text,confirmedUnitId=null,firstAlreadyProcessed=false){
  const heard=String(text||'').trim();
  el('voiceHeard').textContent=heard;
  const review=(reason)=>{el('voiceInterpretation').textContent='HEARD: '+heard+' | COMPOUND RADIO REVIEW: '+reason+' No unverified changes made.';indicator('REVIEW');activity('SHARED COMPOUND REVIEW | '+reason);renderActivity();return true;};
@@ -760,10 +760,13 @@ async function processSharedVoiceCompound(text){
  if(segments.length!==2)return review('Transmission contained multiple unclear clauses. Repeat the commands separately.');
  const first=segments[0],second=segments[1];
  const intelligence=window.cadIncidentIntelligence?.classification(first);
- const firstUnits=window.CadSharedVoiceIntents?.unitList(first,state.units,window.CadVoiceText)||[];
+ const firstUnits=confirmedUnitId?[state.units.find(u=>u.id===confirmedUnitId)].filter(Boolean):(window.CadSharedVoiceIntents?.unitList(first,state.units,window.CadVoiceText)||[]);
  if(firstUnits.length!==1||intelligence?.type!=='Structure Fire'||!(/\b(?:confirmed|working)\b/i.test(first))){
-  if(intelligence?.type==='Structure Fire'&&/\b(?:confirmed|working)\b/i.test(first))await processSharedVoiceReclassification(first,intelligence);
-  return review('First clause needs a confirmed reporting unit; any second dispatch order was held. Confirm the unit first.');
+  if(intelligence?.type==='Structure Fire'&&/\b(?:confirmed|working)\b/i.test(first)){
+   await processSharedVoiceReclassification(first,intelligence,null,async confirmedId=>{await processSharedVoiceCompound(heard,confirmedId,true);});
+   return true; // Preserve the confirmation UI; don't overwrite it with another review.
+  }
+  return review('First clause needs a confirmed reporting unit; additional dispatch held.');
  }
  const owned=state.incidents.filter(i=>i.status==='ACTIVE'&&(i.units||[]).includes(firstUnits[0].id));
  if(owned.length!==1||!owned[0].sharedUuid){
@@ -780,7 +783,7 @@ async function processSharedVoiceCompound(text){
  // A complete second clause is checked before committing the first, but a
  // trustworthy first clause can still be processed independently.
  const canDispatch=explicitOrder&&secondUnits.length>=1&&destinationExplicit;
- const firstDone=await processSharedVoiceReclassification(first,intelligence);
+ const firstDone=firstAlreadyProcessed?true:await processSharedVoiceReclassification(first,intelligence);
  if(firstDone!==true)return true;
  el('voiceHeard').textContent=heard;
  if(!canDispatch){
@@ -797,7 +800,7 @@ async function processSharedVoiceCompound(text){
 
  return true;
 }
-async function processSharedVoiceReclassification(text,parsed,confirmedUnitId=null){
+async function processSharedVoiceReclassification(text,parsed,confirmedUnitId=null,onConfirmed=null){
  const heard=String(text||'').trim();
  const candidates=window.CadSharedVoiceIntents?.unitList(heard,state.units,window.CadVoiceText)||[];
  const confirmedUnit=confirmedUnitId&&state.units.find(u=>u.id===confirmedUnitId);
@@ -828,7 +831,8 @@ async function processSharedVoiceReclassification(text,parsed,confirmedUnitId=nu
       wrapper.remove();
       const current=state.incidents.find(i=>i.sharedUuid===possible[0].uuid&&i.status==='ACTIVE'&&(i.units||[]).includes(possible[0].id));
       if(!current){fail('Incident assignment changed. Review current CAD before confirming');return}
-      void processSharedVoiceReclassification(heard,parsed,possible[0].id);
+      button.disabled=true;
+      void processSharedVoiceReclassification(heard,parsed,possible[0].id,onConfirmed);
     };
     dismiss.onclick=()=>wrapper.remove();
     wrapper.append(label,button,dismiss);
@@ -869,7 +873,9 @@ async function processSharedVoiceReclassification(text,parsed,confirmedUnitId=nu
   }
   const message=alreadyClassified?'Already '+parsed.type+' (no duplicate reclassification)':incident.type+' → '+parsed.type;
   el('voiceInterpretation').textContent='HEARD: '+heard+' | UNIT: '+unit.id+' | EVENT: '+latest.id+' | CONFIRMED SHARED CFS UPDATE: '+message;
-  activity('SHARED CFS RECLASSIFIED | '+latest.id+' '+message);renderActivity();indicator('PROCESSED');return true;
+  activity('SHARED CFS RECLASSIFIED | '+latest.id+' '+message);renderActivity();indicator('PROCESSED');
+  if(typeof onConfirmed==='function')await onConfirmed(unit.id);
+  return true;
  }catch(error){fail(error?.message||'Shared reclassification failed');return false}
  finally{sharedVoiceDispatchPending=false;}
 }
