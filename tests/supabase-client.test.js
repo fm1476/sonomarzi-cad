@@ -2,7 +2,7 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const vm=require('node:vm');
 const calls=[];
-const context={window:{},fetch:async(url,options)=>{calls.push({url,options});return {ok:true,json:async()=>[{id:'example'}]}}};
+const context={window:{},AbortController,setTimeout,clearTimeout,fetch:async(url,options)=>{calls.push({url,options});return {ok:true,json:async()=>[{id:'example'}]}}};
 vm.runInNewContext(fs.readFileSync('core/supabase-client.js','utf8'),context);
 const agency='11111111-1111-4111-8111-111111111111';
 const incident='22222222-2222-4222-8222-222222222222';
