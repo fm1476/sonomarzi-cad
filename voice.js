@@ -613,13 +613,13 @@ async function processSharedRadio(text,source){
  const matched=contextUnits(text,unitMatches(text));
  const units=matched.units;
  const parsed=parseStatus(window.CadRadioStatusRepair.repair(text,matched.resolution==='explicit'&&units.length===1));
- const explicitRef=text.match(/#(\\d{2}-\\d{6}|\\d{4,6})\\b/);
+ const explicitRef=text.match(/#(\d{2}-\d{6}|\d{4,6})\b/);
  const selected=state.incidents.find(i=>i.id===state.selected&&i.status!=='CLOSED');
  const linked=association(units,source,parsed.status);
  const incident=explicitRef?state.incidents.find(i=>i.id===explicitRef[1]||i.id.endsWith(explicitRef[1])):linked||selected;
  if(!window.cadSharedCommand){show('Shared CAD is not connected. Sign in to Dispatcher first.');return;}
- if(/\\b(?:never|do not|don't|cancel|disregard|hold off)\\b/i.test(text)){show('Command negated; no changes made.');return;}
- if(/\\b(?:close (?:the )?(?:event|incident|call)|clear (?:the )?(?:event|incident|call))\\b/i.test(text)){
+ if(/\b(?:never|do not|don't|cancel|disregard|hold off)\b/i.test(text)){show('Command negated; no changes made.');return;}
+ if(/\b(?:close (?:the )?(?:event|incident|call)|clear (?:the )?(?:event|incident|call))\b/i.test(text)){
   show('For event closure, right-click the incident and choose a disposition. No event was closed.');return;
  }
  if(!units.length){show('No unique unit recognized. No shared CAD records changed.');return;}
