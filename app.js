@@ -67,20 +67,26 @@ window.cadCallTakeEvent=(inc,msg)=>event(inc,msg);
 // database are deliberately out of scope. Explicit selections only.
 window.cadApplyOriginalDemoCleanup=selection=>{
  if(window.cadSharedIsActive?.())throw Error('Switch out of Shared CAD before cleaning browser-local data.');
- if(!selection||!Array.isArray(selection.unitIds)||!Array.isArray(selection.agencyNames))throw Error('Explicit cleanup selections required.');
- const unitIds=new Set(selection.unitIds),agencyNames=new Set(selection.agencyNames);
+ if(!selection||!Array.isArray(selection.unitIds)||!Array.isArray(selection.agencyNames)||!Array.isArray(selection.incidentIds))throw Error('Explicit cleanup selections required.');
+ const unitIds=new Set(selection.unitIds),agencyNames=new Set(selection.agencyNames),incidentIds=new Set(selection.incidentIds);
  if(!Array.isArray(state.units)||!Array.isArray(state.incidents))throw Error('Local CAD roster invalid; export data before modifying.');
  for(const id of unitIds){
   const u=state.units.find(x=>x.id===id);
   if(!u)throw Error('Selected unit no longer present: '+id);
   if(state.incidents.some(i=>i.status!=='CLOSED'&&(i.units||[]).includes(id)))throw Error('Cannot remove '+id+': assigned to an open incident.');
  }
+ for(const id of incidentIds){
+  const incident=state.incidents.find(i=>i.id===id);
+  if(!incident)throw Error('Selected incident no longer present: '+id);
+  if(incident.status==='ACTIVE'||(incident.units||[]).length)throw Error('Incident '+id+' has active or assigned operations and cannot be removed.');
+ }
+ state.incidents=state.incidents.filter(i=>!incidentIds.has(i.id));
  state.units=state.units.filter(u=>!unitIds.has(u.id));
  config.agencies=(config.agencies||[]).filter(name=>!agencyNames.has(name));
  localStorage.setItem(CAD_LEGACY_CLEAN_KEY,'1');
  localStorage.setItem(CFG,JSON.stringify(config));
  save();populate();render();
- return {units:unitIds.size,agencies:agencyNames.size};
+ return {units:unitIds.size,agencies:agencyNames.size,incidents:incidentIds.size};
 };
 window.cadRestoreMissingDemoCalls=()=>{
  if(cadLegacyCleaned())return 0;
