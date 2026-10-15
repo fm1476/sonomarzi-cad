@@ -109,6 +109,7 @@ function refresh(){
  const phoneInput=$('cadCTForm').querySelector('[name="callerPhone"]');
  phoneInput.addEventListener('blur',()=>{const v=window.cadPhoneNormalize?.(phoneInput.value);if(v?.ok)phoneInput.value=v.formatted});
 
+ const sharedOriginalForm=new Map(new FormData($('cadCTForm')).entries());
  $('cadCTForm').onsubmit=async e=>{e.preventDefault();
  if(window.cadSharedIsActive?.()){
   const status=$('cadCTSaveStatus');
@@ -116,22 +117,23 @@ function refresh(){
   const newLocation=String(f.get('location')??i.location).trim();
   const newPriority=String(f.get('priority')??i.priority).trim();
   const newCaseNumber=String(f.get('caseNumber')??i.caseNumber??'').trim();
-  const values={type:i.type,priority:newPriority,location:newLocation,caseNumber:newCaseNumber,source:'CALL_TAKING'};
-  const tracked=new Set(['location','priority','caseNumber','callerSameAsEvent']);
-  const unsupported=Array.from(f.entries()).filter(([key,value])=>!tracked.has(key)&&String(value||'').trim()!=='');
+  const newType=String(f.get('event.type')??f.get('type')??i.type).trim();
+  const values={type:newType,priority:newPriority,location:newLocation,caseNumber:newCaseNumber,source:'CALL_TAKING'};
+  const tracked=new Set(['location','priority','caseNumber','type','event.type']);
+  const unsupported=Array.from(new Set([...sharedOriginalForm.keys(),...Array.from(f.keys())])).filter(key=>!tracked.has(key)&&String(f.get(key)??'')!==String(sharedOriginalForm.get(key)??''));
   if(unsupported.length){
-   status.textContent='Not saved: caller information, custom fields, and other extended details are not yet backed by shared CAD. Use only location, priority or case number here.';
+   status.textContent='Not saved: '+unsupported.join(', ')+' cannot yet be updated through shared CAD. No fields were saved.';
    return;
   }
-  if(!newLocation||!newPriority){status.textContent='Location and priority are required.';return}
-  const updated=values.location!==i.location||values.priority!==i.priority||values.caseNumber!==(i.caseNumber||'');
+  if(!newLocation||!newPriority||!newType){status.textContent='CFS type, location and priority are required.';return}
+  const updated=values.type!==i.type||values.location!==i.location||values.priority!==i.priority||values.caseNumber!==(i.caseNumber||'');
   if(!updated){status.textContent='No supported shared changes to save';return}
   const button=e.currentTarget.querySelector('[type="submit"]');if(button)button.disabled=true;
   status.textContent='Saving to shared CAD…';
   try{
    await window.cadSharedCommand('edit',{incidentId:i.id,...values});
    const current=window.cadSafetyState?.().incidents?.find(x=>x.sharedUuid===i.sharedUuid);
-   if(!current||current.location!==values.location||current.priority!==values.priority||(current.caseNumber||'')!==values.caseNumber)
+   if(!current||current.type!==values.type||current.location!==values.location||current.priority!==values.priority||(current.caseNumber||'')!==values.caseNumber)
     throw Error('Database did not confirm the requested changes');
    status.textContent='Saved to shared CAD ✓';refresh();
   }catch(error){status.textContent='Save failed: '+error.message}
@@ -151,12 +153,12 @@ const layout=window.cadEventFormFields?.(i.agency);
 if(Array.isArray(layout)){for(const def of layout){if(!def.custom)continue;const value=def.type==='checkbox'?f.has('custom.'+def.id):String(f.get('custom.'+def.id)||'').trim();(i.customFields||={});if(value!==i.customFields[def.id]){i.customFields[def.id]=value;changes.push('custom.'+def.id)}}}
 for(const [key] of extraFields){const name=(['primaryDisposition','additionalDisposition','closingComments'].includes(key)?'closure.':'event.')+key;if(!f.has(name))continue;const value=String(f.get(name)||'').trim();if(value!==String(i[key]||'')){i[key]=value;changes.push(key)}}
 for(const kind of ['reportingParties','involvedPersons','vehicles']){const fields=kind==='vehicles'?vehicleFields:personFields;for(let n=0;n<(i[kind]||[]).length;n++)for(const [key] of fields){const value=String(f.get(kind+'.'+n+'.'+key)||'').trim();if(value!==String(i[kind][n][key]||'')){i[kind][n][key]=value;changes.push(kind+'.'+key)}}}if(changes.includes('location')||e.currentTarget.dataset.cadGeoValidation){const validated=(()=>{try{return JSON.parse(e.currentTarget.dataset.cadGeoValidation||'null')}catch{return null}})();i.esz=null;i.beat=null;i.responseZone=null;i.responseZoneReviewed=false;i.responseZoneLookup=null;i.responseZoneSource=null;i.responseZoneError=null;if(validated&&validated.location===i.location&&validated.discipline===i.discipline){const r=validated.result;i.esz=r.zones.esz||null;i.beat=r.zones.beat||null;i.responseZone=i.discipline==='LAW'?i.beat:i.esz;i.responseZoneSource='GIS_POINT_LOOKUP';i.responseZoneReviewed=true;i.responseZoneLookup={address:r.address,lat:r.lat,lon:r.lon,at:new Date().toISOString(),original:i.discipline+'|'+i.location,source:r.source};window.cadCallTakeEvent?.(i,'LOCATION_VALIDATED_RESPONSE_AREA '+i.responseZone)}}if(changes.length){editingEntity=null;i.callTakeNewInfoAt=new Date().toISOString();i.callTakeUpdateFields=changes;window.cadCallTakeEvent?.(i,'CALL_TAKER_UPDATED '+changes.join(','));window.cadCallTakeSave?.();const status=$('cadCTSaveStatus');if(status)status.textContent='Saved ✓'}else{$('cadCTSaveStatus').textContent='No changes to save'}};
- editor.querySelectorAll('[data-ct-add]').forEach(b=>b.onclick=()=>{const kind=b.dataset.ctAdd;editingEntity=kind+':'+((i[kind]||[]).length);expandAfterRefresh={reportingParties:1,involvedPersons:2,vehicles:3}[kind];(i[kind]||=[]).push({});window.cadCallTakeSave?.();});
+ editor.querySelectorAll('[data-ct-add]').forEach(b=>b.onclick=()=>{if(window.cadSharedIsActive?.()){window.alert('Shared CAD cannot yet save added reporting parties, people or vehicles. No changes made.');return;}const kind=b.dataset.ctAdd;editingEntity=kind+':'+((i[kind]||[]).length);expandAfterRefresh={reportingParties:1,involvedPersons:2,vehicles:3}[kind];(i[kind]||=[]).push({});window.cadCallTakeSave?.();});
  editor.querySelectorAll('[data-ct-edit]').forEach(b=>b.onclick=()=>{editingEntity=b.dataset.ctEdit;expandAfterRefresh={reportingParties:1,involvedPersons:2,vehicles:3}[editingEntity.split(':')[0]];refresh();editor.querySelector('[data-ct-fields="'+editingEntity+'"] input')?.focus()});
- editor.querySelectorAll('[data-ct-remove]').forEach(b=>b.onclick=()=>{const [kind,index]=b.dataset.ctRemove.split(':');expandAfterRefresh={reportingParties:1,involvedPersons:2,vehicles:3}[kind];i[kind]?.splice(Number(index),1);editingEntity=null;window.cadCallTakeSave?.()});
+ editor.querySelectorAll('[data-ct-remove]').forEach(b=>b.onclick=()=>{if(window.cadSharedIsActive?.()){window.alert('Shared CAD cannot yet save removal of reporting parties, people or vehicles. No changes made.');return;}const [kind,index]=b.dataset.ctRemove.split(':');expandAfterRefresh={reportingParties:1,involvedPersons:2,vehicles:3}[kind];i[kind]?.splice(Number(index),1);editingEntity=null;window.cadCallTakeSave?.()});
  $('cadCTForm').addEventListener('input',()=>{const status=$('cadCTSaveStatus');if(status)status.textContent='Unsaved changes'});
  $('cadCTForm').addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.matches('input')&&!e.isComposing){e.preventDefault();e.currentTarget.requestSubmit()}});
- $('cadCTClearEvent')?.addEventListener('click',()=>{const disposition=$('cadCTDisposition')?.value;if(!disposition){$('cadCTDisposition')?.focus();return;}const form=$('cadCTForm');form.requestSubmit();const result=window.cadCloseEvent?.(i,disposition,'CALL_TAKING');if(result?.ok){selected=null;refresh()}else alert(result?.message||'Unable to clear event')});
+ $('cadCTClearEvent')?.addEventListener('click',()=>{if(window.cadSharedIsActive?.()){window.alert('Clear shared incidents through the dispatcher shared Close Event action. No local change made.');return;}const disposition=$('cadCTDisposition')?.value;if(!disposition){$('cadCTDisposition')?.focus();return;}const form=$('cadCTForm');form.requestSubmit();const result=window.cadCloseEvent?.(i,disposition,'CALL_TAKING');if(result?.ok){selected=null;refresh()}else alert(result?.message||'Unable to clear event')});
  $('cadCTNoteForm').onsubmit=async e=>{e.preventDefault();const input=$('cadCTNoteInput'),text=input.value.trim();if(!text)return;
   if(window.cadSharedIsActive?.()){
    const button=e.currentTarget.querySelector('button[type="submit"]');if(button)button.disabled=true;
