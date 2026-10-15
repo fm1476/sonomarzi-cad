@@ -1,0 +1,15 @@
+const assert=require('node:assert/strict');
+const {activate,logOff}=require('../core/unit-activation.js');
+const master={agencies:[{id:'PD',name:'Petaluma Police',model:'HYBRID'}],units:[{id:'p1',designator:'3A14',agencyId:'PD',discipline:'LAW',model:'FIXED'}]};
+const base={units:[],incidents:[]};
+const activated=activate(master,base,'p1');
+const result=logOff(activated,'3A14');
+assert.equal(result.units.length,0);
+assert.equal(activated.units.length,1,'original input must remain intact');
+assert.equal(master.units.length,1,'master definition must remain');
+assert.throws(()=>logOff(activated,'bad'),/not found/);
+assert.throws(()=>logOff({...activated,units:[{...activated.units[0],staffing:{active:true}}]},'3A14'),/Sign off the crew/);
+assert.throws(()=>logOff({...activated,units:[{...activated.units[0],status:'ENROUTE'}]},'3A14'),/must be available or out of service/);
+assert.throws(()=>logOff({...activated,incidents:[{id:'1',status:'ACTIVE',units:['3A14']}]},'3A14'),/assigned to an open incident/);
+assert.equal(logOff({...activated,units:[{...activated.units[0],status:'OUTOFSERVICE'}]},'3A14').units.length,0);
+console.log('PASS: operational logoff does not delete master definitions or remove committed units');
