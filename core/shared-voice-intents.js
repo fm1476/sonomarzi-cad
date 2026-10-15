@@ -20,7 +20,40 @@
   if(/\b(?:clear|cleared|10\s*8|ten\s*eight)\b/.test(t))return {kind:'CLEAR'};
   return {kind:'REVIEW',reason:'No supported shared radio status identified'};
  }
+ function unitList(text,units,voiceText){
+  const raw=String(text||''),t=normalize(raw).replace(/\b(\d{1,3})(st|nd|rd|th)\b/g,'$1');
+  const ids=new Set(voiceText.numericCallsigns(raw));
+  const numberNames={zero:0,one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10,eleven:11,twelve:12,thirteen:13,fourteen:14,fifteen:15};
+  const typeCode={engine:'E',medic:'M',ambulance:'M',truck:'T',ladder:'T',battalion:'B',rescue:'R'};
+  const valid=Array.isArray(units)?units:[];
+  const mentions=[];
+  const explicit=/\b(engine|medic|ambulance|truck|ladder|battalion|rescue)\s+(\d{1,3}|zero|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen)\b/gi;
+  for(const hit of t.matchAll(explicit)){
+   const numeric=/^\d+$/.test(hit[2])?Number(hit[2]):numberNames[hit[2]];
+   const id=typeCode[hit[1].toLowerCase()]+numeric;
+   if(valid.some(u=>String(u.id).toUpperCase()===id))mentions.push(id);
+  }
+  // ASR can hear "Engine One" as "engine wanted coffee". Repair ONLY when
+  // accompanied by an explicit working-fire/on-scene phrase and roster E1.
+  if(/\bengine wanted coffee\b/.test(t)&&/\b(?:on|at) (?:the )?scene\b/.test(t)&&/\bconfirmed working (?:structure )?fire\b/.test(t)
+    &&valid.some(u=>String(u.id).toUpperCase()==='E1'))mentions.push('E1');
+  for(const id of ids)if(valid.some(u=>String(u.id).toUpperCase()===id))mentions.push(id);
+  const flattened=t.match(/^\s*(?:dispatch|radio|unit|show|mark)?\s*(\d{2,6})\b/);
+  if(flattened){
+   for(const u of valid){
+    const m=String(u.id).toUpperCase().match(/^(\d+)[A-Z](\d+)$/);
+    if(m&&m[1]+m[2]===flattened[1])mentions.push(String(u.id).toUpperCase());
+   }
+  }
+  const expanded=t.replace(/\b(\d{1,2}|one|two|three|four|five|six|seven|eight|nine)\s+(?:out of|outta)\s+(\d{1,3})\b/g,(_,n,m)=>String((numberNames[n]??Number(n)))+' adam '+m);
+  for(const id of voiceText.numericCallsigns(expanded))if(valid.some(u=>String(u.id).toUpperCase()===id))mentions.push(id);
+  return [...new Set(mentions)].map(id=>valid.find(u=>String(u.id).toUpperCase()===id));
+ }
  function callsigns(text,units,voiceText){
+  const matches=unitList(text,units,voiceText);
+  return matches.length===1?matches[0]:null;
+ }
+ function legacyCallsigns(text,units,voiceText){
   const raw=String(text||'');
   const ids=new Set(voiceText.numericCallsigns(raw));
   const t=normalize(raw).replace(/\b(\d{1,2})(st|nd|rd|th)\b/g,'$1');
@@ -36,5 +69,5 @@
   const matched=units.filter(u=>ids.has(String(u.id||'').toUpperCase()));
   return matched.length===1?matched[0]:null;
  }
- return Object.freeze({classify,callsigns});
+ return Object.freeze({classify,callsigns,unitList});
 });
