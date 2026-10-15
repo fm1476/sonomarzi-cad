@@ -719,7 +719,7 @@ async function processSharedRadio(text,source){
   catch(e){show('Case-number request failed: '+e.message);}
   return;
  }
- const noteMatch=radioText.match(/\\b(?:add note|add narrative|note that)\\s+(.+)$/i);
+ const noteMatch=radioText.match(/\b(?:add note|add narrative|note that)\s+(.+)$/i);
  if(noteMatch){
   const assigned=state.incidents.filter(i=>i.status==='ACTIVE'&&units.some(u=>i.units.includes(u.id)));
   const target=explicitRef?incident:assigned.length===1?assigned[0]:null;
@@ -728,7 +728,7 @@ async function processSharedRadio(text,source){
   catch(e){show('Narrative failed: '+e.message);}
   return;
  }
- const locationMatch=radioText.match(/\\b(?:update|correct|change)\\s+(?:the\\s+)?(?:incident\\s+|event\\s+|call\\s+|true\\s+)?location\\s+(?:to|is|at)\\s+(.+)$/i);
+ const locationMatch=radioText.match(/\b(?:update|correct|change)\s+(?:the\s+)?(?:incident\s+|event\s+|call\s+|true\s+)?location\s+(?:to|is|at)\s+(.+)$/i);
  if(locationMatch){
   const assigned=state.incidents.filter(i=>i.status==='ACTIVE'&&units.some(u=>i.units.includes(u.id)));
   const target=explicitRef?incident:assigned.length===1?assigned[0]:null;
