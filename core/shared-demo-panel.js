@@ -223,6 +223,14 @@
      if(!incident)throw Error('Incident not found. Refresh and retry.');
      if(action==='case')result=await client.setCaseNumber({agency,incident:incident.id,caseNumber:args.caseNumber||'',incidentVersion:incident.version});
      else if(action==='note')result=await client.addNarrative({agency,incident:incident.id,text:args.text,incidentVersion:incident.version});
+     else if(action==='preempt'){
+      if(!unit)throw Error('Unit not found in shared roster.');
+      const source=snapshot.incidents.find(i=>i.id===args.fromIncidentId||i.incident_number===args.fromIncidentId);
+      if(!source||source.id===incident.id)throw Error('Valid distinct source and destination incidents required.');
+      const assignments=snapshot.assignments.filter(a=>a.unit_id===unit.id);
+      if(assignments.length!==1||assignments[0].incident_id!==source.id)throw Error('Exactly one existing assignment on the source incident required.');
+      result=await client.preemptUnit({agency,fromIncident:source.id,toIncident:incident.id,unit:unit.id,fromVersion:source.version,toVersion:incident.version,unitVersion:unit.version});
+     }
      else if(action==='reclassify'){
       if(!unit)throw Error('Reporting unit not found in shared roster.');
       result=await client.reclassifyIncident({agency,incident:incident.id,unit:unit.id,type:args.type,incidentVersion:incident.version,report:args.report});
