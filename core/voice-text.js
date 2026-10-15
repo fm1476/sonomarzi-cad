@@ -8,6 +8,8 @@
   function normalize(text) {
     return String(text).toLowerCase()
       .replace(/\bbatallion\b/g, 'battalion')
+      // Browser and hosted ASR often hear the law-enforcement phonetic Adam as Atom.
+      .replace(/\b(?:atom|addam)\b/g, 'adam')
       .replace(/[-_.,!?]/g, ' ')
       .replace(/\s+/g, ' ')
       .trim();
