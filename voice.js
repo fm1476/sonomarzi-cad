@@ -121,6 +121,8 @@ if(/\b(clear|cleared|10\s*8|ten eight)\b/.test(t))return {status:'CLEAR'};
 if(/\b(on scene|onscene|at scene|arrived|10\s*97|ten ninety seven)\b/.test(t))return {status:'ONSCENE'};
 if(/\b(en\s?route|responding|on the way|10\s*76|ten seventy six)\b/.test(t))return {status:'ENROUTE'};
 if(/\b(dispatched|respond to|send (out|over)|assign)\b/.test(t))return {status:'DISPATCHED'};
+if(/\b(transporting|transport in progress|enroute to hospital)\b/.test(t))return {status:'TRANSPORTING'};
+if(/\b(at hospital|arrived at hospital|at the hospital)\b/.test(t))return {status:'AT_HOSPITAL'};
 if(/\b(out of service|10\s*7|ten seven)\b/.test(t))return {status:'OUT_OF_SERVICE'};
 if(/\b(available|back in service)\b/.test(t))return {status:'AVAILABLE'};
 return {status:null,reason:'No status command detected'};}
@@ -732,8 +734,8 @@ async function processSharedRadio(text,source){
  const unit=units[0];
  let action,args={incidentId:incident.id,unitId:unit.id};
  if((parsed.status==='DISPATCHED'||dispatchRequested)&&!incident.units.includes(unit.id)){action='assign';}
- else if(parsed.status==='CLEAR'&&incident.units.includes(unit.id)){action='clear';args.disposition='CLEARED BY RADIO';}
- else if(['ENROUTE','ONSCENE','TRANSPORTING','AT_HOSPITAL'].includes(parsed.status)&&incident.units.includes(unit.id)){action='status';args.status=parsed.status;}
+ else if(parsed.status==='CLEAR'&&incident.units.includes(unit.id)){action='clear';args.disposition=requestedDispo(radioText)||window.prompt('Disposition for '+unit.id+' clearing '+incident.id+':');if(!args.disposition){show('Clear cancelled: a disposition is required. No changes made.');return;}}
+ else if(['ENROUTE','ONSCENE','TRANSPORTING','AT_HOSPITAL','OUT_OF_SERVICE'].includes(parsed.status)&&incident.units.includes(unit.id)){action='status';args.status=parsed.status;}
  else {show('Heard '+unit.id+'; interpreted status '+(parsed.status||'UNKNOWN')+'. This requires an active assignment or dispatcher review. No shared changes made.');return;}
  show('Processing '+unit.id+' → '+(args.status||action)+' through shared CAD…','TRANSCRIBING');
  try{await window.cadSharedCommand(action,args);show(unit.id+' → '+(args.status||action)+' confirmed in shared CAD.','PROCESSED');}
