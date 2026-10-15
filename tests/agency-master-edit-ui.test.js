@@ -12,4 +12,7 @@ assert(settings.includes("cadLogOffMasterUnit"),'logoff wired');
 assert(app.includes("window.cadLogOffMasterUnit=function"),'operational logoff endpoint');
 assert(app.includes("CadUnitActivation.logOff(state,unitId)"),'guarded logoff transition');
 assert(css.includes('grid-template-columns:repeat(3,minmax(0,1fr))'),'balanced record columns');
+const cleanup=fs.readFileSync('legacy-demo-cleanup.js','utf8');
+assert(cleanup.includes("localStorage.getItem(KEY.clean)==='1'&&!TARGETS.some(t=>hasAgencyRecords(data,t))"),'hide completed cleanup tool');
+assert(cleanup.includes("if(localStorage.getItem(KEY.clean)==='1'&&!pending.length){section.remove();return;}"),'remove completed panel after refreshed state');
 console.log('PASS: symmetric configuration and edit controls wired without automatic deletion');
