@@ -754,17 +754,20 @@ async function processSharedVoiceCompound(text){
  }
  const secondUnits=window.CadSharedVoiceIntents?.unitList(second,state.units,window.CadVoiceText)||[];
  const explicitOrder=/\b(?:respond|dispatch|assign|send|start)\b/i.test(second);
- const destination=explicitOrder?matchDispatchIncident(second).incident:null;
- const sameCall=destination?.sharedUuid===owned[0].sharedUuid;
+ const resolvedDestination=explicitOrder?matchDispatchIncident(second):null;
+ const destination=resolvedDestination?.incident;
+ // A separate dispatch order may be for a different event. Require a uniquely
+ // resolved full address or explicit event number, never a type-only guess.
+ const destinationExplicit=!!destination&&/^(?:event number|incident type and full address|full address|event number or unique full address)$/.test(resolvedDestination.reason);
  // Never guess a missing dispatch address/order from a truncated ASR transcript.
  // A complete second clause is checked before committing the first, but a
  // trustworthy first clause can still be processed independently.
- const canDispatch=explicitOrder&&secondUnits.length>=1&&sameCall;
+ const canDispatch=explicitOrder&&secondUnits.length>=1&&destinationExplicit;
  const firstDone=await processSharedVoiceReclassification(first,intelligence);
  if(firstDone!==true)return true;
  el('voiceHeard').textContent=heard;
  if(!canDispatch){
-  const reason=!explicitOrder?'No dispatch verb was transcribed':secondUnits.length===0?'No dispatch unit was identified':!destination?'Destination incident was not uniquely identified':'Destination does not match E1\'s incident';
+  const reason=!explicitOrder?'No dispatch verb was transcribed':secondUnits.length===0?'No dispatch unit was identified':!destination?'Destination incident was not uniquely identified':'Dispatch needs a full address or explicit event number, not a type-only match';
   el('voiceInterpretation').textContent='COMPOUND RADIO: Confirmed working-fire report from '+firstUnits[0].id+' on '+owned[0].id+'; ADDITIONAL DISPATCH HELD: '+reason+'. Repeat the complete order. On-scene status is confirmed only when clearly recognized.';
   indicator('REVIEW');activity('SHARED COMPOUND PARTIAL | '+reason);renderActivity();return true;
  }
@@ -773,7 +776,7 @@ async function processSharedVoiceCompound(text){
  if(secondDone!==true){
   el('voiceInterpretation').textContent='COMPOUND RADIO: Working-fire report processed on '+owned[0].id+'; additional dispatch NOT fully confirmed. Inspect shared board.';
   indicator('REVIEW');
- }else el('voiceInterpretation').textContent='COMPOUND RADIO: Working-fire report processed for '+firstUnits[0].id+'; additional units '+secondUnits.map(u=>u.id).join(', ')+' dispatched to '+owned[0].id;
+ }else el('voiceInterpretation').textContent='COMPOUND RADIO: Working-fire report processed for '+firstUnits[0].id+'; additional units '+secondUnits.map(u=>u.id).join(', ')+' dispatched to '+destination.id;
 
  return true;
 }
