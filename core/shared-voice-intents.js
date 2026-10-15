@@ -37,6 +37,11 @@
   // accompanied by an explicit working-fire/on-scene phrase and roster E1.
   if(/\bengine wanted coffee\b/.test(t)&&/\b(?:on|at) (?:the )?scene\b/.test(t)&&/\bconfirmed working (?:structure )?fire\b/.test(t)
     &&valid.some(u=>String(u.id).toUpperCase()==='E1'))mentions.push('E1');
+  // Standard concise apparatus IDs (E1/M2/T1/R1) used in radio transcripts.
+  for(const hit of t.matchAll(/\b(e|m|t|b|r|so)\s*(\d{1,3})\b/gi)){
+   const id=hit[1].toUpperCase()+Number(hit[2]);
+   if(valid.some(u=>String(u.id).toUpperCase()===id))mentions.push(id);
+  }
   for(const id of ids)if(valid.some(u=>String(u.id).toUpperCase()===id))mentions.push(id);
   const flattened=t.match(/^\s*(?:dispatch|radio|unit|show|mark)?\s*(\d{2,6})\b/);
   if(flattened){
