@@ -724,11 +724,27 @@ async function processSharedVoiceBatchDispatch(text){
  }catch(error){return fail(error?.message||'Shared batch dispatch failed')}
  finally{sharedVoiceDispatchPending=false;}
 }
+function sharedRadioSegments(text){
+ const heard=String(text||'').trim();
+ const explicit=heard.split(/\s*\b(?:break|brake)\b\s*[,.!?;]*\s*/i).map(x=>x.trim()).filter(Boolean);
+ if(explicit.length!==1||/\b(?:break|brake)\b/i.test(heard))return explicit;
+ // ASR sometimes drops "break" while preserving two distinct commands.
+ // Never infer a second action without explicit responding units AND a dispatch verb.
+ const apparatus=String.raw`\b(?:engine|medic|ambulance|truck|ladder|battalion|rescue)\s+(?:\d{1,3}|one|two|three|four|five|six|seven|eight|nine|ten)\b`;
+ const separate=new RegExp('('+apparatus+'(?:\\s*,?\\s*(?:and\\s+)?'+apparatus+')*)\\s+(?:respond|dispatch|assign|send|start)\\b','ig');
+ for(const match of heard.matchAll(separate)){
+  const first=heard.slice(0,match.index).trim().replace(/[,:;.\s]+$/,'');
+  const second=heard.slice(match.index).trim();
+  if(first&&/\b(?:confirmed|working)\s+(?:working\s+)?(?:structure\s+)?fire\b/i.test(first)&&/\b(?:requesting|request|need)\s+(?:the\s+)?balance\s+of\s+(?:the\s+)?assignment\b/i.test(first))
+   return [first,second];
+ }
+ return explicit;
+}
 async function processSharedVoiceCompound(text){
  const heard=String(text||'').trim();
  el('voiceHeard').textContent=heard;
  const review=(reason)=>{el('voiceInterpretation').textContent='HEARD: '+heard+' | COMPOUND RADIO REVIEW: '+reason+' No unverified changes made.';indicator('REVIEW');activity('SHARED COMPOUND REVIEW | '+reason);renderActivity();return true;};
- const segments=heard.split(/\s*\b(?:break|brake)\b\s*[,.!?;]*\s*/i).map(s=>s.trim()).filter(Boolean);
+ const segments=sharedRadioSegments(heard);
  if(segments.length===1){
   // A terminating BREAK/ BRAKE is radio punctuation, not a missing second order.
   // Process the single complete report with the same authoritative shared path.
@@ -746,7 +762,8 @@ async function processSharedVoiceCompound(text){
  const intelligence=window.cadIncidentIntelligence?.classification(first);
  const firstUnits=window.CadSharedVoiceIntents?.unitList(first,state.units,window.CadVoiceText)||[];
  if(firstUnits.length!==1||intelligence?.type!=='Structure Fire'||!(/\b(?:confirmed|working)\b/i.test(first))){
-  return review('First clause must contain a clear reporting unit and confirmed CFS classification. No second command attempted.');
+  if(intelligence?.type==='Structure Fire'&&/\b(?:confirmed|working)\b/i.test(first))await processSharedVoiceReclassification(first,intelligence);
+  return review('First clause needs a confirmed reporting unit; any second dispatch order was held. Confirm the unit first.');
  }
  const owned=state.incidents.filter(i=>i.status==='ACTIVE'&&(i.units||[]).includes(firstUnits[0].id));
  if(owned.length!==1||!owned[0].sharedUuid){
@@ -935,7 +952,7 @@ process=function(text,source=el('voiceSource').value){
  // Shared workspace is database-authoritative: never invoke legacy voice
  // handlers that mutate projected local state or show false success.
  if(window.cadSharedIsActive?.()){
-  if(/\b(?:break|brake)\b/i.test(text)){void processSharedVoiceCompound(text);return;}
+  if(sharedRadioSegments(text).length>1||/\b(?:break|brake)\b/i.test(text)){void processSharedVoiceCompound(text);return;}
   const parsed=window.CadSharedVoiceIntents?.classify(text);
   const classification=window.cadIncidentIntelligence?.classification(text);
   if(/\b(?:request(?:ing)?|need|give|assign|issue|allocate)\s+(?:me\s+)?(?:a\s+|the\s+)?case\s*(?:number|#)|\bcase\s*number\s*(?:request|please)\b/i.test(text))void processSharedVoiceCaseNumber(text);
