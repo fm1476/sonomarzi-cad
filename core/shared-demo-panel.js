@@ -41,8 +41,8 @@
     for(const item of items){const line=document.createElement('div');line.className='cad-shared-workspace-item';line.textContent=format(item);host.appendChild(line)}
    };
    make(workIncidents,snapshot.incidents.slice(0,8),i=>i.incident_number+'  ·  '+i.discipline+'  ·  '+i.status+'  ·  '+i.current_location);
-   make(workUnits,snapshot.roster,u=>u.call_sign+'  ·  '+u.status);
-   workUpdated.textContent=snapshot.incidents.length+' incidents · '+snapshot.roster.length+' units · auto-sync every 4s';
+   make(workUnits,snapshot.roster.filter(u=>u.status!=='OFF_DUTY'),u=>u.call_sign+'  ·  '+u.status);
+   workUpdated.textContent=snapshot.incidents.length+' incidents · '+snapshot.roster.filter(u=>u.status!=='OFF_DUTY').length+' on-duty units · auto-sync every 4s';
   }
 
   const sharedBoard=document.getElementById('cadSharedOperational');
@@ -74,11 +74,34 @@
     if(!items.length)host.textContent='No calls in this view';
    }
    const units=document.getElementById('cadSharedUnitList');units.replaceChildren();
-   for(const u of snapshot.roster.filter(u=>disciplineFilter.value==='ALL'||u.discipline===disciplineFilter.value)){
+   for(const u of snapshot.roster.filter(u=>u.status!=='OFF_DUTY'&&(disciplineFilter.value==='ALL'||u.discipline===disciplineFilter.value))){
     boardRow(units,u,u.call_sign+'  ·  '+u.discipline+'  ·  '+u.status,()=>{
      const a=snapshot.assignments.find(a=>a.unit_id===u.id);
      if(a){selectedSharedIncident=a.incident_id;renderSharedBoard()}
     });
+   }
+   // Off-duty units are excluded from Unit Status but can be logged on by a
+   // dispatcher from the shared roster management control.
+   let onDutyControl=document.getElementById('cadSharedLogOnDuty');
+   if(!onDutyControl){
+    onDutyControl=document.createElement('div');onDutyControl.id='cadSharedLogOnDuty';
+    units.after(onDutyControl);
+   }
+   onDutyControl.replaceChildren();
+   const offDuty=snapshot.roster.filter(u=>u.status==='OFF_DUTY');
+   if(offDuty.length){
+    const pick=document.createElement('select');pick.setAttribute('aria-label','Off-duty unit to log on');
+    for(const u of offDuty){const opt=document.createElement('option');opt.value=u.id;opt.textContent=u.call_sign+' · '+u.discipline;pick.appendChild(opt)}
+    const logOn=document.createElement('button');logOn.type='button';logOn.textContent='Log On Duty';logOn.className='cad-shared-btn';
+    logOn.addEventListener('click',async()=>{
+     const unit=offDuty.find(u=>u.id===pick.value);if(!unit)return;
+     if(!window.confirm('Log '+unit.call_sign+' on duty and mark AVAILABLE?'))return;
+     logOn.disabled=true;
+     try{await window.cadSharedSetUnitDuty(unit.id,true);}
+     catch(error){window.alert('Log On Duty failed: '+error.message);}
+     finally{logOn.disabled=false}
+    });
+    onDutyControl.append(pick,logOn);
    }
    const detail=document.getElementById('cadSharedOperationalDetail');detail.replaceChildren();
    const i=snapshot.incidents.find(i=>i.id===selectedSharedIncident);
@@ -185,7 +208,7 @@
     lastSignature=signature;
     snapshot={incidents,roster,assignments,dispatchAreas,areaAgencies,incidentEvents,incidentLocations};syncChoices();renderWorkspace();renderSharedBoard();if(needsRender)window.cadSharedApplySnapshot?.(snapshot);
     displayRows(tbody,incidents,['incident_number','status','discipline','created_at']);
-    displayRows(units,roster,['call_sign','status','resource_type']);
+    displayRows(units,roster.filter(u=>u.status!=='OFF_DUTY'),['call_sign','status','resource_type']);
     displayRows(shortages,missing,['incident_id','resource_type','missing_count']);
     text(counts,incidents.length+' incidents · '+roster.length+' units · '+missing.length+' resource shortages');
     if(!quiet||changed)say(changed?'Shared CAD updated from another dispatcher. Local workspace remains separate.':'Shared CAD snapshot loaded. Local workspace remains separate.');
