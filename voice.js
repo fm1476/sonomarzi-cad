@@ -300,7 +300,7 @@ window.voiceBindDetail=i=>{
 // a fallback candidate and cannot modify CAD until the server transcription fails.
 let recorder=null, microphone=null, chunks=[], browserFinal='', browserInterim='', fallbackRecognition=null;
 let audioSession=0, releasing=false, apiPending=false, captureStarting=false, captureFailed=false;
-let recordingStartedAt=0;
+let recordingStartedAt=0, chromeRecognitionError='', capturedAudioBytes=0;
 const minCaptureMs=900;
 const maxAudioMs=30000;
 function supportedAudioType(){
@@ -312,7 +312,7 @@ function chromeFallback(id){
  try{
   const engine=new speech();fallbackRecognition=engine;engine.lang='en-US';engine.continuous=true;engine.interimResults=true;
   engine.onresult=e=>{if(id!==audioSession)return;const finalParts=[], interimParts=[];for(let n=0;n<e.results.length;n++){const t=e.results[n]?.[0]?.transcript?.trim();if(t)(e.results[n].isFinal?finalParts:interimParts).push(t);}browserFinal=finalParts.join(' ').trim();browserInterim=interimParts.join(' ').trim();};
-  engine.onerror=()=>{};engine.onend=()=>{if(fallbackRecognition===engine)fallbackRecognition=null;};engine.start();
+  engine.onerror=e=>{chromeRecognitionError=e?.error||'speech recognition error';};engine.onend=()=>{if(fallbackRecognition===engine)fallbackRecognition=null;};engine.start();
  }catch{fallbackRecognition=null;}
 }
 function releaseMicrophone(){
@@ -320,9 +320,13 @@ function releaseMicrophone(){
 }
 function useChromeFallback(id,reason){
  if(id!==audioSession)return;
- const text=(browserFinal||browserInterim).trim();
- if(text){activity('OpenAI transcription unavailable: '+reason+'; using Chrome fallback');renderActivity();process(text);}
- else{indicator('REVIEW');el('voiceInterpretation').textContent='Audio transcription unavailable ('+reason+'). Chrome did not capture usable text. Try again or use typed fallback.';}
+ // SpeechRecognition can deliver its final transcript after stop(). Give it time.
+ setTimeout(()=>{
+  if(id!==audioSession)return;
+  const text=(browserFinal||browserInterim).trim();
+  if(text){activity('Server transcription unavailable: '+reason+'; using browser speech fallback');renderActivity();process(text);}
+  else{indicator('REVIEW');el('voiceInterpretation').textContent='Voice diagnostic: '+reason+' | Recorded '+capturedAudioBytes+' bytes | Chrome recognition: '+(chromeRecognitionError||'no transcript')+'. Check browser microphone permission and Netlify function logs.';}
+ },650);
 }
 async function transcribeAudio(id,blob){
  if(id!==audioSession)return;
@@ -332,7 +336,7 @@ async function transcribeAudio(id,blob){
   if(blob.size>3_500_000)throw new Error('Recording exceeded maximum size');
   const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),25000);
   let response;try{response=await fetch('/.netlify/functions/transcribe',{method:'POST',headers:{'Content-Type':blob.type||'audio/webm'},body:blob,signal:controller.signal});}finally{clearTimeout(timer);}
-  if(!response.ok)throw new Error('HTTP '+response.status);
+  if(!response.ok){let details='';try{const body=await response.json();details=body.error||body.message||'';if(body.upstreamStatus)details+=' (upstream '+body.upstreamStatus+')';}catch{}throw new Error('transcription endpoint HTTP '+response.status+(details?': '+details:''));}
   const data=await response.json();if(typeof data.text!=='string'||!data.text.trim())throw new Error('Empty transcript');
   if(id!==audioSession)return;
   // This is the only automatic commit path on successful audio transcription.
@@ -342,7 +346,7 @@ async function transcribeAudio(id,blob){
 }
 async function start(){
  if(holding||captureStarting||apiPending)return;
- const id=++audioSession;holding=true;releasing=false;captureStarting=true;captureFailed=false;chunks=[];browserFinal='';browserInterim='';
+ const id=++audioSession;holding=true;releasing=false;captureStarting=true;captureFailed=false;chunks=[];browserFinal='';browserInterim='';chromeRecognitionError='';capturedAudioBytes=0;
  indicator('RECORDING',true);el('voiceHeard').textContent='Recording radio audio…';el('voiceInterpretation').textContent='Recording for secure transcription (release to process).';
  try{
   if(!navigator.mediaDevices?.getUserMedia||!window.MediaRecorder)throw new Error('Audio recording unavailable in browser');
@@ -351,7 +355,7 @@ async function start(){
   const mimeType=supportedAudioType();recorder=new MediaRecorder(microphone,mimeType?{mimeType}:{});
   const activeRecorder=recorder;
   activeRecorder.ondataavailable=e=>{if(e.data?.size)chunks.push(e.data);};
-  activeRecorder.onstop=()=>{if(id!==audioSession)return;releaseMicrophone();const blob=new Blob(chunks,{type:activeRecorder.mimeType||'audio/webm'});transcribeAudio(id,blob);};
+  activeRecorder.onstop=()=>{if(id!==audioSession)return;releaseMicrophone();const blob=new Blob(chunks,{type:activeRecorder.mimeType||'audio/webm'});capturedAudioBytes=blob.size;transcribeAudio(id,blob);};
   activeRecorder.onerror=()=>{captureFailed=true;};
   activeRecorder.start();recordingStartedAt=Date.now();chromeFallback(id);
   if(releasing)stopRecorder(id);
