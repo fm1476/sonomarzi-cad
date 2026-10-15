@@ -14,10 +14,10 @@
 [data-config-panel="master"] .cad-master-record-actions{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end}
 [data-config-panel="master"] .cad-master-record-actions button{white-space:nowrap;padding:6px 9px;font-size:.8rem}
 [data-config-panel="master"] .cad-master-form-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
-[data-config-panel="master"] .cad-master-dialog{border:1px solid #788598;border-radius:16px;padding:22px;max-width:min(540px,92vw);width:100%;background:#192333;color:#f3f6fd;box-shadow:0 20px 90px #0009}
-[data-config-panel="master"] .cad-master-dialog::backdrop{background:#050913b8}
-[data-config-panel="master"] .cad-master-dialog label{display:block;margin:12px 0}
-[data-config-panel="master"] .cad-master-dialog input,[data-config-panel="master"] .cad-master-dialog select{width:100%;min-width:0}
-[data-config-panel="master"] .cad-master-dialog-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}
+.cad-master-dialog{border:1px solid #788598;border-radius:16px;padding:22px;max-width:min(540px,92vw);width:100%;background:#192333;color:#f3f6fd;box-shadow:0 20px 90px #0009}
+.cad-master-dialog::backdrop{background:#050913b8}
+.cad-master-dialog label{display:block;margin:12px 0}
+.cad-master-dialog input,.cad-master-dialog select{width:100%;min-width:0}
+.cad-master-dialog-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}
 @media(max-width:1100px){[data-config-panel="master"] #cadMasterList{grid-template-columns:repeat(2,minmax(0,1fr))}[data-config-panel="master"] .cad-master-form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:720px){[data-config-panel="master"] .cad-master-balanced,[data-config-panel="master"] #cadMasterList,[data-config-panel="master"] .cad-master-form-grid{grid-template-columns:1fr}}
