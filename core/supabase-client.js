@@ -45,6 +45,7 @@
    setCaseNumber:({agency,incident,caseNumber,incidentVersion})=>rpc('cad_set_case_number',{p_agency:id(agency),p_incident:id(incident),p_case_number:caseNumber,p_expected_version:incidentVersion}),
    addNarrative:({agency,incident,text,incidentVersion})=>rpc('cad_add_narrative',{p_agency:id(agency),p_incident:id(incident),p_text:text,p_expected_version:incidentVersion}),
    closeIncident:({agency,incident,disposition,incidentVersion})=>rpc('cad_close_incident',{p_agency:id(agency),p_incident:id(incident),p_disposition:disposition,p_expected_version:incidentVersion}),
+   activateIncident:({agency,incident,incidentVersion})=>rpc('cad_activate_incident',{p_agency:id(agency),p_incident:id(incident),p_expected_version:incidentVersion}),
    editIncident:({agency,incident,incidentVersion,type,priority,location,caseNumber,source})=>rpc('cad_edit_incident',{p_agency:id(agency),p_incident:id(incident),p_expected_version:incidentVersion,p_type:type,p_priority:priority,p_location:location,p_case_number:caseNumber,p_source:source||'DISPATCH'}),
    correctLocation:({agency,incident,location,incidentVersion,source})=>rpc('cad_correct_location',{p_agency:id(agency),p_incident:id(incident),p_location:location,p_expected_version:incidentVersion,p_source:source||'DISPATCH'}),
    assignResponsePlan:({agency,incident,unitIds,incidentVersion,unitVersions})=>rpc('cad_assign_response_plan',{p_agency:id(agency),p_incident:id(incident),p_unit_ids:unitIds.map(id),p_expected_incident_version:incidentVersion,p_expected_unit_versions:unitVersions}),
