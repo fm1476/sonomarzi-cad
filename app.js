@@ -552,6 +552,12 @@ const newCallerLocation=$('#newCallerLocation'),newCallerSame=$('#newCallerSameA
  if(!location){toast('Location is required');$('#location').focus();$('#location').style.outline='2px solid #ef7777';return}
  const checkedPhone=cadPhoneCanonical($('#phone').value);if(!checkedPhone.ok){toast(checkedPhone.message);$('#phone').focus();return}
  if(cadSharedWorkspaceMode){
+  const unsupportedDetails=[
+   $('#callerFirstName').value.trim(),$('#callerLastName').value.trim(),$('#phone').value.trim(),
+   $('#newCaseNumber').value.trim(),$('#narrative').value.trim(),
+   newCallerSame.checked?'':newCallerLocation.value.trim()
+  ].filter(Boolean);
+  if(unsupportedDetails.length&&!window.confirm('Shared CAD currently saves the incident type, priority and location when creating a call. Caller, phone, initial narrative and case number will NOT be saved from this form. Create the basic incident anyway?'))return;
   window.cadSharedCommand('create',{discipline,type,priority:$('#priority').value,location:window.cadCommonPlaces?.resolve(location)?.address||location}).then(created=>{
    state.selected=created.incident_number;
    render();
