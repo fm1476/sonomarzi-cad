@@ -14,7 +14,7 @@ assert(ui.includes("next.units=next.units.filter(x=>!selectedIds.has(x.agencyId)
 assert(ui.includes("next.personnel=next.personnel.filter(x=>!selectedIds.has(x.agencyId))"),'cascade targeted personnel');
 assert(ui.includes("window.CadAgencyMaster.validate(next)"),'validate next master state');
 assert(ui.includes("window.cadApplyOriginalDemoCleanup({agencyNames:selected.map(x=>x.name)})"),'cleanup targeted local state');
-assert(ui.includes("const before=Object.fromEntries"),'rollback on error');
+assert(ui.includes("before=Object.fromEntries"),'rollback on error');
 assert(ui.includes("link.download='cad-hosted-backup-"),'downloadable local browser backup');
 assert(ui.includes('Nothing is selected or deleted automatically'),'no automatic removal');
 assert(html.includes('<script src="legacy-demo-cleanup.js?v=1"></script>'));
