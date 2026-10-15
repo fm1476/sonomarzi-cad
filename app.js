@@ -497,7 +497,7 @@ function availableAgencies(){
  const names=[];
  const add=a=>{const n=String(a??'').trim();if(n&&!names.some(x=>x.toLowerCase()===n.toLowerCase()))names.push(n)};
  if(!cadLegacyCleaned())for(const a of defaultConfig.agencies)add(a);
- for(const a of config.agencies||[])add(a);
+ for(const a of config.agencies||[])if(!cadLegacyCleaned()||!defaultConfig.agencies.includes(a))add(a);
  for(const a of state.incidents||[])add(a.agency);
  for(const u of state.units||[])add(u.agency);
  try{for(const a of window.CadAgencyMaster?.read(localStorage)?.agencies||[])add(a.name)}catch(e){console.warn('Agency master unavailable',e)}
