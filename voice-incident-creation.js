@@ -65,12 +65,12 @@
   const raw=String(text||'').trim();const s=norm(raw);
   if(!raw||/\b(?:cancel|disregard|do not|don't|negative)\b/.test(s))return false;
   // Field-initiated traffic stop: unit, call type, street number and street required.
-  const traffic=/^(?:copy\s+)?(.{2,60}?)\s+(?:(?:is\s+)?on\s+(?:a\s+)?)?traffic\s+stop\b[,.:;\s]*(?:at\s+)?(.+)$/i.exec(norm(raw));
+  const traffic=/^(?:copy\s+)?(.{2,60}?)\s+(?:(?:is\s+)?on\s+(?:a\s+)?)?traffic\s+stop\b[,.:;\s]*(?:at\s+)?(.+)$/i.exec(raw.replace(/[.,!?]/g,' '));
   const identified=traffic?(window.CadVoiceText?.numericCallsigns(traffic[1])||[]):[];
   const validUnit=traffic&&(identified.length===1||(/^\d{2,5}$/.test(traffic[1].trim())&&toUnit(traffic[1])!==traffic[1].toUpperCase()));
   if(validUnit){
    if(priorVoiceHandler?.(text,source)===true)return true;
-   const unitId=toUnit(traffic[1]),unit=state.units.find(u=>u.id.toUpperCase()===unitId.toUpperCase());
+   const unitId=identified.length===1?identified[0]:toUnit(traffic[1]),unit=state.units.find(u=>u.id.toUpperCase()===unitId.toUpperCase());
    if(!unit){feedback(raw,`Unrecognized unit ${unitId}; no event created.`);return true;}
    if(unit.discipline!=='LAW'){feedback(raw,`${unit.id} is ${unit.discipline}; Traffic Stop requires LAW.`);return true;}
    if(config.selfInitiated?.LAW?.['Traffic Stop']?.enabled===false){feedback(raw,'Traffic Stop self-initiation is disabled in Configuration.');return true;}
