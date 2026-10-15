@@ -3,7 +3,7 @@ const {unitList,callsigns,classify}=require('../core/shared-voice-intents.js');
 const voiceText=require('../core/voice-text.js');
 const roster=['E1','E2','M2','3A14'].map(id=>({id}));
 for(const [phrase,expected] of [
- ['engine one in route',['E1']],['Engine 1 on scene with a confirmed working structure fire requesting balance of assignment',['E1']],
+ ['engine one in route',['E1']],['E1 on scene, confirmed working structure fire',['E1']],['E2 and M2 respond',['E2','M2']],['Engine 1 on scene with a confirmed working structure fire requesting balance of assignment',['E1']],
  ['engine wanted coffee on scene with a confirmed working structure fire requesting balance of assignment',['E1']],
  ['Engine 2, Medic 2 respond structure fire 450 East Washington',['E2','M2']],
  ['3 out of 14 on scene',['3A14']]
