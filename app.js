@@ -642,6 +642,14 @@ window.cadSignOffMasterUnit=function(unitId){
  try{state=window.CadUnitStaffing.signOff(state,unitId);save();toast('Crew signed off '+unitId);return {ok:true};}
  catch(e){toast('Sign-off rejected: '+e.message);return {ok:false,error:e.message};}
 };
+window.cadLogOffMasterUnit=function(unitId){
+ if(window.cadSharedIsActive?.())return {ok:false,error:'Switch to local CAD before logging off browser-local units.'};
+ try{
+  state=window.CadUnitActivation.logOff(state,unitId);
+  save();toast('Unit '+unitId+' logged off the operational roster');
+  return {ok:true};
+ }catch(e){toast('Unit logoff rejected: '+e.message);return {ok:false,error:e.message};}
+};
 window.cadMasterActiveUnits=function(){return state.units.filter(u=>u.masterUnitId).map(u=>({id:u.id,masterUnitId:u.masterUnitId,status:u.status,staffing:u.staffing||null}));};
 // Demo incidents are optional and can be reloaded without touching Agency Master or unit status.
 if($('#reset')&&!document.getElementById('cadLoadDemoCalls')){
