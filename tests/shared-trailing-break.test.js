@@ -1,0 +1,12 @@
+const assert=require('node:assert/strict');const fs=require('node:fs');
+const voice=fs.readFileSync('voice.js','utf8');
+const p=voice.slice(voice.indexOf('async function processSharedVoiceCompound('),voice.indexOf('async function processSharedVoiceReclassification('));
+assert(p.includes('if(segments.length===1)'),'trailing separator is not a second command');
+assert(p.includes('await processSharedVoiceReclassification(report,intelligence)'),'complete first report must proceed');
+assert(voice.includes('function sharedRadioSegments(text){'),'shared segment parser is used');
+const sample='copy engine one is on scene with a confirmed working structure fire requesting balance of assignment break';
+const parts=sample.split(/\s*\b(?:break|brake)\b\s*[,.!?;]*\s*/i).map(s=>s.trim()).filter(Boolean);
+assert.equal(parts.length,1);
+assert(parts[0].includes('engine one is on scene'));
+assert(p.includes('if(segments.length===1)'),'a terminal break is handled as one report');
+console.log('PASS: trailing BREAK keeps single complete working-fire report');

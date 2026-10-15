@@ -1,7 +1,7 @@
 /* Voice incident creation for the hackathon prototype. Never uses an LLM to mutate CAD records. */
 (()=>{'use strict';
  const priorVoiceHandler=window.cadBeforeVoiceProcess;
- const norm=s=>String(s||'').toLowerCase().replace(/[.,!?]/g,' ').replace(/\s+/g,' ').trim();
+ const norm=s=>String(s||'').toLowerCase().replace(/\b(?:atom|addam)\b/g,'adam').replace(/\b(\d+|one|two|three|four|five|six|seven|eight|nine)\s+item\s+(?=\d+|one\b|two\b|three\b|four\b|five\b|six\b|seven\b|eight\b|nine\b|ten\b|eleven\b|twelve\b|thirteen\b|fourteen\b|fifteen\b|sixteen\b|seventeen\b|eighteen\b|nineteen\b|twenty\b|thirty\b|forty\b|fifty\b)/g,'$1 adam ').replace(/[.,!?]/g,' ').replace(/\s+/g,' ').trim();
  const html=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const stopWords=/\b(?:vehicle|veh|blue|black|white|gray|grey|silver|red|green|brown|toyota|toyoate|honda|ford|chevy|chevrolet|4\s*runner|four\s*runner|license|licence|plate|registration|california|ca)\b/i;
  const numberWords={one:'1',two:'2',three:'3',four:'4',five:'5',six:'6',seven:'7',eight:'8',nine:'9',ten:'10',twelve:'12',thirteen:'13',fourteen:'14',fourteens:'14',twenty:'20'};
@@ -15,6 +15,8 @@
   return String(hundreds[a.toLowerCase()]*100+tens[b.toLowerCase()]+(ones[c?.toLowerCase()]||Number(c)||0));
  });
  const toUnit=(raw)=>{
+  const phonetic=window.CadVoiceText?.numericCallsigns(raw)||[];
+  if(phonetic.length===1)return phonetic[0];
   const t=wordDigits(norm(raw)).replace(/(\d)\s*(adam|alpha)\s*(?=\d)/gi,'$1a').replace(/\b(?:adam|alpha|out of)\b/g,'a').replace(/\b(?:boy|bravo)\b/g,'b').replace(/\s+/g,'');
   const lead=t.match(/^(\d+)a(\d+)/);if(lead)return lead[1]+'A'+lead[2];
   const short=t.match(/^(\d{2,5})$/);if(short){const matching=state.units.filter(u=>{const m=u.id.match(/^(\d+)[A-Z](\d+)$/);return m&&m[1]+m[2]===short[1]});if(matching.length===1)return matching[0].id;}
@@ -63,10 +65,12 @@
   const raw=String(text||'').trim();const s=norm(raw);
   if(!raw||/\b(?:cancel|disregard|do not|don't|negative)\b/.test(s))return false;
   // Field-initiated traffic stop: unit, call type, street number and street required.
-  const traffic=/^(?:copy\s+)?((?:\d+\s*(?:adam|alpha|a|out of)\s*\d+|\d+[a-z]\d+|\d{2,5}))(?:['’]s)?[\s,.:;]+(?:(?:is\s+)?on\s+(?:a\s+)?)?traffic\s+stop\b[,.:;\s]*(?:at\s+)?(.+)$/i.exec(wordDigits(raw));
-  if(traffic){
+  const traffic=/^(?:copy\s+)?(.{2,60}?)\s+(?:(?:is\s+)?on\s+(?:a\s+)?)?traffic\s+stop\b[,.:;\s]*(?:at\s+)?(.+)$/i.exec(raw.replace(/[.,!?]/g,' '));
+  const identified=traffic?(window.CadVoiceText?.numericCallsigns(traffic[1])||[]):[];
+  const validUnit=traffic&&(identified.length===1||(/^\d{2,5}$/.test(traffic[1].trim())&&toUnit(traffic[1])!==traffic[1].toUpperCase()));
+  if(validUnit){
    if(priorVoiceHandler?.(text,source)===true)return true;
-   const unitId=toUnit(traffic[1]),unit=state.units.find(u=>u.id.toUpperCase()===unitId.toUpperCase());
+   const unitId=identified.length===1?identified[0]:toUnit(traffic[1]),unit=state.units.find(u=>u.id.toUpperCase()===unitId.toUpperCase());
    if(!unit){feedback(raw,`Unrecognized unit ${unitId}; no event created.`);return true;}
    if(unit.discipline!=='LAW'){feedback(raw,`${unit.id} is ${unit.discipline}; Traffic Stop requires LAW.`);return true;}
    if(config.selfInitiated?.LAW?.['Traffic Stop']?.enabled===false){feedback(raw,'Traffic Stop self-initiation is disabled in Configuration.');return true;}

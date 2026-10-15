@@ -1,0 +1,10 @@
+const assert=require('node:assert/strict'),fs=require('node:fs');
+const source=fs.readFileSync('core/supabase-client.js','utf8');
+assert(source.includes('const controller=new AbortController()'),'each remote request must have abort control');
+assert(source.includes('setTimeout(()=>controller.abort(),20000)'),'remote request must be time bounded');
+assert(source.includes("Outcome unverified: refresh the shared board before retrying"),'timeouts must not claim failure/rollback');
+assert(/finally\s*\{\s*clearTimeout\(timeout\);?\s*\}/.test(source),'timeouts must be cleaned up');
+const voice=fs.readFileSync('voice.js','utf8');
+assert(voice.includes('sharedVoiceDispatchPending=false'),'shared dispatch gate must eventually release');
+assert(voice.includes("window.cadSharedCommand('batch-assign'"),'batch dispatch remains server-authoritative');
+console.log('PASS: shared batch dispatch requests are bounded and ambiguous timeout outcomes are explicitly reported');

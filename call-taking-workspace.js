@@ -74,7 +74,7 @@ const extraEditor=i=>'<details class="cad-ct-section" open><summary>Event Inform
 '<details class="cad-ct-section"><summary>Reporting Parties ('+(i.reportingParties||[]).length+')</summary>'+partyRows(i,'reportingParties',personFields)+'<button type="button" data-ct-add="reportingParties">+ Add Reporting Party</button></details>'+
 '<details class="cad-ct-section"><summary>Involved Persons ('+(i.involvedPersons||[]).length+')</summary>'+partyRows(i,'involvedPersons',personFields)+'<button type="button" data-ct-add="involvedPersons">+ Add Involved Person</button></details>'+
 '<details class="cad-ct-section"><summary>Vehicles ('+(i.vehicles||[]).length+')</summary>'+partyRows(i,'vehicles',vehicleFields)+'<button type="button" data-ct-add="vehicles">+ Add Vehicle</button></details>'+
-'<details class="cad-ct-section"><summary>Event Closure</summary><div class="cad-ct-fields"><label>Primary disposition<select id="cadCTDisposition" required><option value="">Select disposition</option>'+[...document.querySelectorAll('#cadDispoOptions option')].map(o=>'<option value="'+safe(o.value)+'">'+safe(o.value)+'</option>').join('')+'</select></label>'+rowFields(extraFields.filter(x=>['additionalDisposition','closingComments'].includes(x[0])),i,'closure')+'</div><button type="button" id="cadCTClearEvent" class="cad-ct-danger">Save & Clear Event</button></details>';
+'<details class="cad-ct-section"><summary>Event Closure</summary><div class="cad-ct-fields"><label>Primary disposition<select id="cadCTDisposition"><option value="">Select disposition</option>'+[...document.querySelectorAll('#cadDispoOptions option')].map(o=>'<option value="'+safe(o.value)+'">'+safe(o.value)+'</option>').join('')+'</select></label>'+rowFields(extraFields.filter(x=>['additionalDisposition','closingComments'].includes(x[0])),i,'closure')+'</div><button type="button" id="cadCTClearEvent" class="cad-ct-danger">Save & Clear Event</button></details>';
 function refresh(){
  const previousOpen=[...($('cadCTEditor')?.querySelectorAll('.cad-ct-section')||[])].map((d,n)=>d.open?n:-1).filter(n=>n>=0);
  const incidents=(state().incidents||[]).filter(i=>['PENDING','ACTIVE'].includes(i.status)),filter=$('cadCTFilter')?.value||'ALL';
@@ -99,7 +99,7 @@ function refresh(){
  '<div class="cad-ct-narrative-header"><h3>Event Narrative</h3></div><form id="cadCTNoteForm" class="cad-ct-note-form"><label for="cadCTNoteInput">New narrative information</label><textarea id="cadCTNoteInput" rows="3" placeholder="Enter new caller information, observations, or updates..."></textarea><button type="submit" class="primary">Add to Event Narrative</button></form><div id="cadCTNarrative">'+(window.voiceDetailHtml?window.voiceDetailHtml(i):'<p>Narrative unavailable</p>')+'</div>';
  editor.querySelectorAll('.cad-ct-section').forEach((d,n)=>{d.open=expandAfterRefresh!==null?n===expandAfterRefresh:previousOpen.length?previousOpen.includes(n):n===0});expandAfterRefresh=null;
  $('cadCTClose').onclick=()=>{selected=null;refresh()};
- $('cadCTActivate')?.addEventListener('click',()=>{if(i.status!=='PENDING')return;i.status='ACTIVE';window.cadCallTakeEvent?.(i,'CALL_ACTIVATED_FROM_CALL_TAKING');window.cadCallTakeSave?.()});
+ $('cadCTActivate')?.addEventListener('click',()=>{if(window.cadSharedIsActive?.()){window.cadSharedCommand('activate',{incidentId:i.id}).then(()=>{const current=window.cadSafetyState?.().incidents?.find(x=>x.sharedUuid===i.sharedUuid);if(current?.status!=='ACTIVE')throw Error('Shared database has not confirmed activation');refresh();}).catch(error=>window.alert('Activation not confirmed: '+error.message));return;}if(i.status!=='PENDING')return;i.status='ACTIVE';window.cadCallTakeEvent?.(i,'CALL_ACTIVATED_FROM_CALL_TAKING');window.cadCallTakeSave?.()});
  setupGeoValidation($('cadCTForm'),i);
  const callerAddress=$('cadCTForm').querySelector('[name="callerLocation"]'),same=$('cadCTForm').querySelector('[name="callerSameAsEvent"]'),eventAddress=$('cadCTForm').querySelector('[name="location"]');
  let callerVerified=null;
@@ -109,7 +109,38 @@ function refresh(){
  const phoneInput=$('cadCTForm').querySelector('[name="callerPhone"]');
  phoneInput.addEventListener('blur',()=>{const v=window.cadPhoneNormalize?.(phoneInput.value);if(v?.ok)phoneInput.value=v.formatted});
 
- $('cadCTForm').onsubmit=e=>{e.preventDefault();const f=new FormData(e.currentTarget);let changes=[];
+ const sharedOriginalForm=new Map(new FormData($('cadCTForm')).entries());
+ $('cadCTForm').onsubmit=async e=>{e.preventDefault();
+ if(window.cadSharedIsActive?.()){
+  const status=$('cadCTSaveStatus');
+  const f=new FormData(e.currentTarget);
+  const newLocation=String(f.get('location')??i.location).trim();
+  const newPriority=String(f.get('priority')??i.priority).trim();
+  const newCaseNumber=String(f.get('caseNumber')??i.caseNumber??'').trim();
+  const newType=String(f.get('event.type')??f.get('type')??i.type).trim();
+  const values={type:newType,priority:newPriority,location:newLocation,caseNumber:newCaseNumber,source:'CALL_TAKING'};
+  const tracked=new Set(['location','priority','caseNumber','type','event.type']);
+  const unsupported=Array.from(new Set([...sharedOriginalForm.keys(),...Array.from(f.keys())])).filter(key=>!tracked.has(key)&&String(f.get(key)??'')!==String(sharedOriginalForm.get(key)??''));
+  if(unsupported.length){
+   status.textContent='Not saved: '+unsupported.join(', ')+' cannot yet be updated through shared CAD. No fields were saved.';
+   return;
+  }
+  if(!newLocation||!newPriority||!newType){status.textContent='CFS type, location and priority are required.';return}
+  const updated=values.type!==i.type||values.location!==i.location||values.priority!==i.priority||values.caseNumber!==(i.caseNumber||'');
+  if(!updated){status.textContent='No supported shared changes to save';return}
+  const button=e.currentTarget.querySelector('[type="submit"]');if(button)button.disabled=true;
+  status.textContent='Saving to shared CAD…';
+  try{
+   await window.cadSharedCommand('edit',{incidentId:i.id,...values});
+   const current=window.cadSafetyState?.().incidents?.find(x=>x.sharedUuid===i.sharedUuid);
+   if(!current||current.type!==values.type||current.location!==values.location||current.priority!==values.priority||(current.caseNumber||'')!==values.caseNumber)
+    throw Error('Database did not confirm the requested changes');
+   status.textContent='Saved to shared CAD ✓';refresh();
+  }catch(error){status.textContent='Save failed: '+error.message}
+  finally{if(button)button.disabled=false}
+  return;
+ }
+ const f=new FormData(e.currentTarget);let changes=[];
  const checkedPhone=window.cadPhoneNormalize?.(f.get('callerPhone')||'');
  if(checkedPhone&&!checkedPhone.ok){$('cadCTSaveStatus').textContent=checkedPhone.message;phoneInput.focus();return}
  const first=String(f.get('callerFirstName')||''),last=String(f.get('callerLastName')||'');
@@ -122,13 +153,20 @@ const layout=window.cadEventFormFields?.(i.agency);
 if(Array.isArray(layout)){for(const def of layout){if(!def.custom)continue;const value=def.type==='checkbox'?f.has('custom.'+def.id):String(f.get('custom.'+def.id)||'').trim();(i.customFields||={});if(value!==i.customFields[def.id]){i.customFields[def.id]=value;changes.push('custom.'+def.id)}}}
 for(const [key] of extraFields){const name=(['primaryDisposition','additionalDisposition','closingComments'].includes(key)?'closure.':'event.')+key;if(!f.has(name))continue;const value=String(f.get(name)||'').trim();if(value!==String(i[key]||'')){i[key]=value;changes.push(key)}}
 for(const kind of ['reportingParties','involvedPersons','vehicles']){const fields=kind==='vehicles'?vehicleFields:personFields;for(let n=0;n<(i[kind]||[]).length;n++)for(const [key] of fields){const value=String(f.get(kind+'.'+n+'.'+key)||'').trim();if(value!==String(i[kind][n][key]||'')){i[kind][n][key]=value;changes.push(kind+'.'+key)}}}if(changes.includes('location')||e.currentTarget.dataset.cadGeoValidation){const validated=(()=>{try{return JSON.parse(e.currentTarget.dataset.cadGeoValidation||'null')}catch{return null}})();i.esz=null;i.beat=null;i.responseZone=null;i.responseZoneReviewed=false;i.responseZoneLookup=null;i.responseZoneSource=null;i.responseZoneError=null;if(validated&&validated.location===i.location&&validated.discipline===i.discipline){const r=validated.result;i.esz=r.zones.esz||null;i.beat=r.zones.beat||null;i.responseZone=i.discipline==='LAW'?i.beat:i.esz;i.responseZoneSource='GIS_POINT_LOOKUP';i.responseZoneReviewed=true;i.responseZoneLookup={address:r.address,lat:r.lat,lon:r.lon,at:new Date().toISOString(),original:i.discipline+'|'+i.location,source:r.source};window.cadCallTakeEvent?.(i,'LOCATION_VALIDATED_RESPONSE_AREA '+i.responseZone)}}if(changes.length){editingEntity=null;i.callTakeNewInfoAt=new Date().toISOString();i.callTakeUpdateFields=changes;window.cadCallTakeEvent?.(i,'CALL_TAKER_UPDATED '+changes.join(','));window.cadCallTakeSave?.();const status=$('cadCTSaveStatus');if(status)status.textContent='Saved ✓'}else{$('cadCTSaveStatus').textContent='No changes to save'}};
- editor.querySelectorAll('[data-ct-add]').forEach(b=>b.onclick=()=>{const kind=b.dataset.ctAdd;editingEntity=kind+':'+((i[kind]||[]).length);expandAfterRefresh={reportingParties:1,involvedPersons:2,vehicles:3}[kind];(i[kind]||=[]).push({});window.cadCallTakeSave?.();});
+ editor.querySelectorAll('[data-ct-add]').forEach(b=>b.onclick=()=>{if(window.cadSharedIsActive?.()){window.alert('Shared CAD cannot yet save added reporting parties, people or vehicles. No changes made.');return;}const kind=b.dataset.ctAdd;editingEntity=kind+':'+((i[kind]||[]).length);expandAfterRefresh={reportingParties:1,involvedPersons:2,vehicles:3}[kind];(i[kind]||=[]).push({});window.cadCallTakeSave?.();});
  editor.querySelectorAll('[data-ct-edit]').forEach(b=>b.onclick=()=>{editingEntity=b.dataset.ctEdit;expandAfterRefresh={reportingParties:1,involvedPersons:2,vehicles:3}[editingEntity.split(':')[0]];refresh();editor.querySelector('[data-ct-fields="'+editingEntity+'"] input')?.focus()});
- editor.querySelectorAll('[data-ct-remove]').forEach(b=>b.onclick=()=>{const [kind,index]=b.dataset.ctRemove.split(':');expandAfterRefresh={reportingParties:1,involvedPersons:2,vehicles:3}[kind];i[kind]?.splice(Number(index),1);editingEntity=null;window.cadCallTakeSave?.()});
+ editor.querySelectorAll('[data-ct-remove]').forEach(b=>b.onclick=()=>{if(window.cadSharedIsActive?.()){window.alert('Shared CAD cannot yet save removal of reporting parties, people or vehicles. No changes made.');return;}const [kind,index]=b.dataset.ctRemove.split(':');expandAfterRefresh={reportingParties:1,involvedPersons:2,vehicles:3}[kind];i[kind]?.splice(Number(index),1);editingEntity=null;window.cadCallTakeSave?.()});
  $('cadCTForm').addEventListener('input',()=>{const status=$('cadCTSaveStatus');if(status)status.textContent='Unsaved changes'});
  $('cadCTForm').addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.matches('input')&&!e.isComposing){e.preventDefault();e.currentTarget.requestSubmit()}});
- $('cadCTClearEvent')?.addEventListener('click',()=>{const disposition=$('cadCTDisposition')?.value;if(!disposition){$('cadCTDisposition')?.focus();return;}const form=$('cadCTForm');form.requestSubmit();const result=window.cadCloseEvent?.(i,disposition,'CALL_TAKING');if(result?.ok){selected=null;refresh()}else alert(result?.message||'Unable to clear event')});
- $('cadCTNoteForm').onsubmit=e=>{e.preventDefault();const input=$('cadCTNoteInput'),text=input.value.trim();if(!text)return;const author=identity(),timestamp=new Date().toISOString();(i.narrative||=[]).push(text);(i.manualNarrativeEntries||=[]).push({id:'calltake-'+Date.now(),text,timestamp,author});i.callTakeNewInfoAt=timestamp;i.callTakeUpdateFields=['narrative'];window.cadCallTakeEvent?.(i,'NARRATIVE_ADDED '+timestamp+' BY '+author);input.value='';window.cadCallTakeSave?.();requestAnimationFrame(()=>document.getElementById('cadCTNoteInput')?.focus())};
+ $('cadCTClearEvent')?.addEventListener('click',()=>{if(window.cadSharedIsActive?.()){const disposition=$('cadCTDisposition')?.value;if(!disposition){window.alert('Select a disposition before clearing the incident.');return;}window.cadSharedCommand('close',{incidentId:i.id,disposition}).then(()=>{const latest=window.cadSafetyState?.().incidents?.find(x=>x.sharedUuid===i.sharedUuid);if(latest?.status!=='CLOSED')throw Error('Incident closure not confirmed by shared database');selected=null;refresh();}).catch(error=>window.alert('Clear not confirmed: '+error.message));return;}const disposition=$('cadCTDisposition')?.value;if(!disposition){$('cadCTDisposition')?.focus();return;}const form=$('cadCTForm');form.requestSubmit();const result=window.cadCloseEvent?.(i,disposition,'CALL_TAKING');if(result?.ok){selected=null;refresh()}else alert(result?.message||'Unable to clear event')});
+ $('cadCTNoteForm').onsubmit=async e=>{e.preventDefault();const input=$('cadCTNoteInput'),text=input.value.trim();if(!text)return;
+  if(window.cadSharedIsActive?.()){
+   const button=e.currentTarget.querySelector('button[type="submit"]');if(button)button.disabled=true;
+   try{await window.cadSharedCommand('note',{incidentId:i.id,text});input.value='';refresh();}
+   catch(error){window.alert('Narrative not saved: '+error.message)}
+   finally{if(button)button.disabled=false}
+   return;
+  }const author=identity(),timestamp=new Date().toISOString();(i.narrative||=[]).push(text);(i.manualNarrativeEntries||=[]).push({id:'calltake-'+Date.now(),text,timestamp,author});i.callTakeNewInfoAt=timestamp;i.callTakeUpdateFields=['narrative'];window.cadCallTakeEvent?.(i,'NARRATIVE_ADDED '+timestamp+' BY '+author);input.value='';window.cadCallTakeSave?.();requestAnimationFrame(()=>document.getElementById('cadCTNoteInput')?.focus())};
  $('cadCTNoteInput').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing){e.preventDefault();if(e.repeat)return;$('cadCTNoteForm').requestSubmit()}});
  // Reuse the same transcript navigation and chronological sort controls as Dispatch.
  const narrative=$('cadCTNarrative');

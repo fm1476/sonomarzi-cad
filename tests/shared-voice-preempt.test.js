@@ -1,0 +1,18 @@
+const assert=require('node:assert/strict'),fs=require('node:fs');
+const voice=fs.readFileSync('voice.js','utf8');
+const helper=voice.slice(voice.indexOf('async function processSharedVoicePreempt('),voice.indexOf('async function processSharedVoiceReclassification('));
+assert(helper.includes("window.cadSharedCommand('preempt'"),'must use one atomic shared command');
+assert(!helper.includes("window.cadSharedCommand('clear'"),'must not clear separately');
+assert(!helper.includes("window.cadSharedCommand('assign'"),'must not assign separately');
+assert(helper.includes("(previous.units||[]).includes(unit.id)"),'verify source no longer assigned');
+assert(helper.includes("!(next.units||[]).includes(unit.id)"),'verify destination assigned');
+assert(helper.includes("rosterUnit?.status!=='DISPATCHED'"),'verify dispatched status');
+assert(helper.includes("destination.sharedUuid===source[0].sharedUuid"),'reject same incident');
+assert(helper.includes("source.length!==1"),'require unique source assignment');
+assert(!helper.includes('save()'),'no local-only persistence');
+const adapter=fs.readFileSync('core/supabase-client.js','utf8');
+assert(adapter.includes("rpc('cad_preempt_unit'"),'atomic RPC exists');
+const gateway=fs.readFileSync('core/shared-demo-panel.js','utf8');
+assert(gateway.includes("client.preemptUnit("),'authenticated command routes to atomic RPC');
+assert(gateway.includes("assignments.length!==1"),'gateway checks single assignment');
+console.log('PASS: shared voice PREEMPT uses atomic gateway and checks authoritative transfer');

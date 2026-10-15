@@ -1,0 +1,15 @@
+const assert=require('node:assert/strict'),fs=require('node:fs');
+const s=fs.readFileSync('voice.js','utf8');
+const compound=s.slice(s.indexOf('async function processSharedVoiceCompound('),s.indexOf('async function processSharedVoiceReclassification('));
+const reclass=s.slice(s.indexOf('async function processSharedVoiceReclassification('),s.indexOf('async function processSharedVoiceCaseNumber('));
+assert(compound.includes('confirmedUnitId=null,firstAlreadyProcessed=false'),'compound must accept validated reporter');
+assert(compound.includes('processSharedVoiceReclassification(first,intelligence,null,async confirmedId=>'),'ambiguity must offer callback without discarding next order');
+assert(compound.includes('processSharedVoiceCompound(heard,confirmedId,true)'),'confirmation must resume same full transcript');
+assert(compound.includes('return true; // Preserve the confirmation UI'),'review must not hide button');
+assert(compound.includes('firstAlreadyProcessed?true:'),'must not duplicate reclassification');
+assert(reclass.includes('onConfirmed=null'));
+assert(reclass.includes('processSharedVoiceReclassification(heard,parsed,possible[0].id,onConfirmed)'),'confirmation must preserve continuation');
+const unlock=reclass.indexOf('sharedVoiceDispatchPending=false;\n  if(typeof onConfirmed');
+assert(unlock>=0,'release first transaction gate before next dispatch');
+assert(reclass.includes('await onConfirmed(unit.id)'),'execute second clause only after confirmed first');
+console.log('PASS: single confirmation resumes compound dispatch without duplicate classification or stuck lock');

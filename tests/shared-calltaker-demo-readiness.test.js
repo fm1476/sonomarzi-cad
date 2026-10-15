@@ -1,0 +1,14 @@
+const assert=require('node:assert/strict'),fs=require('node:fs');
+const caller=fs.readFileSync('call-taking-workspace.js','utf8');
+const api=fs.readFileSync('core/supabase-client.js','utf8');
+const shared=fs.readFileSync('core/shared-demo-panel.js','utf8');
+const app=fs.readFileSync('app.js','utf8');
+assert(caller.includes("window.cadSharedCommand('activate'"),'call-taker activation must use shared transaction');
+assert(caller.includes("window.cadSharedCommand('close'"),'call-taker closure must use shared transaction');
+assert(caller.includes("window.cadSharedCommand('edit'"),'call-taker save must use shared transaction');
+assert(caller.includes("window.cadSharedCommand('note'"),'call-taker narrative must use shared transaction');
+assert(api.includes("rpc('cad_activate_incident'"),'shared activation RPC must exist');
+assert(shared.includes('client.activateIncident('),'shared command gateway must support activation');
+assert(app.includes("Shared CAD currently saves the incident type, priority and location"),'create new shared incident must disclose unsupported caller fields');
+assert(!caller.includes('<select id="cadCTDisposition" required>'),'closure-only disposition should not block Save Event');
+console.log('PASS: shared call-taker critical actions use authenticated gateway and no silent data loss');

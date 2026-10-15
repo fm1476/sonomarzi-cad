@@ -221,8 +221,33 @@
      result=await client.createIncidentAuto({agency,discipline:args.discipline,type:args.type,priority:args.priority,location:args.location});
     }else{
      if(!incident)throw Error('Incident not found. Refresh and retry.');
-     if(action==='case')result=await client.setCaseNumber({agency,incident:incident.id,caseNumber:args.caseNumber||'',incidentVersion:incident.version});
+     if(action==='allocate-case')result=await client.allocateCaseNumber({agency,incident:incident.id,incidentVersion:incident.version});
+     else if(action==='case')result=await client.setCaseNumber({agency,incident:incident.id,caseNumber:args.caseNumber||'',incidentVersion:incident.version});
      else if(action==='note')result=await client.addNarrative({agency,incident:incident.id,text:args.text,incidentVersion:incident.version});
+     else if(action==='batch-assign'){
+      const names=Array.isArray(args.unitIds)?args.unitIds:[];
+      const distinct=[...new Set(names)];
+      if(!distinct.length||distinct.length!==names.length||distinct.length>30)throw Error('Select 1-30 unique units for shared dispatch.');
+      const matched=distinct.map(id=>snapshot.roster.find(u=>u.id===id||u.call_sign===id));
+      if(matched.some(u=>!u))throw Error('One or more requested units do not exist in the shared roster.');
+      if(matched.some(u=>u.status!=='AVAILABLE'))throw Error('Requested unit is not available. No response plan dispatched.');
+      const versions=Object.fromEntries(matched.map(u=>[u.id,u.version]));
+      result=await client.assignResponsePlan({agency,incident:incident.id,unitIds:matched.map(u=>u.id),incidentVersion:incident.version,unitVersions:versions});
+     }
+     else if(action==='activate')result=await client.activateIncident({agency,incident:incident.id,incidentVersion:incident.version});
+     else if(action==='edit')result=await client.editIncident({agency,incident:incident.id,incidentVersion:incident.version,type:args.type,priority:args.priority,location:args.location,caseNumber:args.caseNumber,source:args.source||'DISPATCH'});
+     else if(action==='preempt'){
+      if(!unit)throw Error('Unit not found in shared roster.');
+      const source=snapshot.incidents.find(i=>i.id===args.fromIncidentId||i.incident_number===args.fromIncidentId);
+      if(!source||source.id===incident.id)throw Error('Valid distinct source and destination incidents required.');
+      const assignments=snapshot.assignments.filter(a=>a.unit_id===unit.id);
+      if(assignments.length!==1||assignments[0].incident_id!==source.id)throw Error('Exactly one existing assignment on the source incident required.');
+      result=await client.preemptUnit({agency,fromIncident:source.id,toIncident:incident.id,unit:unit.id,fromVersion:source.version,toVersion:incident.version,unitVersion:unit.version});
+     }
+     else if(action==='reclassify'){
+      if(!unit)throw Error('Reporting unit not found in shared roster.');
+      result=await client.reclassifyIncident({agency,incident:incident.id,unit:unit.id,type:args.type,incidentVersion:incident.version,report:args.report});
+     }
      else if(action==='close'){result=await client.closeIncident({agency,incident:incident.id,disposition:args.disposition||'CLOSED',incidentVersion:incident.version});applyConfirmedClose(incident.id,args.disposition||'CLOSED');}
      else if(action==='location')result=await client.correctLocation({agency,incident:incident.id,location:args.location,incidentVersion:incident.version,source:'DISPATCH'});
      else{

@@ -214,11 +214,40 @@ async function ask(raw){
  if(mentionsUnits&&mentionsAvailable){await setQueryView(units.filter(u=>u.status==='AVAILABLE'),[],'available units');return}
  setResult('Try “show pending calls and available units”, “show all P1 calls”, “where is 3A21”, or “show units assigned to the Domestic at 725 D St”.');
 }
+// Map requests are presentation-only; never execute through a CAD transaction.
+function isMapVoiceCommand(raw){
+ const text=String(raw||'').toLowerCase().trim();
+ if(/\b(?:dispatch|preempt|assign|clear (?:unit|event)|close (?:call|event)|en\s*route|on scene|code\s*(?:4|four|for)|respond(?:ing)?\s+to)\b/.test(text))return false;
+ if(/\b(?:layers?|hydrants?|fire stations?|police beats?|response zones?|flood zones?|parcels?|building footprints?|school locations?|evacuation zones?|road closures?|traffic incidents|address points)\b/.test(text)&&/\b(?:show|hide|turn on|turn off|enable|disable|clear|remove|display|layers?)\b/.test(text))return true;
+ if(/\b(?:zoom\s+(?:in\s+)?(?:to|on)|go to|take me to|navigate to|center\s+(?:on|at)|show me (?:the )?(?:location|address)|where\s+(?:is|are)|locate|find)\b/.test(text))return true;
+ if(/\b(?:show|display)\b/.test(text)&&/\b(?:calls?|events?|incidents?|units?|apparatus|resources|p\s*[123]|priority|available|pending|assigned)\b/.test(text))return true;
+ return false;
+}
+window.cadMapVoiceCommand=function(text){
+ if(!isMapVoiceCommand(text))return false;
+ const input=document.getElementById('cadMapQuestion');if(input)input.value=String(text);
+ void ask(text);
+ return true;
+};
+window.cadIsMapVoiceCommand=isMapVoiceCommand;
 function syncSelect(){const sel=document.getElementById('cadMapIncidentFilter');if(sel)sel.value=settings.incidents}
 function mount(){const panel=host.closest('[data-panel="map"]');if(!panel||document.getElementById('cadMapToolbar'))return;const bar=document.createElement('div');bar.id='cadMapToolbar';bar.className='cad-map-toolbar';bar.innerHTML='<label>Calls <select id="cadMapIncidentFilter" aria-label="Incidents displayed on map"><option value="active">Active</option><option value="pending">Pending</option><option value="both">Both</option></select></label><div id="cadLayersMount"></div><div class="cad-map-query"><input id="cadMapQuestion" type="text" placeholder="Ask the map…" aria-label="Ask the operational map"><button id="cadMapAsk" type="button">Show</button><button id="cadMapResetQuery" type="button" hidden title="Restore regular map markers">Reset View</button><button id="cadMapPTT" type="button" title="Hold to ask the map using your microphone">🎙 Hold to Ask</button></div><span id="cadMapAnswer" role="status" aria-live="polite">Try: show all P1 calls · where is 3A21</span>';panel.insertBefore(bar,host);syncSelect();gisCatalog?.mount(document.getElementById('cadLayersMount'));
  document.getElementById('cadMapIncidentFilter').addEventListener('change',e=>{queryView=null;updateReset();settings.incidents=e.target.value;persist();focused=true;draw()});document.getElementById('cadMapResetQuery').onclick=resetQuery;const input=document.getElementById('cadMapQuestion');document.getElementById('cadMapAsk').onclick=()=>ask(input.value);input.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();ask(input.value)}});
- let recorder,stream,chunks=[];const ptt=document.getElementById('cadMapPTT');async function start(){if(recorder?.state==='recording')return;try{stream=await navigator.mediaDevices.getUserMedia({audio:true});chunks=[];recorder=new MediaRecorder(stream);recorder.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)};recorder.onstop=async()=>{stream?.getTracks().forEach(t=>t.stop());ptt.textContent='🎙 Hold to Ask';const blob=new Blob(chunks,{type:recorder.mimeType||'audio/webm'});if(!blob.size)return;setResult('Transcribing map question…');try{const r=await fetch('/.netlify/functions/transcribe',{method:'POST',headers:{'Content-Type':blob.type},body:blob});if(!r.ok)throw new Error('Transcription request failed');const data=await r.json();const result=data.text||data.transcript||data.transcription||'';if(!result)throw new Error('No speech recognized');input.value=result;await ask(result)}catch(e){setResult(`Map voice unavailable: ${e.message}`)}};recorder.start();ptt.textContent='🔴 Listening…';setResult('Release to ask the map')}catch(e){setResult('Microphone unavailable. Type your question instead.')}}
- function stop(){if(recorder?.state==='recording')recorder.stop()};ptt.addEventListener('pointerdown',e=>{if(e.button!==0&&e.pointerType==='mouse')return;e.preventDefault();ptt.setPointerCapture?.(e.pointerId);start()});ptt.addEventListener('pointerup',stop);ptt.addEventListener('pointercancel',stop);ptt.addEventListener('keydown',e=>{if(e.key===' '&&!e.repeat){e.preventDefault();start()}});ptt.addEventListener('keyup',e=>{if(e.key===' '){e.preventDefault();stop()}});
+ let recorder,stream,chunks=[],speechRecognition=null;const ptt=document.getElementById('cadMapPTT');async function start(){
+ const Recognition=window.SpeechRecognition||window.webkitSpeechRecognition;
+ if(Recognition){
+  try{
+   const recognizer=new Recognition();speechRecognition=recognizer;
+   recognizer.lang='en-US';recognizer.interimResults=false;recognizer.maxAlternatives=1;
+   recognizer.onresult=event=>{const heard=event.results?.[0]?.[0]?.transcript||'';if(heard){document.getElementById('cadMapQuestion').value=heard;void ask(heard)}else setResult('No map command recognized.')};
+   recognizer.onerror=event=>setResult('Map microphone: '+(event.error||'speech recognition error')+'. You can type the request.');
+   recognizer.onend=()=>{ptt.textContent='🎙 Hold to Ask';speechRecognition=null};
+   recognizer.start();ptt.textContent='🔴 Listening…';setResult('Listening for a map command…');return;
+  }catch(error){speechRecognition=null;setResult('Speech recognition unavailable: '+error.message)}
+ }
+ if(location.hostname==='localhost'||location.hostname==='127.0.0.1'){setResult('This browser has no speech recognition support for the local map. Type the map command in Ask the Map.');return}
+if(recorder?.state==='recording')return;try{stream=await navigator.mediaDevices.getUserMedia({audio:true});chunks=[];recorder=new MediaRecorder(stream);recorder.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)};recorder.onstop=async()=>{stream?.getTracks().forEach(t=>t.stop());ptt.textContent='🎙 Hold to Ask';const blob=new Blob(chunks,{type:recorder.mimeType||'audio/webm'});if(!blob.size)return;setResult('Transcribing map question…');try{const r=await fetch('/.netlify/functions/transcribe',{method:'POST',headers:{'Content-Type':blob.type},body:blob});if(!r.ok)throw new Error('Transcription request failed');const data=await r.json();const result=data.text||data.transcript||data.transcription||'';if(!result)throw new Error('No speech recognized');input.value=result;await ask(result)}catch(e){setResult(`Map voice unavailable: ${e.message}`)}};recorder.start();ptt.textContent='🔴 Listening…';setResult('Release to ask the map')}catch(e){setResult('Microphone unavailable. Type your question instead.')}}
+ function stop(){if(speechRecognition){try{speechRecognition.stop()}catch{}return}if(recorder?.state==='recording')recorder.stop()};ptt.addEventListener('pointerdown',e=>{if(e.button!==0&&e.pointerType==='mouse')return;e.preventDefault();ptt.setPointerCapture?.(e.pointerId);start()});ptt.addEventListener('pointerup',stop);ptt.addEventListener('pointercancel',stop);ptt.addEventListener('keydown',e=>{if(e.key===' '&&!e.repeat){e.preventDefault();start()}});ptt.addEventListener('keyup',e=>{if(e.key===' '){e.preventDefault();stop()}});
 }
 window.cadInvalidateMapSize=()=>map?.invalidateSize({pan:false});if(window.ResizeObserver)new ResizeObserver(()=>window.cadInvalidateMapSize()).observe(host);
 init();mount();const old=window.renderMap;window.renderMap=function(){if(window.L)void draw();else old?.()};window.addEventListener('load',()=>{void draw();setTimeout(()=>map?.invalidateSize(),350)});draw();

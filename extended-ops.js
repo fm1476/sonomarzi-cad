@@ -2,10 +2,12 @@
 (()=>{
 'use strict';
 const previous=window.cadBeforeVoiceProcess;
-const normalize=text=>String(text||'').toLowerCase().replace(/\bbatallion\b/g,'battalion').replace(/[.,!?]/g,' ').replace(/\s+/g,' ').trim();
+const normalize=text=>String(text||'').toLowerCase().replace(/\bbatallion\b/g,'battalion').replace(/\b(?:atom|addam)\b/g,'adam').replace(/\b(\d+|one|two|three|four|five|six|seven|eight|nine)\s+item\s+(?=\d+|one\b|two\b|three\b|four\b|five\b|six\b|seven\b|eight\b|nine\b|ten\b|eleven\b|twelve\b|thirteen\b|fourteen\b|fifteen\b|sixteen\b|seventeen\b|eighteen\b|nineteen\b|twenty\b|thirty\b|forty\b|fifty\b)/g,'$1 adam ').replace(/[.,!?]/g,' ').replace(/\s+/g,' ').trim();
 const numbers={zero:0,one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10,eleven:11,twelve:12,thirteen:13,fourteen:14,fifteen:15,sixteen:16,seventeen:17,eighteen:18,nineteen:19,twenty:20,thirty:30,forty:40,fifty:50};
 function readNumber(text){if(/^\d+$/.test(text))return String(Number(text));const tokens=text.trim().split(/\s+/),values=tokens.map(x=>numbers[x]);if(values.some(x=>x===undefined))return null;if(values.length===2&&values[0]>=20&&values[1]<10)return String(values[0]+values[1]);if(values.length===1)return String(values[0]);return null;}
 function getCallsign(text){
+ const phonetic=window.CadVoiceText?.numericCallsigns(text)||[];
+ if(phonetic.length===1)return {id:phonetic[0],discipline:'LAW'};
  const t=normalize(text).replace(/^(?:dispatch|radio|unit)\s+/,'');
  let m=t.match(/\b(medic|engine|truck|battalion chief|battalion|rescue)\s+(\d{1,3}|(?:twenty|thirty|forty)\s+\w+|[a-z]+)\b/);
  if(m){const n=readNumber(m[2]);if(n)return {id:({medic:'M',engine:'E',truck:'T',battalion:'B','battalion chief':'B',rescue:'R'})[m[1]]+n,discipline:m[1]==='medic'?'EMS':'FIRE'};}
@@ -19,6 +21,7 @@ function getCallsigns(text){
  // Parse every explicit radio designator, including units that have not logged on yet.
  // Prevent a unit in an address or an isolated number from being mistaken for a callsign.
  const t=normalize(text), entries=[];
+ for(const id of window.CadVoiceText?.numericCallsigns(text)||[])entries.push({id,discipline:'LAW'});
  const pattern=/\b(?:battalion\s+chief|battalion|engine|truck|medic|rescue)\s+(?:\d{1,3}|(?:twenty|thirty|forty|fifty)\s+\w+|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)\b|\b(?:\d+|one|two|three|four|five|six|seven|eight|nine)\s+(?:adam|alpha|a)\s+(?:\d{1,3}|(?:twenty|thirty|forty)\s+\w+|one|two|three|four|five|six|seven|eight|nine)\b|\b(?:\d+a\d+|[emtbr]\d{1,3})\b/gi;
  for(const match of t.matchAll(pattern)){
   const unit=getCallsign(match[0]);

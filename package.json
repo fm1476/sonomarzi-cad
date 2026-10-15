@@ -5,6 +5,7 @@
   "description": "Experimental SonoMarzi CAD voice intelligence proof of concept",
   "scripts": {
     "test": "node tests/run-all.js",
-    "check": "node scripts/check-syntax.js && npm test"
+    "check": "node scripts/check-syntax.js && npm test",
+    "dev": "node scripts/local-dev-server.js"
   }
 }

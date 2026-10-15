@@ -2,7 +2,7 @@ const assert=require('assert'),fs=require('fs'),vm=require('vm'),path=require('p
 const state={seq:4525,incidents:[],units:[{id:'3A21',status:'AVAILABLE',discipline:'LAW',agency:'Petaluma Police'}]};
 const config={types:{LAW:['Traffic Stop','Suspicious Vehicle'],FIRE:['Fire Alarm'],EMS:['Medical Aid']}};
 const elements={voiceHeard:{},voiceInterpretation:{}};
-const ctx={state,config,window:{},document:{getElementById:id=>elements[id]},save(){}};
+const ctx={state,config,window:{CadVoiceText:require('../core/voice-text.js')},document:{getElementById:id=>elements[id]},save(){}};
 vm.createContext(ctx);vm.runInContext(fs.readFileSync(path.join(__dirname,'..','voice-incident-creation.js'),'utf8'),ctx);
 let accepted=ctx.window.cadBeforeVoiceProcess('3A21 Traffic Stop 123 Main St blue toyoate 4-runner CA 2wnp196','FIELD');
 assert.strictEqual(accepted,true);assert.strictEqual(state.incidents.length,1);
