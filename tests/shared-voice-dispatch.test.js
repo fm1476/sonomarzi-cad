@@ -1,0 +1,12 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
+const voice=fs.readFileSync(path.join(__dirname,'..','voice.js'),'utf8');
+const outer=voice.slice(voice.lastIndexOf("process=function(text,source="));
+assert(outer.includes("if(window.cadSharedIsActive?.())"),'shared voice guard must precede legacy hooks');
+assert(outer.indexOf("if(window.cadSharedIsActive?.())")<outer.indexOf("window.cadBeforeVoiceProcess?.("),'shared guard must execute before mutating legacy handlers');
+const shared=voice.slice(voice.indexOf("async function processSharedVoiceDispatch("),voice.lastIndexOf("process=function(text,source="));
+assert(shared.includes("await window.cadSharedCommand('assign'"),'shared dispatch must use authenticated RPC gateway');
+assert(shared.includes("confirmed.status!=='ACTIVE'"),'incident must become active');
+assert(shared.includes("confirmedUnit?.status!=='DISPATCHED'"),'unit status must be verified');
+assert(shared.includes("confirmed.units||[]"),'assignment must be verified');
+assert(!shared.includes('save()'),'shared dispatch must not write a browser-only save');
+console.log('Shared voice dispatch uses authenticated assignment with post-refresh verification and no local mutation.');
