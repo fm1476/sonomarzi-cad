@@ -223,6 +223,7 @@
      if(!incident)throw Error('Incident not found. Refresh and retry.');
      if(action==='case')result=await client.setCaseNumber({agency,incident:incident.id,caseNumber:args.caseNumber||'',incidentVersion:incident.version});
      else if(action==='note')result=await client.addNarrative({agency,incident:incident.id,text:args.text,incidentVersion:incident.version});
+     else if(action==='activate')result=await client.activateIncident({agency,incident:incident.id,incidentVersion:incident.version});
      else if(action==='edit')result=await client.editIncident({agency,incident:incident.id,incidentVersion:incident.version,type:args.type,priority:args.priority,location:args.location,caseNumber:args.caseNumber,source:args.source||'DISPATCH'});
      else if(action==='preempt'){
       if(!unit)throw Error('Unit not found in shared roster.');
