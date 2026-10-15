@@ -36,6 +36,52 @@ function importDemoRoster(){
  try{M.save(localStorage,next);data=next;render();message.textContent='Imported '+added.agencies+' agencies and '+added.units+' unit definitions; '+skipped.length+' skipped. Existing master records were preserved. Staffing requirements remain unverified and unset.';window.dispatchEvent(new Event('cad-master-updated'))}
  catch(e){message.textContent='Import failed; nothing changed: '+e.message}
 }
+async function logOnDuty(masterUnitId){
+ const def=data.units.find(u=>u.id===masterUnitId);
+ if(!def)throw Error('Unit definition not found.');
+ const agency=data.agencies.find(a=>a.id===def.agencyId);
+ if(!agency)throw Error('Owning agency not found.');
+ if(window.cadSharedIsActive?.()){
+  if(typeof window.cadSharedRegisterMasterUnit!=='function')throw Error('Shared CAD logon unavailable. Check dispatcher connection.');
+  return await window.cadSharedRegisterMasterUnit(def,agency.name);
+ }
+ const current=window.cadMasterActiveUnits?.().find(u=>u.masterUnitId===masterUnitId);
+ if(current)return {ok:true,alreadyOnDuty:true,callSign:current.id};
+ const result=window.cadActivateMasterUnit?.(masterUnitId);
+ if(!result?.ok)throw Error(result?.error||'Local activation failed');
+ return {ok:true,callSign:def.designator};
+}
+window.cadLogOnConfiguredUnit=logOnDuty;
+function renderDutyLogOnOptions(){
+ const select=el('cadDutyLogOnSelect'),button=el('cadDutyLogOnButton');if(!select||!button)return;
+ const previous=select.value;
+ const shared=!!window.cadSharedIsActive?.();
+ const roster=shared?(window.cadSharedRoster?.()||[]):[];
+ const local=window.cadMasterActiveUnits?.()||[];
+ const eligible=data.units.filter(def=>{
+  const match=shared?roster.find(u=>u.call_sign.toUpperCase()===def.designator.toUpperCase()):local.find(u=>u.masterUnitId===def.id);
+  return !match||shared&&match.status==='OFF_DUTY';
+ });
+ select.innerHTML='<option value="">Choose configured unit</option>'+eligible.map(def=>{
+  const agency=data.agencies.find(a=>a.id===def.agencyId)?.name||'';
+  return '<option value="'+esc(def.id)+'">'+esc(def.designator+' · '+agency+' · '+def.discipline)+'</option>';
+ }).join('');
+ if(eligible.some(x=>x.id===previous))select.value=previous;
+ button.disabled=!select.value;
+}
+const logOnSelect=el('cadDutyLogOnSelect'),logOnButton=el('cadDutyLogOnButton');
+logOnSelect?.addEventListener('change',()=>{if(logOnButton)logOnButton.disabled=!logOnSelect.value;});
+logOnButton?.addEventListener('click',async()=>{
+ const id=logOnSelect?.value;if(!id)return;
+ logOnButton.disabled=true;el('cadDutyLogOnStatus').textContent='Logging on…';
+ try{
+  const result=await logOnDuty(id);
+  el('cadDutyLogOnStatus').textContent=result.alreadyOnDuty?result.callSign+' is already on duty.':result.callSign+' is now AVAILABLE.';
+ }catch(error){el('cadDutyLogOnStatus').textContent='Logon failed: '+error.message;}
+ renderDutyLogOnOptions();
+});
+window.addEventListener('cad-master-updated',renderDutyLogOnOptions);
+
 function renderStaff(){
  const unitSelect=el('cadStaffUnit'),crewSelect=el('cadStaffCrew'),status=el('cadStaffCurrent');
  const active=window.cadMasterActiveUnits?.()||[];
@@ -67,7 +113,7 @@ function render(){
  el('cadMasterAgencySelect').innerHTML=opts(data.agencies.map(a=>({id:a.id,name:a.name})));
  el('cadMasterPersonnelAgency').innerHTML=opts(data.agencies.map(a=>({id:a.id,name:a.name})));
  el('cadMasterPersonSelect').innerHTML='<option value="">None / assigned at sign-on</option>'+opts(data.personnel.filter(p=>p.agencyId===el('cadMasterAgencySelect').value).map(p=>({id:p.id,name:p.name+' ('+p.id+')'})));
- renderStaff();refreshTypes();
+ renderStaff();renderDutyLogOnOptions();refreshTypes();
 }
 function commit(next,success){try{M.save(localStorage,next);data=next;render();message.textContent=success;}catch(e){message.textContent='Not saved: '+e.message;}}
 el('cadMasterAgencySelect').addEventListener('change',()=>{const agencyId=el('cadMasterAgencySelect').value;el('cadMasterPersonSelect').innerHTML='<option value="">None / assigned at sign-on</option>'+opts(data.personnel.filter(p=>p.agencyId===agencyId).map(p=>({id:p.id,name:p.name+' ('+p.id+')'})));});
@@ -166,9 +212,16 @@ function editRecord(kind,id){
  });
  dialog.showModal();
 }
-list.addEventListener('click',e=>{
+list.addEventListener('click',async e=>{
  const editKind=e.target?.getAttribute('data-master-edit');if(editKind){editRecord(editKind,e.target.getAttribute('data-master-id'));return;}
- const activateId=e.target?.getAttribute('data-unit-activate');if(activateId){const result=window.cadActivateMasterUnit?.(activateId);message.textContent=result?.ok?'Unit activated in live CAD roster.':'Activation failed: '+(result?.error||'CAD integration unavailable');renderStaff();return;}
+ const activateId=e.target?.getAttribute('data-unit-activate');if(activateId){
+  message.textContent='Logging unit on duty…';
+  try{
+   const result=await logOnDuty(activateId);
+   message.textContent=result.alreadyOnDuty?'Unit '+result.callSign+' is already on duty.':'Unit '+result.callSign+' logged on duty and available.';
+  }catch(error){message.textContent='Log On Duty failed: '+error.message;}
+  renderStaff();renderDutyLogOnOptions();return;
+ }
  const id=e.target?.getAttribute('data-unit-delete');if(!id)return;
  if(!confirm('Remove this unit master definition? This does not change active demo CAD units.'))return;
  commit({...data,units:data.units.filter(u=>u.id!==id)},'Unit definition removed.');

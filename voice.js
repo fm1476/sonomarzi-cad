@@ -957,6 +957,31 @@ process=function(text,source=el('voiceSource').value){
   indicator('PROCESSED');
   return;
  }
+ // Explicit on-duty requests must resolve against Agency Master, not only the
+ // active roster. Newly configured units are absent from state.units until logon.
+ const duty=window.CadUnitDutyIntents?.resolve(text,window.CadAgencyMaster?.read(localStorage)?.units||[]);
+ if(duty?.kind==='LOG_ON'||duty?.kind==='REVIEW'){
+  el('voiceHeard').textContent=String(text||'');
+  if(duty.kind==='REVIEW'){
+   el('voiceInterpretation').textContent='LOG ON REVIEW: '+duty.reason+' No unit added.';
+   indicator('REVIEW');activity('VOICE LOGON REVIEW | '+duty.reason);renderActivity();
+  }else if(typeof window.cadLogOnConfiguredUnit!=='function'){
+   el('voiceInterpretation').textContent='LOG ON REVIEW: Agency configuration gateway unavailable.';
+   indicator('REVIEW');
+  }else{
+   el('voiceInterpretation').textContent='LOG ON | '+duty.unit.designator+' | PENDING roster confirmation…';
+   indicator('PROCESSING');
+   void window.cadLogOnConfiguredUnit(duty.unit.id).then(result=>{
+    const message=result.alreadyOnDuty?'already on duty':'AVAILABLE in '+(window.cadSharedIsActive?.()?'shared':'local')+' CAD';
+    el('voiceInterpretation').textContent='LOG ON CONFIRMED | '+duty.unit.designator+' | '+message;
+    indicator('PROCESSED');activity('VOICE LOG ON CONFIRMED | '+duty.unit.designator);renderActivity();
+   }).catch(error=>{
+    el('voiceInterpretation').textContent='LOG ON REVIEW | '+duty.unit.designator+' | '+error.message;
+    indicator('REVIEW');activity('VOICE LOG ON FAILED | '+duty.unit.designator+' | '+error.message);renderActivity();
+   });
+  }
+  return;
+ }
  // Shared workspace is database-authoritative: never invoke legacy voice
  // handlers that mutate projected local state or show false success.
  if(window.cadSharedIsActive?.()){
