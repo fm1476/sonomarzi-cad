@@ -247,7 +247,8 @@
     if(previous.discipline!==def.discipline||previous.resource_type!==String(def.resourceType).trim().toUpperCase())
      throw Error(callSign+' already exists with different discipline or resource type. Resolve the conflict before logon.');
     if(previous.status==='AVAILABLE')return {ok:true,alreadyOnDuty:true,callSign};
-    if(previous.status!=='OFF_DUTY')throw Error(callSign+' is already in service ('+previous.status+').');
+    if(previous.status==='OFF_DUTY')return await window.cadSharedSetUnitDuty(previous.id,true).then(result=>({ok:true,callSign,result}));
+    throw Error(callSign+' is already in service ('+previous.status+').');
    }
    const client=window.CadDemoLogin.client();
    let result;
