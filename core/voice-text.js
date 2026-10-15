@@ -41,7 +41,7 @@
     seventeen:17,eighteen:18,nineteen:19,twenty:20,thirty:30,forty:40,fifty:50,
     sixty:60,seventy:70,eighty:80,ninety:90};
   function numberAt(words,i) {
-    const first=words[i];
+    const first=String(words[i]||'').replace(/['’]s$/,'').replace(/\b(thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen)s$/,'$1');
     if (/^\d{1,3}$/.test(first||'')) return {value:Number(first),length:1};
     if (!Object.hasOwn(digits,first))return null;
     let value=digits[first],length=1;
