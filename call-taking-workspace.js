@@ -99,7 +99,7 @@ function refresh(){
  '<div class="cad-ct-narrative-header"><h3>Event Narrative</h3></div><form id="cadCTNoteForm" class="cad-ct-note-form"><label for="cadCTNoteInput">New narrative information</label><textarea id="cadCTNoteInput" rows="3" placeholder="Enter new caller information, observations, or updates..."></textarea><button type="submit" class="primary">Add to Event Narrative</button></form><div id="cadCTNarrative">'+(window.voiceDetailHtml?window.voiceDetailHtml(i):'<p>Narrative unavailable</p>')+'</div>';
  editor.querySelectorAll('.cad-ct-section').forEach((d,n)=>{d.open=expandAfterRefresh!==null?n===expandAfterRefresh:previousOpen.length?previousOpen.includes(n):n===0});expandAfterRefresh=null;
  $('cadCTClose').onclick=()=>{selected=null;refresh()};
- $('cadCTActivate')?.addEventListener('click',()=>{if(i.status!=='PENDING')return;i.status='ACTIVE';window.cadCallTakeEvent?.(i,'CALL_ACTIVATED_FROM_CALL_TAKING');window.cadCallTakeSave?.()});
+ $('cadCTActivate')?.addEventListener('click',()=>{if(window.cadSharedIsActive?.()){window.alert('Manual activation requires a shared CAD transaction. No changes made.');return;}if(i.status!=='PENDING')return;i.status='ACTIVE';window.cadCallTakeEvent?.(i,'CALL_ACTIVATED_FROM_CALL_TAKING');window.cadCallTakeSave?.()});
  setupGeoValidation($('cadCTForm'),i);
  const callerAddress=$('cadCTForm').querySelector('[name="callerLocation"]'),same=$('cadCTForm').querySelector('[name="callerSameAsEvent"]'),eventAddress=$('cadCTForm').querySelector('[name="location"]');
  let callerVerified=null;
@@ -109,7 +109,36 @@ function refresh(){
  const phoneInput=$('cadCTForm').querySelector('[name="callerPhone"]');
  phoneInput.addEventListener('blur',()=>{const v=window.cadPhoneNormalize?.(phoneInput.value);if(v?.ok)phoneInput.value=v.formatted});
 
- $('cadCTForm').onsubmit=e=>{e.preventDefault();const f=new FormData(e.currentTarget);let changes=[];
+ $('cadCTForm').onsubmit=async e=>{e.preventDefault();
+ if(window.cadSharedIsActive?.()){
+  const status=$('cadCTSaveStatus');
+  const f=new FormData(e.currentTarget);
+  const newLocation=String(f.get('location')??i.location).trim();
+  const newPriority=String(f.get('priority')??i.priority).trim();
+  const newCaseNumber=String(f.get('caseNumber')??i.caseNumber??'').trim();
+  const values={type:i.type,priority:newPriority,location:newLocation,caseNumber:newCaseNumber,source:'CALL_TAKING'};
+  const tracked=new Set(['location','priority','caseNumber','callerSameAsEvent']);
+  const unsupported=Array.from(f.entries()).filter(([key,value])=>!tracked.has(key)&&String(value||'').trim()!=='');
+  if(unsupported.length){
+   status.textContent='Not saved: caller information, custom fields, and other extended details are not yet backed by shared CAD. Use only location, priority or case number here.';
+   return;
+  }
+  if(!newLocation||!newPriority){status.textContent='Location and priority are required.';return}
+  const updated=values.location!==i.location||values.priority!==i.priority||values.caseNumber!==(i.caseNumber||'');
+  if(!updated){status.textContent='No supported shared changes to save';return}
+  const button=e.currentTarget.querySelector('[type="submit"]');if(button)button.disabled=true;
+  status.textContent='Saving to shared CAD…';
+  try{
+   await window.cadSharedCommand('edit',{incidentId:i.id,...values});
+   const current=window.cadSafetyState?.().incidents?.find(x=>x.sharedUuid===i.sharedUuid);
+   if(!current||current.location!==values.location||current.priority!==values.priority||(current.caseNumber||'')!==values.caseNumber)
+    throw Error('Database did not confirm the requested changes');
+   status.textContent='Saved to shared CAD ✓';refresh();
+  }catch(error){status.textContent='Save failed: '+error.message}
+  finally{if(button)button.disabled=false}
+  return;
+ }
+ const f=new FormData(e.currentTarget);let changes=[];
  const checkedPhone=window.cadPhoneNormalize?.(f.get('callerPhone')||'');
  if(checkedPhone&&!checkedPhone.ok){$('cadCTSaveStatus').textContent=checkedPhone.message;phoneInput.focus();return}
  const first=String(f.get('callerFirstName')||''),last=String(f.get('callerLastName')||'');
@@ -128,7 +157,14 @@ for(const kind of ['reportingParties','involvedPersons','vehicles']){const field
  $('cadCTForm').addEventListener('input',()=>{const status=$('cadCTSaveStatus');if(status)status.textContent='Unsaved changes'});
  $('cadCTForm').addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.matches('input')&&!e.isComposing){e.preventDefault();e.currentTarget.requestSubmit()}});
  $('cadCTClearEvent')?.addEventListener('click',()=>{const disposition=$('cadCTDisposition')?.value;if(!disposition){$('cadCTDisposition')?.focus();return;}const form=$('cadCTForm');form.requestSubmit();const result=window.cadCloseEvent?.(i,disposition,'CALL_TAKING');if(result?.ok){selected=null;refresh()}else alert(result?.message||'Unable to clear event')});
- $('cadCTNoteForm').onsubmit=e=>{e.preventDefault();const input=$('cadCTNoteInput'),text=input.value.trim();if(!text)return;const author=identity(),timestamp=new Date().toISOString();(i.narrative||=[]).push(text);(i.manualNarrativeEntries||=[]).push({id:'calltake-'+Date.now(),text,timestamp,author});i.callTakeNewInfoAt=timestamp;i.callTakeUpdateFields=['narrative'];window.cadCallTakeEvent?.(i,'NARRATIVE_ADDED '+timestamp+' BY '+author);input.value='';window.cadCallTakeSave?.();requestAnimationFrame(()=>document.getElementById('cadCTNoteInput')?.focus())};
+ $('cadCTNoteForm').onsubmit=async e=>{e.preventDefault();const input=$('cadCTNoteInput'),text=input.value.trim();if(!text)return;
+  if(window.cadSharedIsActive?.()){
+   const button=e.currentTarget.querySelector('button[type="submit"]');if(button)button.disabled=true;
+   try{await window.cadSharedCommand('note',{incidentId:i.id,text});input.value='';refresh();}
+   catch(error){window.alert('Narrative not saved: '+error.message)}
+   finally{if(button)button.disabled=false}
+   return;
+  }const author=identity(),timestamp=new Date().toISOString();(i.narrative||=[]).push(text);(i.manualNarrativeEntries||=[]).push({id:'calltake-'+Date.now(),text,timestamp,author});i.callTakeNewInfoAt=timestamp;i.callTakeUpdateFields=['narrative'];window.cadCallTakeEvent?.(i,'NARRATIVE_ADDED '+timestamp+' BY '+author);input.value='';window.cadCallTakeSave?.();requestAnimationFrame(()=>document.getElementById('cadCTNoteInput')?.focus())};
  $('cadCTNoteInput').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing){e.preventDefault();if(e.repeat)return;$('cadCTNoteForm').requestSubmit()}});
  // Reuse the same transcript navigation and chronological sort controls as Dispatch.
  const narrative=$('cadCTNarrative');
