@@ -1,6 +1,6 @@
 const assert=require('node:assert/strict'),fs=require('node:fs');
 const voice=fs.readFileSync('voice.js','utf8');
-const begin=voice.indexOf('async function processSharedVoiceCompound(text){');
+const begin=voice.indexOf('async function processSharedVoiceCompound(text,');
 const end=voice.indexOf('async function processSharedVoiceReclassification(',begin);
 assert(begin>=0&&end>begin);
 const segment=voice.slice(begin,end);
