@@ -21,5 +21,14 @@ function linkExisting(master,state){
  const linked=units.filter((u,i)=>u.masterUnitId&&!state.units[i].masterUnitId).length;
  return {state:{...state,units},linked};
 }
-return Object.freeze({activate,linkExisting});
+function logOff(state,unitId){
+ const unit=state.units.find(u=>u.id===unitId);
+ if(!unit)throw Error('Active CAD unit not found.');
+ if(!unit.masterUnitId)throw Error('Only configured master units can be logged off here.');
+ if(unit.staffing?.active)throw Error('Sign off the crew before logging off the unit.');
+ if(!['AVAILABLE','OUTOFSERVICE'].includes(unit.status))throw Error('Unit must be available or out of service before logoff.');
+ if((state.incidents||[]).some(i=>i.status!=='CLOSED'&&(i.units||[]).includes(unitId)))throw Error('Unit is still assigned to an open incident.');
+ return {...state,units:state.units.filter(u=>u.id!==unitId)};
+}
+return Object.freeze({activate,linkExisting,logOff});
 });
