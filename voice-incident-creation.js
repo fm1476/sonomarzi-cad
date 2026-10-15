@@ -65,7 +65,7 @@
   const raw=String(text||'').trim();const s=norm(raw);
   if(!raw||/\b(?:cancel|disregard|do not|don't|negative)\b/.test(s))return false;
   // Field-initiated traffic stop: unit, call type, street number and street required.
-  const traffic=/^(?:copy\s+)?(.{2,60}?)\s+(?:(?:is\s+)?on\s+(?:a\s+)?)?traffic\s+stop\b[,.:;\s]*(?:at\s+)?(.+)$/i.exec(wordDigits(norm(raw)));
+  const traffic=/^(?:copy\s+)?(.{2,60}?)\s+(?:(?:is\s+)?on\s+(?:a\s+)?)?traffic\s+stop\b[,.:;\s]*(?:at\s+)?(.+)$/i.exec(norm(raw));
   const identified=traffic?(window.CadVoiceText?.numericCallsigns(traffic[1])||[]):[];
   const validUnit=traffic&&(identified.length===1||(/^\d{2,5}$/.test(traffic[1].trim())&&toUnit(traffic[1])!==traffic[1].toUpperCase()));
   if(validUnit){
