@@ -1,4 +1,6 @@
 const KEY='smcad-poc-v1', CFG='smcad-config-v1';
+const CAD_LEGACY_CLEAN_KEY='smcad-original-demo-cleaned-v1';
+const cadLegacyCleaned=()=>localStorage.getItem(CAD_LEGACY_CLEAN_KEY)==='1';
 const defaultConfig={agencies:['Sonoma County Sheriff','Petaluma Police','Petaluma Fire / EMS','REDCOM'],types:{LAW:['Traffic Stop','Domestic','Suspicious Person','Alarm','Traffic Collision','Welfare Check','Disturbance'],FIRE:['Structure Fire','Vegetation Fire','Vehicle Fire','Alarm','Hazard'],EMS:['Medical Aid','Cardiac Arrest','Fall','Overdose','Traffic Collision']}};
 const defaultState=()=>({seq:4525,selected:null,incidents:[
 {id:'26-004518',agency:'Petaluma Police',discipline:'LAW',priority:'P1',type:'Domestic',location:'725 D St',caller:'RP',phone:'707-555-0144',narrative:['Caller reports physical fight, possible weapon.'],status:'ACTIVE',units:['3A21'],events:[]},
@@ -22,7 +24,7 @@ const defaultState=()=>({seq:4525,selected:null,incidents:[
 {id:'M2',agency:'Petaluma Fire / EMS',discipline:'EMS',status:'AVAILABLE',location:'Station 2',x:82,y:71},
 {id:'M3',agency:'Petaluma Fire / EMS',discipline:'EMS',status:'TRANSPORTING',location:'Hospital',x:16,y:24}
 ]});
-let state=window.CadPersistence.read(KEY)||defaultState();
+let state=window.CadPersistence.read(KEY)||(cadLegacyCleaned()?{seq:4525,selected:null,incidents:[],units:[]}:defaultState());
 let cadLocalWorkspace=null;
 let cadSharedWorkspaceMode=false;
 window.cadSharedApplySnapshot=function(snapshot){
@@ -61,7 +63,29 @@ window.cadSafetyState=()=>state;
 window.cadCallTakeSave=()=>save();
 window.CadPlanDispatch={preview(incident){const result=window.CadResponsePlans?.recommendIncident(incident);if(incident.responseZoneSource==='MANUAL_UNVERIFIED'&&!incident.responseZoneReviewed)return {ok:false,message:'Operator-entered response zone requires explicit review before plan dispatch.'};if(result?.status!=='ready')return {ok:false,message:result?.message||'No verified response plan.'};if(incident.status==='CLOSED')return {ok:false,message:'Incident closed.'};const assigned=new Set(incident.units||[]);const units=[...new Set(result.rows.flatMap(r=>r.selected))].filter(id=>!assigned.has(id));if(!units.length)return {ok:false,message:'No additional eligible resources in the plan. The published plan may already be satisfied; supplemental requests need an explicitly configured increment.'};const sharedGroups=(()=>{try{return JSON.parse(localStorage.getItem('smcad-shared-crews-v1')||'[]')}catch{return []}})();const busy=new Set(state.incidents.filter(x=>x.status!=='CLOSED').flatMap(x=>x.units||[]));for(const id of units){const group=sharedGroups.find(g=>(!g.agency||g.agency===incident.agency)&&(g.units||[]).includes(id));if(group){const occupied=(group.units||[]).find(other=>other!==id&&busy.has(other));if(occupied)return {ok:false,message:'Shared crew conflict: '+id+' shares a crew with committed '+occupied+'.'};}}for(const id of units){const u=state.units.find(x=>x.id===id);if(!u||u.status!=='AVAILABLE'||state.incidents.some(x=>x.status!=='CLOSED'&&x.id!==incident.id&&x.units.includes(id)))return {ok:false,message:'Unit '+id+' is no longer available. Refresh recommendations.'};}return {ok:true,units,incidentId:incident.id,message:'Plan '+result.plan.type+' / '+result.plan.zone+'. Manual confirmation required.'}},commit(incident,preview){const fresh=this.preview(incident);if(!fresh.ok)return fresh;if(fresh.incidentId!==preview.incidentId||fresh.units.join('|')!==preview.units.join('|'))return {ok:false,message:'Recommendations changed. Review and confirm again.'};const result=window.CadUnitCommands.assignPlan({state,incident,unitIds:fresh.units,event,sharedGroups:cadSharedCrewGroups()});if(!result.ok)return result;const updated=window.CadResponsePlans?.recommendIncident(incident);if(updated?.status==='ready'){incident.responseShortfalls=updated.rows.filter(row=>Number(row.short)>0).map(row=>({type:row.type,missing:Number(row.short)}));if(incident.responseShortfalls.length)event(incident,'RESPONSE_INCOMPLETE '+incident.responseShortfalls.map(row=>row.type+': '+row.missing+' still needed').join('; '));else event(incident,'RESPONSE_REQUIREMENTS_FILLED');}state.selected=incident.id;save();return result}};
 window.cadCallTakeEvent=(inc,msg)=>event(inc,msg);
+// Guarded browser-local cleanup. The authenticated Supabase workspace and its
+// database are deliberately out of scope. Explicit selections only.
+// Remove explicitly approved hosted browser-local agencies and their operational
+// records. The Supabase shared workspace is never mutated.
+window.cadApplyOriginalDemoCleanup=selection=>{
+ if(window.cadSharedIsActive?.())throw Error('Switch out of Shared CAD before cleaning browser-local data.');
+ const names=selection?.agencyNames;
+ if(!Array.isArray(names)||!names.length)throw Error('Explicit agency selections required.');
+ const approved=new Set(['Sonoma County Sheriff','Petaluma Fire / EMS','REDCOM']);
+ if(names.some(n=>!approved.has(n)))throw Error('Only approved legacy demo agencies can be removed.');
+ const remove=new Set(names);
+ if(!Array.isArray(state.units)||!Array.isArray(state.incidents))throw Error('Local CAD state invalid.');
+ const before={units:state.units.length,incidents:state.incidents.length};
+ state.incidents=state.incidents.filter(i=>!remove.has(i.agency));
+ state.units=state.units.filter(u=>!remove.has(u.agency));
+ config.agencies=(config.agencies||[]).filter(name=>!remove.has(name));
+ localStorage.setItem(CAD_LEGACY_CLEAN_KEY,'1');
+ localStorage.setItem(CFG,JSON.stringify(config));
+ save();populate();render();
+ return {units:before.units-state.units.length,incidents:before.incidents-state.incidents.length,agencies:names.length};
+};
 window.cadRestoreMissingDemoCalls=()=>{
+ if(cadLegacyCleaned())return 0;
  const existing=new Set((state.incidents||[]).map(i=>i.id));
  const missing=defaultState().incidents.filter(i=>!existing.has(i.id));
  if(!missing.length)return 0;
@@ -75,7 +99,7 @@ window.cadDemoDataHealth=()=>({incidentCount:state.incidents?.length||0,openCoun
 // Add the expanded incident roster once when upgrading an untouched original 3-call demo.
 // Never overwrite or replace saved user-created incidents.
 const EIGHT_CALL_SEED_KEY='smcad-eight-call-seed-v15';
-if(!localStorage.getItem(EIGHT_CALL_SEED_KEY)){
+if(!cadLegacyCleaned()&&!localStorage.getItem(EIGHT_CALL_SEED_KEY)){
  const originals=['26-004518','26-004519','26-004520'];
  if(state.incidents.length===3 && originals.every(id=>state.incidents.some(i=>i.id===id))){
   for(const incident of defaultState().incidents){if(!state.incidents.some(i=>i.id===incident.id))state.incidents.push(incident);}
@@ -88,7 +112,7 @@ if(!localStorage.getItem(EIGHT_CALL_SEED_KEY)){
 // Seed three additional patrol units into existing browser demo data, once only.
 // Preserve any existing incidents, statuses, assignments, and transcript history.
 const SIX_UNIT_SEED_KEY='smcad-six-patrol-seed-v1';
-if(!localStorage.getItem(SIX_UNIT_SEED_KEY)){
+if(!cadLegacyCleaned()&&!localStorage.getItem(SIX_UNIT_SEED_KEY)){
   if(!Array.isArray(state.units)) state.units=[];
   const seeds=defaultState().units.filter(u=>['3A16','3A18','3A22'].includes(u.id));
   for(const u of seeds) if(!state.units.some(existing=>existing.id===u.id)) state.units.push(u);
@@ -466,9 +490,9 @@ function renderMap(){
  state.units.forEach(u=>{let m=document.createElement('div');m.className='marker '+u.discipline.toLowerCase();m.style.left=u.x+'%';m.style.top=u.y+'%';m.title=`${u.id} ${u.status}`;$('#map').appendChild(m)})
 }
 function availableAgencies(){
- const names=['Petaluma Police'];
+ const names=[];
  const add=a=>{const n=String(a??'').trim();if(n&&!names.some(x=>x.toLowerCase()===n.toLowerCase()))names.push(n)};
- for(const a of defaultConfig.agencies)add(a);
+ for(const a of defaultConfig.agencies)if(!cadLegacyCleaned()||a==='Petaluma Police')add(a);
  for(const a of config.agencies||[])add(a);
  for(const a of state.incidents||[])add(a.agency);
  for(const u of state.units||[])add(u.agency);
@@ -478,7 +502,7 @@ function availableAgencies(){
 function populate(){
  const agency=$('#agency'),previous=agency.value;
  agency.innerHTML=availableAgencies().map(a=>`<option value="${escapeCad(a)}">${escapeCad(a)}</option>`).join('');
- agency.value=availableAgencies().includes(previous)?previous:'Petaluma Police';
+ agency.value=availableAgencies().includes(previous)?previous:(availableAgencies()[0]||'');
  updateTypes();
  $('#cfgAgencies').value=(config.agencies||[]).join('\n');$('#cfgLaw').value=(config.types?.LAW||[]).join('\n');$('#cfgFire').value=(config.types?.FIRE||[]).join('\n');$('#cfgEms').value=(config.types?.EMS||[]).join('\n');
 }
@@ -632,7 +656,7 @@ if($('#reset')&&!document.getElementById('cadLoadDemoCalls')){
 }
 $('#reset').onclick=()=>{
  if(!confirm('RESET ENTIRE DEMO?\n\nThis will erase all browser-saved incidents, cases, unit assignments/statuses, radio transcripts, AI summaries, activity history, and legacy demo settings. Permanent Agency Master records will NOT be erased. It will restore the original sample data.\n\nThis cannot be undone.'))return;
- localStorage.setItem(KEY,JSON.stringify(defaultState()));
+ localStorage.setItem(KEY,JSON.stringify(cadLegacyCleaned()?{seq:4525,selected:null,incidents:[],units:[]}:defaultState()));
  localStorage.removeItem(CFG);
  localStorage.removeItem('smcad-agency-phrase-preview-v1');
  localStorage.setItem(SIX_UNIT_SEED_KEY,'1');
