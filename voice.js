@@ -649,14 +649,55 @@ async function processSharedVoiceDispatch(text){
  }catch(error){failure(error?.message||'Shared dispatch failed')}
  finally{sharedVoiceDispatchPending=false;}
 }
+async function processSharedVoiceStatus(text){
+ const heard=String(text||'').trim();
+ const intents=window.CadSharedVoiceIntents;
+ const intent=intents?.classify(heard)||{kind:'REVIEW',reason:'Radio intent library unavailable'};
+ const unit=intents?.callsigns(heard,state.units,window.CadVoiceText);
+ const fail=reason=>{
+  el('voiceHeard').textContent=heard;
+  el('voiceInterpretation').textContent='HEARD: '+heard+' | UNIT: '+(unit?.id||'unresolved')+' | SHARED CAD REVIEW: '+reason+'. No status change confirmed.';
+  activity('SHARED RADIO REVIEW | '+reason);renderActivity();indicator('REVIEW');
+ };
+ if(intent.kind==='REVIEW')return fail(intent.reason);
+ if(sharedVoiceDispatchPending)return fail('Another shared radio transaction is processing');
+ if(!unit?.sharedUuid)return fail('No unique roster unit identified');
+ const assigned=state.incidents.filter(i=>i.status==='ACTIVE'&&(i.units||[]).includes(unit.id));
+ if(assigned.length!==1||!assigned[0].sharedUuid)return fail('Exactly one active unit assignment is required');
+ const incident=assigned[0];
+ if(typeof window.cadSharedCommand!=='function')return fail('Authenticated shared command unavailable');
+ if(intent.kind==='STATUS'&&unit.status===intent.status)return fail('Unit already reports '+intent.status);
+ if(intent.kind==='CLEAR'&&unit.status==='AVAILABLE')return fail('Unit already available');
+ sharedVoiceDispatchPending=true;
+ el('voiceHeard').textContent=heard;
+ el('voiceInterpretation').textContent='HEARD: '+heard+' | UNIT: '+unit.id+' | EVENT: '+incident.id+' | PENDING: verifying shared radio transaction…';
+ indicator('PROCESSING');
+ try{
+  if(intent.kind==='STATUS')await window.cadSharedCommand('status',{incidentId:incident.sharedUuid,unitId:unit.sharedUuid,status:intent.status});
+  else await window.cadSharedCommand('clear',{incidentId:incident.sharedUuid,unitId:unit.sharedUuid,disposition:'CLEARED'});
+  const latest=window.cadSafetyState?.();
+  const freshUnit=latest?.units?.find(u=>u.sharedUuid===unit.sharedUuid);
+  const freshEvent=latest?.incidents?.find(i=>i.sharedUuid===incident.sharedUuid);
+  const confirmed=intent.kind==='STATUS'
+   ?freshUnit?.status===intent.status&&(freshEvent?.units||[]).includes(unit.id)
+   :freshUnit?.status==='AVAILABLE'&&!(freshEvent?.units||[]).includes(unit.id);
+  if(!confirmed)return fail('Database operation returned, but refreshed status and assignment do not match');
+  const label=intent.kind==='CLEAR'?'CLEARED / AVAILABLE':intent.status;
+  el('voiceInterpretation').textContent='HEARD: '+heard+' | UNIT: '+unit.id+' | EVENT: '+incident.id+' | CONFIRMED IN SHARED CAD: '+label;
+  activity('SHARED RADIO CONFIRMED | '+unit.id+' '+label);renderActivity();indicator('PROCESSED');
+ }catch(err){fail(err?.message||'Shared operation failed')}
+ finally{sharedVoiceDispatchPending=false;}
+}
 process=function(text,source=el('voiceSource').value){
  // Shared workspace is database-authoritative: never invoke legacy voice
  // handlers that mutate projected local state or show false success.
  if(window.cadSharedIsActive?.()){
-  if(source==='DISPATCH'&&dispatchIntent(text,source))void processSharedVoiceDispatch(text);
+  const parsed=window.CadSharedVoiceIntents?.classify(text);
+  if(parsed?.kind==='STATUS'||parsed?.kind==='CLEAR')void processSharedVoiceStatus(text);
+  else if(source==='DISPATCH'&&dispatchIntent(text,source)&&parsed?.kind!=='REVIEW')void processSharedVoiceDispatch(text);
   else{
    el('voiceHeard').textContent=String(text||'');
-   el('voiceInterpretation').textContent='SHARED CAD REVIEW: This voice action is not connected to a verified shared transaction. No shared change made.';
+   el('voiceInterpretation').textContent='SHARED CAD REVIEW: '+(parsed?.reason||'This voice action lacks a verified shared workflow')+'. No shared change made.';
    indicator('REVIEW');
   }
   return;
