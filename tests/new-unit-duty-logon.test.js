@@ -26,7 +26,7 @@ assert(html.includes('core/unit-duty-intents.js'));
 assert(settings.includes('window.cadLogOnConfiguredUnit=logOnDuty'));
 assert(settings.includes("window.cadSharedRegisterMasterUnit(def,agency.name)"));
 assert(voice.includes('window.CadUnitDutyIntents?.resolve(text'));
-assert(voice.indexOf('window.CadUnitDutyIntents?.resolve(text')<voice.indexOf('if(window.cadSharedIsActive?.()){',voice.indexOf('process=function(text'))),'logon must precede shared incident commands');
+assert(voice.indexOf('window.CadUnitDutyIntents?.resolve(text')<voice.indexOf('if(window.cadSharedIsActive?.()){',voice.indexOf('process=function(text')),'logon must precede shared incident commands');
 assert(client.includes("rpc('cad_register_unit'"));
 assert(panel.includes('window.cadSharedRegisterMasterUnit=async function'));
 assert(panel.includes("now.status!=='AVAILABLE'"),'confirm available in shared roster');
