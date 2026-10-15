@@ -221,7 +221,8 @@
      result=await client.createIncidentAuto({agency,discipline:args.discipline,type:args.type,priority:args.priority,location:args.location});
     }else{
      if(!incident)throw Error('Incident not found. Refresh and retry.');
-     if(action==='case')result=await client.setCaseNumber({agency,incident:incident.id,caseNumber:args.caseNumber||'',incidentVersion:incident.version});
+     if(action==='allocate-case')result=await client.allocateCaseNumber({agency,incident:incident.id,incidentVersion:incident.version});
+     else if(action==='case')result=await client.setCaseNumber({agency,incident:incident.id,caseNumber:args.caseNumber||'',incidentVersion:incident.version});
      else if(action==='note')result=await client.addNarrative({agency,incident:incident.id,text:args.text,incidentVersion:incident.version});
      else if(action==='batch-assign'){
       const names=Array.isArray(args.unitIds)?args.unitIds:[];
