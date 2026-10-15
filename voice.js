@@ -649,6 +649,52 @@ async function processSharedVoiceDispatch(text){
  }catch(error){failure(error?.message||'Shared dispatch failed')}
  finally{sharedVoiceDispatchPending=false;}
 }
+// Explicitly confirmed reports can change the shared call type. When the same
+// transmission reports arrival, first persist the status, then the classification.
+async function processSharedVoiceReclassification(text,parsed){
+ const heard=String(text||'').trim();
+ const candidates=unitMatches(heard);
+ const fail=reason=>{
+  el('voiceHeard').textContent=heard;
+  el('voiceInterpretation').textContent='HEARD: '+heard+' | REQUEST: CFS reclassification | REVIEW: '+reason+'. No CFS type change confirmed.';
+  indicator('REVIEW');activity('SHARED RECLASS REVIEW | '+reason);renderActivity();
+ };
+ if(sharedVoiceDispatchPending)return fail('Another shared command is processing');
+ if(candidates.length!==1)return fail('Exactly one existing reporting unit required');
+ const unit=candidates[0];
+ const owned=state.incidents.filter(i=>i.status==='ACTIVE'&&(i.units||[]).includes(unit.id));
+ if(owned.length!==1||!owned[0].sharedUuid||!unit.sharedUuid)return fail('Reporting unit needs one uniquely assigned active shared incident');
+ const incident=owned[0];
+ if(parsed.review)return fail(parsed.review);
+ if(!parsed.type||parsed.discipline!==incident.discipline)return fail('Classification not supported for this incident discipline');
+ if(parsed.type===incident.type)return fail('Incident is already classified as '+parsed.type);
+ if(!['Structure Fire','Vegetation Fire','Vehicle Fire','Fire Alarm','Cardiac Arrest','Medical Aid','Overdose','Burglary','Robbery','Domestic','Traffic Collision','Welfare Check'].includes(parsed.type))
+  return fail('This classification requires agency configuration and server validation');
+ if(/\b(?:possible|possibly|potential|suspected|maybe|might|may be|unconfirmed|negative|not|no evidence|cancel|disregard)\b/i.test(heard))
+  return fail('Unconfirmed or negated report');
+ sharedVoiceDispatchPending=true;
+ el('voiceHeard').textContent=heard;
+ el('voiceInterpretation').textContent='HEARD: '+heard+' | UNIT: '+unit.id+' | EVENT: '+incident.id+' | PENDING: verifying incident reclassification…';
+ indicator('PROCESSING');
+ try{
+  const status=window.CadSharedVoiceIntents?.classify(heard);
+  if(status?.kind==='STATUS'&&status.status==='ONSCENE'&&unit.status!=='ONSCENE'){
+   await window.cadSharedCommand('status',{incidentId:incident.sharedUuid,unitId:unit.sharedUuid,status:'ONSCENE'});
+  }
+  await window.cadSharedCommand('reclassify',{incidentId:incident.sharedUuid,unitId:unit.sharedUuid,type:parsed.type,report:heard});
+  const current=window.cadSafetyState?.();
+  const latest=current?.incidents?.find(i=>i.sharedUuid===incident.sharedUuid);
+  const latestUnit=current?.units?.find(u=>u.sharedUuid===unit.sharedUuid);
+  if(!latest||latest.type!==parsed.type||!(latest.units||[]).includes(unit.id))
+    return fail('The database returned but the shared CFS type or assignment was not confirmed');
+  if(status?.kind==='STATUS'&&status.status==='ONSCENE'&&latestUnit?.status!=='ONSCENE')
+    return fail('CFS changed, but the on-scene status was not verified; inspect shared CAD');
+  const message=incident.type+' → '+parsed.type;
+  el('voiceInterpretation').textContent='HEARD: '+heard+' | UNIT: '+unit.id+' | EVENT: '+latest.id+' | CONFIRMED SHARED CFS UPDATE: '+message;
+  activity('SHARED CFS RECLASSIFIED | '+latest.id+' '+message);renderActivity();indicator('PROCESSED');
+ }catch(error){fail(error?.message||'Shared reclassification failed')}
+ finally{sharedVoiceDispatchPending=false;}
+}
 async function processSharedVoiceStatus(text){
  const heard=String(text||'').trim();
  const intents=window.CadSharedVoiceIntents;
@@ -693,7 +739,10 @@ process=function(text,source=el('voiceSource').value){
  // handlers that mutate projected local state or show false success.
  if(window.cadSharedIsActive?.()){
   const parsed=window.CadSharedVoiceIntents?.classify(text);
-  if(parsed?.kind==='STATUS'||parsed?.kind==='CLEAR')void processSharedVoiceStatus(text);
+  const classification=window.cadIncidentIntelligence?.classification(text);
+  if(classification?.type||classification?.review&&/\b(?:working|structure fire|vegetation fire|vehicle fire|cardiac arrest|overdose|reclassify|upgrade)\b/i.test(text))
+   void processSharedVoiceReclassification(text,classification);
+  else if(parsed?.kind==='STATUS'||parsed?.kind==='CLEAR')void processSharedVoiceStatus(text);
   else if(source==='DISPATCH'&&dispatchIntent(text,source)&&!/\b(?:traffic stop|out with|follow[ -]?up|cancel|disregard|do not|don't|preempt)\b/i.test(text))void processSharedVoiceDispatch(text);
   else{
    el('voiceHeard').textContent=String(text||'');
