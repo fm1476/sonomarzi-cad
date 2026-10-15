@@ -874,6 +874,8 @@ async function processSharedVoiceReclassification(text,parsed,confirmedUnitId=nu
   const message=alreadyClassified?'Already '+parsed.type+' (no duplicate reclassification)':incident.type+' → '+parsed.type;
   el('voiceInterpretation').textContent='HEARD: '+heard+' | UNIT: '+unit.id+' | EVENT: '+latest.id+' | CONFIRMED SHARED CFS UPDATE: '+message;
   activity('SHARED CFS RECLASSIFIED | '+latest.id+' '+message);renderActivity();indicator('PROCESSED');
+  // Release the mutation gate before continuing to the separate dispatch clause.
+  sharedVoiceDispatchPending=false;
   if(typeof onConfirmed==='function')await onConfirmed(unit.id);
   return true;
  }catch(error){fail(error?.message||'Shared reclassification failed');return false}
