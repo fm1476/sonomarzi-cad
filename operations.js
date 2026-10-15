@@ -37,7 +37,7 @@ $('opsApplyStatus').onclick=()=>{
    if(!disposition){info('Enter a disposition first.');return;}
    return shared('clear',{incidentId:i.id,unitId:u.id,disposition},u.id+' cleared from '+i.id+'.');
   }
-  if(requested==='CODE4'||requested==='AVAILABLE_ON_SCENE'){info('This status is not yet supported in shared mode.');return;}
+  if(requested==='AVAILABLE_ON_SCENE'){info('This status is not yet supported in shared mode.');return;}
   return shared('status',{incidentId:i.id,unitId:u.id,status:requested},u.id+' status changed to '+requested+'.');
  }
  const assigned=i.units.includes(u.id);
