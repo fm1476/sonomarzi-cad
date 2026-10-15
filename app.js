@@ -45,7 +45,7 @@ window.cadSharedApplySnapshot=function(snapshot){
   events:(snapshot.incidentEvents||[]).filter(e=>e.incident_id===i.id).slice().reverse().map(e=>new Date(e.occurred_at).toLocaleTimeString()+' · '+e.event_type+' '+JSON.stringify(e.payload||{})),
   caller:'',phone:'',locations:(snapshot.incidentLocations||[]).filter(l=>l.incident_id===i.id).slice().reverse().map(l=>({role:l.classification||'PRIMARY',address:l.address,source:l.source||'SHARED_DATABASE',recordedAt:l.recorded_at}))
  }));
- const units=(snapshot.roster||[]).map(u=>({id:u.call_sign,sharedUuid:u.id,sharedVersion:u.version,
+ const units=(snapshot.roster||[]).filter(u=>u.status!=='OFF_DUTY').map(u=>({id:u.call_sign,sharedUuid:u.id,sharedVersion:u.version,
   agency:u.home_agency_name||'SonoMarzi CAD Demo Agency',discipline:u.discipline,
   resourceType:u.resource_type,status:u.status,location:'Shared CAD',x:50,y:50}));
  state={...cadLocalWorkspace,incidents,units,selected:incidents.some(i=>i.id===previous&&i.status!=='CLOSED')?previous:(incidents.find(i=>i.status==='ACTIVE')||incidents.find(i=>i.status==='PENDING'))?.id||null};
