@@ -1,0 +1,18 @@
+const assert=require('node:assert/strict'),fs=require('node:fs');
+const app=fs.readFileSync('app.js','utf8'),ui=fs.readFileSync('legacy-demo-cleanup.js','utf8'),html=fs.readFileSync('index.html','utf8');
+assert(app.includes('window.cadApplyOriginalDemoCleanup=selection=>'));
+assert(app.includes("if(window.cadSharedIsActive?.())throw Error"),'do not clean shared database state');
+assert(app.includes("if(cadLegacyCleaned())return 0;"),'do not restore sample incidents after cleanup');
+assert(app.includes("if(!cadLegacyCleaned()&&!localStorage.getItem(EIGHT_CALL_SEED_KEY))"),'stop original incident seed');
+assert(app.includes("if(!cadLegacyCleaned()&&!localStorage.getItem(SIX_UNIT_SEED_KEY))"),'stop original unit seed');
+assert(app.includes("if(!cadLegacyCleaned())for(const a of defaultConfig.agencies)add(a)"),'stop forced demo agency labels');
+assert(ui.includes("const RESOURCE_KEY='smcad-resource-types-v1'"),'resource type catalog must be backed up');
+assert(!ui.includes("localStorage.removeItem(RESOURCE_KEY)"),'never delete custom resource types');
+assert(ui.includes("source==='demo-roster-import'"),'only imported master definitions can be cleanup candidates');
+assert(ui.includes('No defaults are silently selected'),'cleanup candidates must be unchecked');
+assert(ui.includes("const snapshot=Object.fromEntries"),'rollback on unexpected errors');
+assert(ui.includes("window.CadAgencyMaster.validate(next)"),'validate next master configuration');
+assert(ui.includes('if(window.cadSharedIsActive?.())'),'deny cleanup while shared view is active');
+assert(ui.includes('Download full browser backup'),'require backup before proceeding');
+assert(html.includes('<script src="legacy-demo-cleanup.js?v=1"></script>'));
+console.log('PASS: hosted cleanup preserves custom configuration and shared Supabase data and suppresses demo reseeding');
