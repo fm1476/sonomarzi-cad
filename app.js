@@ -65,28 +65,24 @@ window.CadPlanDispatch={preview(incident){const result=window.CadResponsePlans?.
 window.cadCallTakeEvent=(inc,msg)=>event(inc,msg);
 // Guarded browser-local cleanup. The authenticated Supabase workspace and its
 // database are deliberately out of scope. Explicit selections only.
+// Remove explicitly approved hosted browser-local agencies and their operational
+// records. The Supabase shared workspace is never mutated.
 window.cadApplyOriginalDemoCleanup=selection=>{
  if(window.cadSharedIsActive?.())throw Error('Switch out of Shared CAD before cleaning browser-local data.');
- if(!selection||!Array.isArray(selection.unitIds)||!Array.isArray(selection.agencyNames)||!Array.isArray(selection.incidentIds))throw Error('Explicit cleanup selections required.');
- const unitIds=new Set(selection.unitIds),agencyNames=new Set(selection.agencyNames),incidentIds=new Set(selection.incidentIds);
- if(!Array.isArray(state.units)||!Array.isArray(state.incidents))throw Error('Local CAD roster invalid; export data before modifying.');
- for(const id of unitIds){
-  const u=state.units.find(x=>x.id===id);
-  if(!u)throw Error('Selected unit no longer present: '+id);
-  if(state.incidents.some(i=>i.status!=='CLOSED'&&(i.units||[]).includes(id)))throw Error('Cannot remove '+id+': assigned to an open incident.');
- }
- for(const id of incidentIds){
-  const incident=state.incidents.find(i=>i.id===id);
-  if(!incident)throw Error('Selected incident no longer present: '+id);
-  if(incident.status==='ACTIVE'||(incident.units||[]).length)throw Error('Incident '+id+' has active or assigned operations and cannot be removed.');
- }
- state.incidents=state.incidents.filter(i=>!incidentIds.has(i.id));
- state.units=state.units.filter(u=>!unitIds.has(u.id));
- config.agencies=(config.agencies||[]).filter(name=>!agencyNames.has(name));
+ const names=selection?.agencyNames;
+ if(!Array.isArray(names)||!names.length)throw Error('Explicit agency selections required.');
+ const approved=new Set(['Sonoma County Sheriff','Petaluma Fire / EMS','REDCOM']);
+ if(names.some(n=>!approved.has(n)))throw Error('Only approved legacy demo agencies can be removed.');
+ const remove=new Set(names);
+ if(!Array.isArray(state.units)||!Array.isArray(state.incidents))throw Error('Local CAD state invalid.');
+ const before={units:state.units.length,incidents:state.incidents.length};
+ state.incidents=state.incidents.filter(i=>!remove.has(i.agency));
+ state.units=state.units.filter(u=>!remove.has(u.agency));
+ config.agencies=(config.agencies||[]).filter(name=>!remove.has(name));
  localStorage.setItem(CAD_LEGACY_CLEAN_KEY,'1');
  localStorage.setItem(CFG,JSON.stringify(config));
  save();populate();render();
- return {units:unitIds.size,agencies:agencyNames.size,incidents:incidentIds.size};
+ return {units:before.units-state.units.length,incidents:before.incidents-state.incidents.length,agencies:names.length};
 };
 window.cadRestoreMissingDemoCalls=()=>{
  if(cadLegacyCleaned())return 0;
@@ -496,8 +492,8 @@ function renderMap(){
 function availableAgencies(){
  const names=[];
  const add=a=>{const n=String(a??'').trim();if(n&&!names.some(x=>x.toLowerCase()===n.toLowerCase()))names.push(n)};
- if(!cadLegacyCleaned())for(const a of defaultConfig.agencies)add(a);
- for(const a of config.agencies||[])if(!cadLegacyCleaned()||!defaultConfig.agencies.includes(a))add(a);
+ for(const a of defaultConfig.agencies)if(!cadLegacyCleaned()||a==='Petaluma Police')add(a);
+ for(const a of config.agencies||[])add(a);
  for(const a of state.incidents||[])add(a.agency);
  for(const u of state.units||[])add(u.agency);
  try{for(const a of window.CadAgencyMaster?.read(localStorage)?.agencies||[])add(a.name)}catch(e){console.warn('Agency master unavailable',e)}
