@@ -1,7 +1,9 @@
 /* Browser-local agency master records. Separate from resettable CAD demo state. */
 (function(root,factory){const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;if(root)root.CadAgencyMaster=api;})(typeof globalThis!=='undefined'?globalThis:this,function(){
 'use strict';
-const KEY='smcad-agency-master-v1',DISCIPLINES=['LAW','FIRE','EMS'],MODELS=['FIXED','PERSONNEL','APPARATUS','HYBRID'];
+const HOSTED_CLEAN_MODE=typeof location!=='undefined'&&!['localhost','127.0.0.1','[::1]'].includes(location.hostname);
+// Hosted agency master never imports the legacy demo profile implicitly.
+const KEY=HOSTED_CLEAN_MODE?'smcad-agency-master-hosted-v1':'smcad-agency-master-v1',DISCIPLINES=['LAW','FIRE','EMS'],MODELS=['FIXED','PERSONNEL','APPARATUS','HYBRID'];
 function clean(s){return String(s??'').trim();}
 function validate(data){
  if(!data||!Array.isArray(data.agencies)||!Array.isArray(data.personnel)||!Array.isArray(data.units))throw Error('Expected agencies, personnel, and units arrays.');
