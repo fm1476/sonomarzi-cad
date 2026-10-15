@@ -625,6 +625,31 @@ function splitArrivalAndDispatch(text){
  return {report,dispatch};
 }
 
+
+function sharedSpokenUnit(text){
+ const t=nums(normalize(text)).replace(/\b(?:out of|outta|addam)\b/g,'adam');
+ const m=t.match(/\b(rescue|engine|medic|truck|battalion|chief|sheriff)\s*(\d{1,3})\b/);
+ if(m){const prefix={rescue:'R',engine:'E',medic:'M',truck:'T',battalion:'B',chief:'B',sheriff:'SO'}[m[1]];return {id:prefix+m[2],discipline:m[1]==='medic'?'EMS':m[1]==='sheriff'?'LAW':'FIRE',resourceType:m[1].toUpperCase()};}
+ const phonetic=t.match(/\b([1-9]\d?)\s*(?:adam|alpha|a)\s*(\d{1,3})\b/);
+ if(phonetic)return {id:phonetic[1]+'A'+phonetic[2],discipline:'LAW',resourceType:'PATROL'};
+ const numeric=t.match(/^\s*(\d{3,5})\b/);
+ if(numeric){
+  const matches=state.units.filter(u=>{const p=u.id.match(/^(\d+)[A-Z](\d+)$/);return p&&p[1]+p[2]===numeric[1];});
+  if(matches.length===1)return {id:matches[0].id,discipline:matches[0].discipline,resourceType:matches[0].resourceType||'PATROL'};
+ }
+ return null;
+}
+function sharedRosterIntent(text){
+ const t=normalize(text);
+ if(/\b(?:logging|log|signing|sign|coming|going)\s*(?:on|in|off|out)\b/.test(t)){
+  const off=/\b(?:logging|log|signing|sign|going)\s*(?:off|out)\b/.test(t);
+  return off?'OFF_DUTY':'AVAILABLE';
+ }
+ if(/\b(?:out of service|10 7|ten seven)\b/.test(t))return 'OUT_OF_SERVICE';
+ if(/\b(?:back in service|returning to service)\b/.test(t))return 'AVAILABLE';
+ return null;
+}
+
 async function processSharedRadio(text,source){
  const output=el('voiceInterpretation');
  const heard=el('voiceHeard');
@@ -634,6 +659,31 @@ async function processSharedRadio(text,source){
   .replace(/\b(?:engine|medic|truck|rescue|battalion)\s*(\d+)\b/gi,(whole,n)=>whole.replace(/\s*\d+$/, ' '+n));
  const matched=contextUnits(radioText,unitMatches(radioText));
  const units=matched.units;
+
+ const rosterIntent=sharedRosterIntent(radioText);
+ if(rosterIntent){
+  if(!window.cadSharedCommand){show('Shared CAD login required for roster operations.');return;}
+  if(/\b(?:not|never|cancel|disregard|don't|do not)\b/i.test(radioText)){show('Negated roster instruction; no changes made.');return;}
+  const spoken=sharedSpokenUnit(radioText);
+  const found=units.length===1?units[0]:spoken?state.units.find(u=>u.id===spoken.id):null;
+  if(!found){
+   if(!spoken){show('Unable to identify a unit to log on or off. No changes made.');return;}
+   if(rosterIntent!=='AVAILABLE'){show(spoken.id+' is not registered. Register the unit before changing its roster status.');return;}
+   if(!window.confirm(spoken.id+' is not registered. Add it as a TEMPORARY '+spoken.resourceType+' unit and log it on?')){show('Registration cancelled; no changes made.');return;}
+   try{
+    await window.cadSharedCommand('registerUnit',{callSign:spoken.id,discipline:spoken.discipline,resourceType:spoken.resourceType,temporary:true});
+    show(spoken.id+' registered as a temporary '+spoken.resourceType+' and logged on.','PROCESSED');
+   }catch(e){show('Unit registration failed: '+e.message);}
+   return;
+  }
+  if(units.length>1){show('Multiple units detected; roster update requires one unit.');return;}
+  if(found.status===rosterIntent){show(found.id+' is already '+rosterIntent+'.','PROCESSED');return;}
+  try{
+   await window.cadSharedCommand('rosterStatus',{unitId:found.id,status:rosterIntent});
+   show(found.id+' roster status updated to '+rosterIntent+'.','PROCESSED');
+  }catch(e){show('Roster update failed: '+e.message);}
+  return;
+ }
  const parsed=parseStatus(window.CadRadioStatusRepair.repair(radioText,matched.resolution==='explicit'&&units.length===1));
  const explicitRef=text.match(/#(\d{2}-\d{6}|\d{4,6})\b/);
  const selected=state.incidents.find(i=>i.id===state.selected&&i.status!=='CLOSED');
@@ -653,7 +703,8 @@ async function processSharedRadio(text,source){
   const assignedIncidents=state.incidents.filter(i=>i.status==='ACTIVE'&&units.some(u=>i.units.includes(u.id)));
   const caseIncident=explicitRef?incident:assignedIncidents.length===1?assignedIncidents[0]:null;
   if(!caseIncident){show('Case-number request recognized for '+units.map(u=>u.id).join(', ')+'. Unable to identify one assigned incident; select or specify the event number. No case number assigned.');return;}
-  show('Case-number request recognized for '+units.map(u=>u.id).join(', ')+' on '+caseIncident.id+'. Shared CAD requires a server-allocated case number; request noted for dispatcher review. No number invented.');
+  try{const result=await window.cadSharedCommand('allocateCase',{incidentId:caseIncident.id});show('Case number '+result.case_number+' '+(result.existing?'already assigned':'assigned')+' to '+caseIncident.id+' for '+units[0].id+'.','PROCESSED');}
+  catch(e){show('Case-number request failed: '+e.message);}
   return;
  }
  if(!incident){show(dispatchRequested?'Cannot uniquely resolve dispatch incident ('+(dispatchMatch?.reason||'no match')+'). Say the event number or full address; no changes made.':'No unique incident associated with '+units[0].id+'. Select the incident first.');return;}
