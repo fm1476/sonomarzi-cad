@@ -49,6 +49,7 @@
    preemptUnit:({agency,fromIncident,toIncident,unit,fromVersion,toVersion,unitVersion})=>rpc('cad_preempt_unit',{p_agency:id(agency),p_from_incident:id(fromIncident),p_to_incident:id(toIncident),p_unit:id(unit),p_expected_from_version:fromVersion,p_expected_to_version:toVersion,p_expected_unit_version:unitVersion}),
    assignUnit:({agency,incident,unit,incidentVersion,unitVersion})=>rpc('cad_assign_unit',{p_agency:id(agency),p_incident:id(incident),p_unit:id(unit),p_expected_incident_version:incidentVersion,p_expected_unit_version:unitVersion}),
    reclassifyIncident:({agency,incident,unit,type,incidentVersion,report})=>rpc('cad_reclassify_incident',{p_agency:id(agency),p_incident:id(incident),p_unit:id(unit),p_type:type,p_expected_version:incidentVersion,p_report:report}),
+   setUnitDuty:({agency,unit,unitVersion,onDuty})=>rpc('cad_set_unit_duty',{p_agency:id(agency),p_unit:id(unit),p_expected_unit_version:unitVersion,p_on_duty:!!onDuty}),
    changeUnitStatus:({agency,incident,unit,status,unitVersion})=>rpc('cad_change_unit_status',{p_agency:id(agency),p_incident:id(incident),p_unit:id(unit),p_status:status,p_expected_unit_version:unitVersion}),
    listOutstanding:agency=>read('cad_outstanding_resources',agency,'select=*&order=incident_id,resource_type'),
    listIncidentEvents:agency=>read('cad_incident_events',agency,'select=*&order=occurred_at.desc&limit=500'),
