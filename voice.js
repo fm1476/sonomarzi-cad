@@ -44,6 +44,7 @@ function unitMatches(text){
  // OpenAI can return compact phonetic callsigns like 3Adam12. Split them
  // before matching, while leaving the stored transcript untouched.
  text=String(text).replace(/(\d)(adam|alpha|boy|bravo)(?=\d)/gi,'$1 $2 ').replace(/(\d)(adam|alpha|boy|bravo)\s+(?=\d)/gi,'$1 $2 ');
+ const recognizedIds=window.CadVoiceText.numericCallsigns(text);
  const resolvedLeading=leadingRadioUnit(text);
  // A leading call sign may be an acknowledgement before several dispatch targets.
  // Prefer all explicit phonetic call signs when more than one is present.
@@ -67,6 +68,7 @@ function unitMatches(text){
  const joined=tokenized(text);
  const compact=nums(normalize(text)).replace(/\b(adam|alpha)\b/g,'a').replace(/\b(boy|bravo)\b/g,'b').replace(/\s+/g,'');
  return state.units.filter(u=>{
+   if(recognizedIds.includes(u.id.toUpperCase()))return true;
    if(resolvedLeading?.some(x=>x.id===u.id))return true;
    const target=u.id.toLowerCase();
    // Numeric-radio callsigns are matched by spoken component sequences, not arbitrary substrings.
