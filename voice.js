@@ -699,6 +699,16 @@ async function processSharedRadio(text,source){
  if(/\b(?:close (?:the )?(?:event|incident|call)|clear (?:the )?(?:event|incident|call))\b/i.test(text)){
   show('For event closure, right-click the incident and choose a disposition. No event was closed.');return;
  }
+ const createIntent=/\\b(?:create|open|start|enter)\\s+(?:a\\s+|an\\s+|new\\s+|an?\\s+new\\s+)?(?:incident|event|call)\\b/i.test(radioText);
+ if(createIntent){
+  const addressMatch=radioText.match(/\\b(?:at|location|address)\\s+([0-9][\\w\\s.-]{4,100})$/i);
+  const types=['LAW','FIRE','EMS'].flatMap(d=>(config.types?.[d]||[]).map(type=>({discipline:d,type})));
+  const hits=types.filter(x=>new RegExp('\\\\b'+x.type.toLowerCase().split(/\\s+/).join('\\\\s+')+'\\\\b','i').test(radioText));
+  if(!addressMatch||hits.length!==1){show('Incident creation requires one recognized call type and a complete address (example: create incident traffic collision at 123 Main Street). No changes made.');return;}
+  try{const result=await window.cadSharedCommand('create',{discipline:hits[0].discipline,type:hits[0].type,priority:'P2',location:addressMatch[1].trim()});show('Created '+(result.incident_number||'new shared incident')+' ('+hits[0].type+') at '+addressMatch[1].trim()+'.','PROCESSED');}
+  catch(e){show('Incident creation failed: '+e.message);}
+  return;
+ }
  if(!units.length){show('No unique unit recognized from: '+text+'. Check the callsign in Heard; no shared records changed.');return;}
  if(units.length!==1){show('Multiple units recognized. Issue one unit command at a time in shared CAD.');return;}
  if(caseRequested){
