@@ -9,7 +9,7 @@ Scope: `fm1476/sonomarzi-cad`, shared Supabase demo workspace vs prior browser-l
 | Shared incident list, assigned/pending boards, roster sync | Implemented | Supabase polling + projection; must confirm two browsers |
 | Spoken unit ID, phonetic alphabet, ASR variations | Code/tests implemented | Requires real mic tests; no guarantee browser transcription |
 | Shared dispatch of one unit to existing matching-discipline call | Wired and post-refresh verified | Supabase `cad_assign_unit`; test fresh and busy unit |
-| Shared ENROUTE / ONSCENE / CODE4 / CLEAR | Wired and post-refresh verified | `cad_change_unit_status` now permits CODE4; test each live |
+| Shared ENROUTE / ONSCENE / CODE4 / CLEAR | Wired with post-refresh checks | `cad_change_unit_status` now permits CODE4; test each live |
 | PREEMPT from one call to another | Atomic transaction installed | Both incident events recorded; test same agency and conflict |
 | Working-fire reclassification | RPC installed | Original type retained in incident-event audit; reporter must be assigned |
 | Dispatcher edit of CFS, priority, location, case number | Restored | `cad_edit_incident` atomic update; verifies refreshed shared fields |
@@ -18,8 +18,8 @@ Scope: `fm1476/sonomarzi-cad`, shared Supabase demo workspace vs prior browser-l
 | New basic call | Authenticated RPC | **GAP:** caller, phone, initial narrative and case number not stored from new form. Warning added |
 | Call-taker caller details, reporting parties, people, vehicles, custom event fields | **NOT PARITY** | Not present in shared incident schema; local-only edits cannot persist |
 | Caller/phone fields in dispatcher editor | **NOT PARITY** | Shared editor intentionally limited to persisted fields |
-| Manual activation of pending event | **NOT PARITY** | No shared activation RPC; shared call taker blocks local-only update |
-| Save & Clear from call-taking editor | **NOT PARITY** | Blocked in shared mode; use dispatcher Close Event action |
+| Manual activation of pending event | Implemented, awaiting browser verification | Authenticated `cad_activate_incident` RPC installed |
+| Save & Clear from call-taking editor | Implemented, awaiting browser verification | Uses authenticated `cad_close_incident` via shared gateway |
 | Voice-created traffic stops, subject contacts, follow-ups | **NOT PARITY** | Shared mode recognizes or reviews, does not commit atomic self-init creation + assignment |
 | Multiple-unit and linked cross-discipline voice dispatch | **PARTIAL** | Shared voice guard intentionally limits simple dispatch to one same-discipline unit |
 | Plan dispatch, custom incident forms, specialty statuses, response shortfalls, map and station edits | **NEEDS EXPLICIT LIVE PARITY TEST** | Local logic exists; each mutation needs matching shared RPC or clear read-only treatment |
