@@ -387,6 +387,7 @@
     text($('cadSharedSignedIn'),result.username);text(headerUser,result.username);toggle.classList.add('is-connected');
     setOpen(false);
     await refresh();
+    await window.CadCloudSettings?.connect();
     if(refreshTimer)clearInterval(refreshTimer);
     refreshTimer=setInterval(()=>{if(window.CadDemoLogin.current()&&document.visibilityState!=='hidden')refresh({quiet:true})},750);
    }catch(error){say(error.message)}finally{submit.disabled=false}
@@ -395,6 +396,7 @@
   $('cadSharedLogout').addEventListener('click',()=>{
    if(refreshTimer){clearInterval(refreshTimer);refreshTimer=null}
    lastSignature='';
+   window.CadCloudSettings?.stop();
    window.CadDemoLogin.logout();
    tbody.replaceChildren();units.replaceChildren();shortages.replaceChildren();
    snapshot={incidents:[],roster:[],assignments:[]};syncChoices();renderWorkspace();renderSharedBoard();window.cadSharedRestoreLocal?.();
