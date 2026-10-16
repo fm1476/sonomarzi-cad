@@ -153,20 +153,31 @@
   try{
    const existing=await remote(root.CadDemoLogin.client(),current.agencyId);
    if(localStorage.getItem(syncKey())==='1'){
-    const prior=shadow();let applied=0,conflicts=[];
+    const prior=shadow();let applied=0,conflicts=[],offline=new Map();
     for(const [id,row] of existing){
      if(typeof row.raw!=='string')continue;
      const local=localStorage.getItem(row.key);
      if(local===row.raw)continue;
-     if(!prior.has(id)||local!==prior.get(id)){conflicts.push(row.key);continue;}
-     localStorage.setItem(row.key,row.raw);applied++;
+     if(prior.has(id)&&local===prior.get(id)){
+      localStorage.setItem(row.key,row.raw);applied++;
+     }else if(prior.has(id)&&row.raw===prior.get(id)){
+      offline.set(id,prior.get(id)); // Local edit since last confirmed sync.
+     }else conflicts.push(row.key);
     }
     if(conflicts.length){
      enabled=false;report('Cloud settings differ from unsynced local values ('+conflicts.join(', ')+'). Auto-sync held to protect your work. Back up and review the cloud download.');return;
     }
     remember(existing);
+    for(const [id,raw] of offline){
+     const item=baseline.get(id);if(item)baseline.set(id,{...item,raw});
+    }
+    if(offline.size){
+     // Preserve the last synchronized snapshot until offline edits are uploaded.
+     const syncShadow=shadow();for(const [id,raw] of offline)syncShadow.set(id,raw);
+     try{localStorage.setItem(shadowKey(),JSON.stringify([...syncShadow]));}catch{}
+    }
     enabled=true;startTimer();
-    report(applied?applied+' settings loaded from Supabase. Reload the page to apply the updated layout and configurations, then sign in again.':'Cloud sync enabled: '+existing.size+' saved settings. Changes will sync across devices.');
+    report(offline.size?offline.size+' offline edits ready to synchronize.':applied?applied+' settings loaded from Supabase. Reload the page to apply updated layout/configuration, then sign in again.':'Cloud sync enabled: '+existing.size+' saved settings. Changes will sync across devices.');
    }else{
     remember(existing);
     report('Cloud settings found: '+existing.size+'. On your original computer, upload first; on another computer, download.');
