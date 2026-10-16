@@ -12,7 +12,7 @@
   'smcad-response-plans-v1','smcad-shared-crews-v1',
   'smcad-facilities-v1','smcad-station-moveups-v1','smcad-alarm-levels-v1',
   'smcad-common-places-v19.9','smcad-gis-overlays-v20.8',
-  'smcad-officer-safety-rules-v1'
+  'smcad-officer-safety-rules-v1','smcad-agency-phrase-preview-v1'
  ]);
  const USER_KEYS=new Set([
   'smcad-board-layout-v15.5','smcad-unit-column-widths-v1','smcad-panel-order-v15.5',
@@ -24,7 +24,7 @@
   'smcad-voice-order-v17.3','smcad-dispatcher-identity-v1',
   'smcad-calltake-split-v1','smcad-calltake-panel-heights-v2'
  ]);
- const keyScope=key=>AGENCY_KEYS.has(key)||/^smcad-form-designer-v1-[a-z0-9_-]+$/i.test(key)?'AGENCY':USER_KEYS.has(key)||/^smcad-(?:map-view|map-layers|display|theme|layout)-[a-z0-9.-]+$/i.test(key)?'USER':null;
+ const keyScope=key=>AGENCY_KEYS.has(key)||/^smcad-form-designer-v1-[a-z0-9_.%+-]+$/i.test(key)?'AGENCY':USER_KEYS.has(key)||/^smcad-(?:map-view|map-layers|display|theme|layout)-[a-z0-9.-]+$/i.test(key)?'USER':null;
  const rowsToMap=(agencies,preferences)=>{
   const m=new Map();
   for(const item of agencies||[])m.set('AGENCY:'+item.document_key,{scope:'AGENCY',key:item.document_key,version:Number(item.version),raw:item.payload?.raw});
@@ -131,7 +131,7 @@
    for(const [id,item] of current){
     const cloud=fresh.get(id),previous=baseline.get(id);
     if(previous?.raw===item.raw)continue;
-    if(cloud&&versions.has(id)&&cloud.version!==versions.get(id).version){enabled=false;report('Cloud changed while you edited '+item.key+'. Sync paused to protect both copies.');return;}
+    if(cloud&&(!versions.has(id)||cloud.version!==versions.get(id).version)){enabled=false;report('Cloud changed while you edited '+item.key+'. Sync paused to protect both copies.');return;}
     try{
      const result=await client.saveCloudSetting({agency:session.agencyId,scope:item.scope,key:item.key,payload:{raw:item.raw},expectedVersion:cloud?.version||0});
      fresh.set(id,{...item,version:Number(result.version)});uploaded++;
