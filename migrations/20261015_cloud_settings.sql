@@ -42,7 +42,7 @@ begin
  if p_payload is null or pg_catalog.octet_length(p_payload::text)>500000 then raise exception 'Settings payload is missing or too large';end if;
  if p_expected_version is not null and p_expected_version<0 then raise exception 'Invalid expected version';end if;
  -- Serialize settings writes per agency, user and document key.
- perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(p_agency::text||':'||p_scope||':'||coalesce(v_uid::text,'')||':'||p_key,118034));
+ perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(p_agency::text||':'||p_scope||':'||case when p_scope='USER' then v_uid::text else '' end||':'||p_key,118034));
  if p_scope='AGENCY' then
   select version into v_version from public.cad_agency_config_documents where agency_id=p_agency and document_key=p_key for update;
   if not found then
