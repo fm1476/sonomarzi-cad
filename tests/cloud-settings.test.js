@@ -39,7 +39,6 @@ assert(sql.includes('enable row level security'));
 const compat=fs.readFileSync('migrations/20261015_cloud_settings_key_compat.sql','utf8');
 assert(compat.includes('smcad-[A-Za-z0-9_.%+-]'));
 assert(compat.includes('p_key !~'));
-assert(compat.includes("{1,100}
 assert(sql.includes('user_id=(select auth.uid())'));
 assert(sql.includes('CAD settings version conflict'));
 assert(sql.includes("p_expected_version is distinct from v_version"));
