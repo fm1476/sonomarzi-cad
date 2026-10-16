@@ -39,6 +39,10 @@
   }
   return Object.freeze({
    listAgencies:()=>request('cad_agencies?select=id,name&order=name'),
+   listAgencySettings:agency=>read('cad_agency_config_documents',agency,'select=document_key,payload,version,updated_at&order=document_key'),
+   listMyPreferences:agency=>read('cad_user_preferences',agency,'select=preference_key,payload,version,updated_at&order=preference_key'),
+   saveCloudSetting:({agency,scope,key,payload,expectedVersion})=>rpc('cad_save_cloud_setting',{p_agency:id(agency),p_scope:scope,p_key:key,p_payload:payload,p_expected_version:expectedVersion}),
+
    listIncidents:agency=>read('cad_incidents',agency,'select=*&order=created_at.desc&limit=250'),
    listUnits:agency=>read('cad_units',agency,'select=*&order=call_sign&limit=500'),
    listAssignments:agency=>read('cad_assignments',agency,'select=*&cleared_at=is.null&limit=500'),
