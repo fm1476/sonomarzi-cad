@@ -11,7 +11,8 @@
   'smcad-agency-master-v1','smcad-resource-types-v1','smcad-config-v1',
   'smcad-response-plans-v1','smcad-shared-crews-v1',
   'smcad-facilities-v1','smcad-station-moveups-v1','smcad-alarm-levels-v1',
-  'smcad-common-places-v19.9','smcad-gis-overlays-v20.8'
+  'smcad-common-places-v19.9','smcad-gis-overlays-v20.8',
+  'smcad-officer-safety-rules-v1'
  ]);
  const USER_KEYS=new Set([
   'smcad-board-layout-v15.5','smcad-unit-column-widths-v1','smcad-panel-order-v15.5',
@@ -19,7 +20,9 @@
   'smcad-workspace-presets-v16.5','smcad-workspace-current-v16.5',
   'smcad-command-placement-v16.3','smcad-command-floating-rect-v16.3',
   'smcad-board-heights-v16.5','smcad-workspace-popouts-v16.6',
-  'smcad-active-popouts-v16.8'
+  'smcad-active-popouts-v16.8','smcad-map-display-v19.3',
+  'smcad-voice-order-v17.3','smcad-dispatcher-identity-v1',
+  'smcad-calltake-split-v1','smcad-calltake-panel-heights-v2'
  ]);
  const keyScope=key=>AGENCY_KEYS.has(key)||/^smcad-form-designer-v1-[a-z0-9_-]+$/i.test(key)?'AGENCY':USER_KEYS.has(key)||/^smcad-(?:map-view|map-layers|display|theme|layout)-[a-z0-9.-]+$/i.test(key)?'USER':null;
  const rowsToMap=(agencies,preferences)=>{
