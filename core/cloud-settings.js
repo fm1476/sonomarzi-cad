@@ -40,6 +40,8 @@
  let session=null,versions=new Map(),baseline=new Map(),busy=false,timer=null,enabled=false;
  const el=id=>document.getElementById(id);
  const syncKey=()=>session?'smcad-cloud-sync-approved-v1:'+session.agencyId+':'+session.username:'';
+ const shadowKey=()=>syncKey()+':last-local-snapshot';
+ function shadow(){try{return new Map(JSON.parse(localStorage.getItem(shadowKey())||'[]'));}catch{return new Map();}}
  const report=msg=>{const out=el('cadCloudStatus');if(out)out.textContent=msg;};
  async function remote(client,agency){
   const [agencyRows,userRows]=await Promise.all([client.listAgencySettings(agency),client.listMyPreferences(agency)]);
@@ -59,6 +61,7 @@
  function remember(remoteRows){
   versions=remoteRows;
   baseline=scan(localStorage);
+  try{localStorage.setItem(shadowKey(),JSON.stringify([...baseline].map(([id,item])=>[id,item.raw])));}catch(error){report('Sync snapshot could not be stored: '+error.message);}
  }
  function stop(){if(timer)clearInterval(timer);timer=null;enabled=false;session=null;versions=new Map();baseline=new Map();report('Connect to shared CAD to synchronize settings.');}
  async function upload(){
@@ -146,10 +149,25 @@
   session={username:current.username,agencyId:current.agencyId};
   try{
    const existing=await remote(root.CadDemoLogin.client(),current.agencyId);
-   remember(existing);
    if(localStorage.getItem(syncKey())==='1'){
-    enabled=true;startTimer();report('Cloud sync enabled: '+existing.size+' saved settings. Local changes will sync across your signed-in devices.');
-   }else report('Cloud settings found: '+existing.size+'. On your original computer, upload first; on another computer, download.');
+    const prior=shadow();let applied=0,conflicts=[];
+    for(const [id,row] of existing){
+     if(typeof row.raw!=='string')continue;
+     const local=localStorage.getItem(row.key);
+     if(local===row.raw)continue;
+     if(!prior.has(id)||local!==prior.get(id)){conflicts.push(row.key);continue;}
+     localStorage.setItem(row.key,row.raw);applied++;
+    }
+    if(conflicts.length){
+     enabled=false;report('Cloud settings differ from unsynced local values ('+conflicts.join(', ')+'). Auto-sync held to protect your work. Back up and review the cloud download.');return;
+    }
+    remember(existing);
+    enabled=true;startTimer();
+    report(applied?applied+' settings loaded from Supabase. Reload the page to apply the updated layout and configurations, then sign in again.':'Cloud sync enabled: '+existing.size+' saved settings. Changes will sync across devices.');
+   }else{
+    remember(existing);
+    report('Cloud settings found: '+existing.size+'. On your original computer, upload first; on another computer, download.');
+   }
   }catch(error){report('Unable to load cloud settings: '+error.message);}
  }
  function install(){
