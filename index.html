@@ -63,7 +63,7 @@
 <section class="grid">
     <article class="panel" data-panel="pending">
       <h2><span class="panel-drag" draggable="true" title="Drag to move this panel" aria-label="Drag panel">⠿</span> Pending Calls <span id="pendingCount"></span></h2>
-      <div class="board-controls" data-board="pending"><select data-setting="agency"><option value="ALL">All agencies</option></select><select data-setting="discipline"><option value="ALL">All disciplines</option><option value="LAW">Law</option><option value="FIRE">Fire</option><option value="EMS">EMS</option></select><select data-setting="sort"><option value="priority">Priority</option><option value="event">Event number</option><option value="type">Call type</option><option value="location">Location</option><option value="agency">Agency</option></select><label><input type="checkbox" data-setting="group"> Group by agency</label></div><div class="board-columns" data-columns="pending"></div>
+      <button type="button" id="cadLoadSampleCalls" title="Add missing fictional demonstration calls without changing existing records">Add Sample Calls</button><div class="board-controls" data-board="pending"><select data-setting="agency"><option value="ALL">All agencies</option></select><select data-setting="discipline"><option value="ALL">All disciplines</option><option value="LAW">Law</option><option value="FIRE">Fire</option><option value="EMS">EMS</option></select><select data-setting="sort"><option value="priority">Priority</option><option value="event">Event number</option><option value="type">Call type</option><option value="location">Location</option><option value="agency">Agency</option></select><label><input type="checkbox" data-setting="group"> Group by agency</label></div><div class="board-columns" data-columns="pending"></div>
       <div id="pending"></div>
     </article>
     <article class="panel wide" data-panel="active">
@@ -267,7 +267,7 @@
 <script src="core/shared-demo-panel.js?v=25"></script>
 <script src="core/incident-commands.js?v=1"></script>
 <script src="core/unit-commands.js?v=3"></script>
-<script src="app.js?v=59"></script>
+<script src="app.js?v=60"></script>
 <script src="core/agency-phrases.js?v=1"></script>
 <script src="core/intent-catalog.js?v=1"></script>
 <script src="core/command-gate.js?v=1"></script>
@@ -283,13 +283,14 @@
 <script src="legacy-demo-cleanup.js?v=1"></script>
 
 <script src="board-layout.js?v=28"></script>
+<script src="sample-calls.js?v=1"></script>
 <script src="incident-intelligence.js?v=18.3"></script>
 <script src="core/voice-text.js?v=2"></script>
 <script src="core/radio-phrase-intents.js?v=1"></script>
-<script src="core/shared-voice-intents.js?v=1"></script>
+<script src="core/shared-voice-intents.js?v=2"></script>
 <script src="core/radio-incomplete.js?v=1"></script>
 <script src="core/radio-status-repair.js?v=1"></script>
-<script src="voice.js?v=21.4"></script>
+<script src="voice.js?v=21.5"></script>
 <script src="call-taking-workspace.js?v=16"></script>
 <script src="form-designer.js?v=3"></script>
 <script src="operations.js?v=21"></script>
