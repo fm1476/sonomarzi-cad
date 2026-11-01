@@ -146,14 +146,11 @@ document.addEventListener('contextmenu',e=>{
  if(window.cadSharedIsActive?.()){
   const snapshot=window.cadSharedLastSnapshot;
   const custom=(snapshot?.statusCatalog||[]).filter(row=>row.enabled&&['ALL',u.discipline].includes(row.discipline));
-  if(custom.length){
-   const heading=document.createElement('small');heading.textContent='Agency configured statuses';heading.style.cssText='display:block;padding:9px 8px 4px;color:#b1cadc';unitMenu.append(heading);
-  }
   for(const row of custom){
    if(!assigned.length&&!['AVAILABLE','OUT_OF_SERVICE'].includes(row.canonical_status))continue;
    if(assigned.length&&row.canonical_status==='AVAILABLE')continue;
-   const button=document.createElement('button');button.type='button';button.setAttribute('role','menuitem');button.textContent=row.label+' · '+row.canonical_status.replaceAll('_',' ');
-   button.style.cssText='display:block;width:100%;text-align:left;padding:9px 12px;margin:2px 0;background:#214357;color:#fff;border:1px dashed #648aa3;border-radius:7px;cursor:pointer';
+   const button=document.createElement('button');button.type='button';button.setAttribute('role','menuitem');button.textContent=row.label;
+   button.style.cssText='display:block;width:100%;text-align:left;padding:9px 12px;margin:2px 0;background:#183b55;color:#fff;border:0;border-radius:7px;cursor:pointer';
    button.onclick=async()=>{closeUnitMenu();try{await window.cadSharedApplyCustomStatus(u.id,row.code)}catch(error){window.alert('Custom status rejected: '+error.message)}};
    unitMenu.append(button);
   }
