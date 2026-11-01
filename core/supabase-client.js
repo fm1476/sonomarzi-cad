@@ -64,6 +64,7 @@
    listIncidentLocations:agency=>read('cad_incident_locations',agency,'select=*&order=recorded_at.desc&limit=500'),
    listUnitCustomStatuses:agency=>read('cad_unit_custom_status',agency,'select=*'),
    applyCustomUnitStatus:({agency,unit,code,unitVersion})=>rpc('cad_apply_custom_unit_status',{p_agency:id(agency),p_unit:id(unit),p_code:code,p_expected_version:unitVersion}),
+   saveUnitStatusColor:({agency,code,color})=>rpc('cad_save_unit_status_color',{p_agency:id(agency),p_code:code,p_color:color}),
    listUnitStatusCatalog:agency=>read('cad_unit_status_catalog',agency,'select=*&order=discipline.asc,label.asc'),
    saveUnitStatusCatalog:({agency,code,label,canonicalStatus,discipline,radioPhrases,enabled})=>rpc('cad_save_unit_status_catalog',{p_agency:id(agency),p_code:code,p_label:label,p_canonical:canonicalStatus,p_discipline:discipline,p_phrases:radioPhrases||[],p_enabled:enabled!==false}),
    listIncidentHolds:agency=>read('cad_incident_holds',agency,'select=*'),
