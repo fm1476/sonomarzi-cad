@@ -234,5 +234,6 @@ el('cadMasterImport').addEventListener('change',async e=>{
  try{const next=M.parse(await file.text());if(!confirm('Replace browser-local agency master configuration with this file?'))return;commit(next,'Agency master imported.');}catch(err){message.textContent='Import rejected: '+err.message;}finally{e.target.value='';}
 });
 window.addEventListener('storage',e=>{if(e.key!==M.KEY)return;try{data=M.read(localStorage);render();message.textContent='Configuration refreshed from another tab.';}catch(err){message.textContent='External configuration invalid: '+err.message;}});
+window.addEventListener('cad-cloud-master-applied',()=>{try{data=M.read(localStorage);render();renderDutyLogOnOptions();refreshTypes();message.textContent='Agency Master updated from shared cloud configuration.';}catch(error){message.textContent='Cloud Agency Master could not be loaded: '+error.message;}});
 render();
 })();
