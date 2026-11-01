@@ -49,7 +49,10 @@ const itemHTML=(type,item)=>{
  return `<div class="row board-flex ${state.selected===item.id?'selected':''}" data-id="${escapeCad(item.id)}">${opts[type].columns.map(f=>components[f]).join('')}</div>`;
  }
  const unitStatusClass=`status-${String(item.status).toLowerCase().replace(/[^a-z0-9]+/g,'-')}`;
- const components={id:`<span class="cad-unit-chip board-unit-pill ${unitStatusClass}" data-unit-id="${escapeCad(item.id)}" draggable="false" title="${escapeCad(item.id)} • ${escapeCad(String(item.status).replace(/_/g,' '))}">${escapeCad(item.id)}</span>`,agency:`<span>${escapeCad(item.agency)}<div class="meta">${escapeCad(item.discipline)}</div></span>`,location:`<span class="cad-board-location" title="${escapeCad(item.location||'Not reported')}">${escapeCad(item.location||'Not reported')}</span>`,status:`<span class="status ${unitStatusClass}">${escapeCad(String(item.status).replace(/_/g,' '))}</span>`};
+ const matchUnit=(window.cadSharedLastSnapshot?.roster||[]).find(entry=>entry.call_sign===item.id);
+ const customStatus=(window.cadSharedLastSnapshot?.customStatuses||[]).find(entry=>entry.unit_id===matchUnit?.id&&entry.canonical_status===item.status);
+ const customLabel=customStatus?(window.cadSharedLastSnapshot?.statusCatalog||[]).find(entry=>entry.code===customStatus.code&&entry.enabled)?.label:null;
+ const components={id:`<span class="cad-unit-chip board-unit-pill ${unitStatusClass}" data-unit-id="${escapeCad(item.id)}" draggable="false" title="${escapeCad(item.id)} • ${escapeCad(String(item.status).replace(/_/g,' '))}">${escapeCad(item.id)}</span>`,agency:`<span>${escapeCad(item.agency)}<div class="meta">${escapeCad(item.discipline)}</div></span>`,location:`<span class="cad-board-location" title="${escapeCad(item.location||'Not reported')}">${escapeCad(item.location||'Not reported')}</span>`,status:`<span class="status ${unitStatusClass}" title="Canonical CAD status: ${escapeCad(item.status)}">${escapeCad(customLabel||String(item.status).replace(/_/g,' '))}</span>`};
  return `<div class="unit board-flex cad-unit-grid" style="grid-template-columns:${unitGrid()}" draggable="true" data-drag-unit="${escapeCad(item.id)}" title="Drag to Pending/Active incident to dispatch, or Units board to make available">${opts.units.columns.map(f=>components[f]).join('')}</div>`;
 };
 function groupHTML(type,items,by){const groups=new Map();for(const item of items){const key=item[by]||'Unassigned';if(!groups.has(key))groups.set(key,[]);groups.get(key).push(item)}return [...groups].sort((a,b)=>alpha(a[0],b[0])).map(([name,rows])=>`<div class="board-group">${escapeCad(name)} <span>(${rows.length})</span></div>`+rows.map(i=>itemHTML(type,i)).join('')).join('')}
@@ -136,6 +139,22 @@ document.addEventListener('contextmenu',e=>{
    execute.click();
   };
   unitMenu.append(button);
+ }
+ // Agency-defined statuses use authenticated database transitions, never local state writes.
+ if(window.cadSharedIsActive?.()){
+  const snapshot=window.cadSharedLastSnapshot;
+  const custom=(snapshot?.statusCatalog||[]).filter(row=>row.enabled&&['ALL',u.discipline].includes(row.discipline));
+  if(custom.length){
+   const heading=document.createElement('small');heading.textContent='Agency configured statuses';heading.style.cssText='display:block;padding:9px 8px 4px;color:#b1cadc';unitMenu.append(heading);
+  }
+  for(const row of custom){
+   if(!assigned.length&&!['AVAILABLE','OUT_OF_SERVICE'].includes(row.canonical_status))continue;
+   if(assigned.length&&row.canonical_status==='AVAILABLE')continue;
+   const button=document.createElement('button');button.type='button';button.setAttribute('role','menuitem');button.textContent=row.label+' · '+row.canonical_status.replaceAll('_',' ');
+   button.style.cssText='display:block;width:100%;text-align:left;padding:9px 12px;margin:2px 0;background:#214357;color:#fff;border:1px dashed #648aa3;border-radius:7px;cursor:pointer';
+   button.onclick=async()=>{closeUnitMenu();try{await window.cadSharedApplyCustomStatus(u.id,row.code)}catch(error){window.alert('Custom status rejected: '+error.message)}};
+   unitMenu.append(button);
+  }
  }
  // End-of-shift action belongs on the unit pill, not in Agency Master.
  // Shared CAD requires a durable agency-wide state change; don't pretend a

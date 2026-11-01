@@ -165,8 +165,20 @@
   <section class="panel config">
     <h2>Agency Configuration</h2>
     <p>Changes below affect this browser immediately and persist locally.</p>
-    <label>Configuration section<select id="cadConfigSection" aria-label="Choose configuration section"><option value="master">Agencies &amp; Units</option><option value="response">Response Plan Designer</option><option value="stations">Stations &amp; Facilities</option><option value="cfs">Calls for Service</option><option value="self">Self-Initiated CFS</option><option value="places">Common Places</option><option value="phrases">Voice Phrases</option><option value="general">General &amp; Other Settings</option><option value="designer">Workspace &amp; Form Designer</option></select></label>
-    <div data-config-panel="designer" hidden><div class="cad-designer-entry"><div><h3>Workspace &amp; Form Designer</h3><p>Design the agency-wide Call Taking event form. Draft changes are private to this browser until published locally.</p></div><button type="button" class="primary" id="cadOpenFormDesigner">Open Designer ↗</button></div><div id="cadFormDesigner" hidden></div></div>
+    <label>Configuration section<select id="cadConfigSection" aria-label="Choose configuration section"><option value="master">Agencies &amp; Units</option><option value="response">Response Plan Designer</option><option value="stations">Stations &amp; Facilities</option><option value="cfs">Calls for Service</option><option value="self">Self-Initiated CFS</option><option value="unit-status">Unit Statuses</option><option value="places">Common Places</option><option value="phrases">Voice Phrases</option><option value="general">General &amp; Other Settings</option><option value="designer">Workspace &amp; Form Designer</option></select></label>
+    <div data-config-panel="unit-status" hidden>
+ <h3>Unit Status Configuration</h3><p>Agency-wide display statuses and radio aliases. Canonical status controls dispatch availability, assignments and safety. Changing a label does not change the underlying CAD status.</p>
+ <div id="cadUnitStatusCatalogList"></div><button type="button" id="cadStatusNew">+ New Status</button>
+ <section id="cadStatusEditor" hidden><h4>Edit unit status</h4>
+ <label>Code<input id="cadStatusCode" maxlength="32" placeholder="REPORT_WRITING"/></label>
+ <label>Display label<input id="cadStatusLabel" maxlength="60" placeholder="Report Writing"/></label>
+ <label>CAD operational status<select id="cadStatusCanonical"><option>AVAILABLE</option><option>DISPATCHED</option><option>ENROUTE</option><option>ONSCENE</option><option>TRANSPORTING</option><option>AT_HOSPITAL</option><option>OUT_OF_SERVICE</option></select></label>
+ <label>Discipline<select id="cadStatusDiscipline"><option>ALL</option><option>LAW</option><option>FIRE</option><option>EMS</option></select></label>
+ <label>Radio phrase aliases, comma separated<input id="cadStatusAliases" placeholder="report writing, writing a report"/></label>
+ <label><input id="cadStatusEnabled" type="checkbox" checked/> Enabled</label>
+ <div><button type="button" id="cadStatusCancel">Cancel</button><button type="button" id="cadStatusSave" class="primary">Save Status</button></div></section>
+ <p id="cadStatusConfigStatus" role="status"></p></div>
+ <div data-config-panel="designer" hidden><div class="cad-designer-entry"><div><h3>Workspace &amp; Form Designer</h3><p>Design the agency-wide Call Taking event form. Draft changes are private to this browser until published locally.</p></div><button type="button" class="primary" id="cadOpenFormDesigner">Open Designer ↗</button></div><div id="cadFormDesigner" hidden></div></div>
     <div data-config-panel="master" hidden>
       <h3>Agency Master Configuration</h3>
       <p>Permanent browser-local definitions, separate from resettable demonstration incidents and live unit statuses. Select Activate in CAD on a unit definition to add it to the live demo roster without replacing existing units.</p>
@@ -258,10 +270,10 @@
 <div id="toast"></div>
 <script src="core/discipline.js?v=1"></script>
 <script src="core/persistence.js?v=1"></script>
-<script src="core/supabase-client.js?v=8"></script>
+<script src="core/supabase-client.js?v=10"></script>
 <script src="core/demo-login.js?v=2"></script>
 <script src="core/cloud-settings.js?v=4"></script>
-<script src="core/shared-demo-panel.js?v=25"></script>
+<script src="core/shared-demo-panel.js?v=27"></script>
 <script src="core/incident-commands.js?v=1"></script>
 <script src="core/unit-commands.js?v=3"></script>
 <script src="app.js?v=61"></script>
@@ -276,10 +288,11 @@
 <script src="vehicle-icon-library.js?v=1"></script>
 <script src="resource-types.js?v=4"></script>
 <script src="core/unit-duty-intents.js?v=1"></script>
-<script src="agency-master-settings.js?v=12"></script>\n<link rel="stylesheet" href="agency-master-polish.css?v=1">
+<script src="agency-master-settings.js?v=12"></script>
+<script src="unit-status-settings.js?v=1"></script>\n<link rel="stylesheet" href="agency-master-polish.css?v=1">
 <script src="legacy-demo-cleanup.js?v=1"></script>
 
-<script src="board-layout.js?v=28"></script>
+<script src="board-layout.js?v=29"></script>
 <script src="sample-calls.js?v=1"></script>
 <script src="incident-intelligence.js?v=18.3"></script>
 <script src="core/voice-text.js?v=2"></script>
