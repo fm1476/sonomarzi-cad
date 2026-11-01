@@ -770,7 +770,16 @@ async function processSharedVoiceCompound(text,confirmedUnitId=null,firstAlready
    await processSharedVoiceReclassification(first,intelligence,null,async confirmedId=>{await processSharedVoiceCompound(heard,confirmedId,true);});
    return true; // Preserve the confirmation UI; don't overwrite it with another review.
   }
-  return review('First clause needs a confirmed reporting unit; additional dispatch held.');
+  // Report the units we actually heard, without upgrading the incident or
+  // dispatching apparatus on the strength of an unconfirmed fire report.
+  if(structured){
+   const reporter=structured.reporter?.id||'unresolved ('+(structured.reason||'not in active roster')+')';
+   const responders=structured.responders.map(u=>u.id).join(', ')||'unresolved';
+   const status=structured.onScene?'ON SCENE mentioned; requires event validation':'no on-scene status stated';
+   const fire=structured.workingFire?'working fire mentioned; requires event validation':'structure fire mentioned; working fire NOT confirmed';
+   return review('Reporting unit: '+reporter+'. '+status+'. '+fire+'. Balance of assignment requested. Responding units: '+responders+'. Dispatch order: '+(structured.order||'not found')+'. No automatic dispatch or incident reclassification.');
+  }
+  return review(firstUnits.length!==1?'Reporting unit not uniquely identified':'No confirmed working fire report; additional dispatch held for review.');
  }
  const owned=state.incidents.filter(i=>i.status==='ACTIVE'&&(i.units||[]).includes(firstUnits[0].id));
  if(owned.length!==1||!owned[0].sharedUuid){
