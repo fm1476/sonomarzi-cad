@@ -88,6 +88,23 @@ function closeUnitMenu(){unitMenu.style.display='none';unitMenu.replaceChildren(
 document.addEventListener('click',e=>{if(!unitMenu.contains(e.target))closeUnitMenu()});
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeUnitMenu()});
 document.addEventListener('contextmenu',e=>{
+ const row=e.target.closest('#pending .row[data-id]');
+ if(row&&window.cadSharedIsActive?.()&&!e.target.closest('.cad-unit-chip')){
+  const incident=state.incidents.find(i=>i.id===row.dataset.id);
+  if(incident?.sharedUuid&&incident.status==='PENDING'){
+   e.preventDefault();e.stopImmediatePropagation();closeUnitMenu();
+   const title=document.createElement('strong');title.textContent=incident.id+' · '+incident.type;
+   title.style.cssText='display:block;padding:7px 9px 10px';unitMenu.append(title);
+   const action=document.createElement('button');action.type='button';action.setAttribute('role','menuitem');
+   action.textContent=incident.sharedHold?'Release Hold':'Hold for Unit';
+   action.style.cssText='display:block;width:100%;background:#1e4868;color:#fff;border:0;text-align:left;padding:10px;border-radius:6px';
+   action.onclick=()=>{closeUnitMenu();window.cadOpenHoldForUnit?.(incident.id)};
+   unitMenu.append(action);
+   unitMenu.style.left=Math.min(e.clientX,window.innerWidth-240)+'px';
+   unitMenu.style.top=Math.min(e.clientY,window.innerHeight-120)+'px';unitMenu.style.display='block';
+   action.focus();return;
+  }
+ }
  const chip=e.target.closest('.cad-unit-chip');
  if(!chip)return;
  const unitId=chip.dataset.unitId||chip.dataset.dragUnit||chip.closest('.unit[data-id]')?.dataset.id;
