@@ -72,6 +72,19 @@
   const reporter=identified.length===1?identified[0]:null;
   return {report,order,onScene,workingFire,reporter,responders:order?unitList(order,units,voiceText):[],reason:reporter?null:'Reporting unit '+first[0]+' is not logged on or does not match the active roster'};
  }
+ function unitAccompaniment(text,units,voiceText){
+  const raw=String(text||'').trim();
+  const match=raw.match(/^\s*(.+?)\s+(?:with|along\s+with|together\s+with)\s+(.+?)\s*[.!?]?\s*$/i);
+  if(!match)return null;
+  const reporterMatches=unitList(match[1],units,voiceText);
+  const companionMatches=unitList(match[2],units,voiceText);
+  const reporter=reporterMatches.length===1?reporterMatches[0]:null;
+  const companions=companionMatches.filter(u=>u.id!==reporter?.id);
+  return {kind:'UNIT_ACCOMPANIMENT',reporter,companions,
+    reason:reporterMatches.length!==1?'Reporting unit not uniquely identified':
+      companions.length!==1?'Accompanying unit not uniquely identified':null,
+    status:null};
+ }
  function reportingStatus(text,units,voiceText){
   const t=normalize(text);
   if(!/\b(?:on\s*(?:the\s*)?scene|at\s*(?:the\s*)?scene|onscene|10\s*97)\b/.test(t))return null;
@@ -109,5 +122,5 @@
   const matched=units.filter(u=>ids.has(String(u.id||'').toUpperCase()));
   return matched.length===1?matched[0]:null;
  }
- return Object.freeze({classify,callsigns,unitList,parseWorkingFireTransmission,reportingStatus});
+ return Object.freeze({classify,callsigns,unitList,parseWorkingFireTransmission,reportingStatus,unitAccompaniment});
 });
