@@ -12,5 +12,12 @@ assert(panel.includes('client.listUnitStatusCatalog(agency)'),'shared polling fe
 assert(panel.includes("cad:unit-status-catalog-updated"));
 assert(client.includes("rpc('cad_save_unit_status_catalog'"));
 assert(sql.includes('enable row level security')&&sql.includes('cad_has_access(p_agency,true)'));
-assert(!sql.includes('update public.cad_units'),'catalog must not directly alter live unit statuses');
+assert(!sql.includes('update public.cad_units'),'catalog edit must not directly alter live units');
+const customSql=fs.readFileSync('migrations/20261101_cad_unit_custom_status.sql','utf8');
+const board=fs.readFileSync('board-layout.js','utf8');
+assert(customSql.includes('v_assigned>0 and v_catalog.canonical_status not in'),'assigned units cannot be silently made available');
+assert(customSql.includes('cad_has_access(p_agency,true)'),'custom status transitions are authenticated');
+assert(client.includes("rpc('cad_apply_custom_unit_status'"),'client must invoke atomic status transition');
+assert(board.includes('window.cadSharedApplyCustomStatus(u.id,row.code)'),'unit menu permits configured transitions');
+assert(board.includes('customLabel||String(item.status)'),'custom status label displays only with canonical match');
 console.log('PASS: agency unit status catalog editor, shared synchronization, authorized persistence');
