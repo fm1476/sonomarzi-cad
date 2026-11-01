@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
 <meta name="theme-color" content="#0b1220"/>
 <title>SonoMarzi CAD POC</title>
-<link rel="stylesheet" href="styles.css?v=25.4"/>
+<link rel="stylesheet" href="styles.css?v=25.5"/>
 <link rel="stylesheet" href="core/shared-demo-panel.css?v=4"/>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <style>
@@ -59,7 +59,7 @@
 
 
 <main id="dispatch" class="view active">
-  <section class="cad-workspace-toolbar" aria-label="Saved CAD workspaces"><strong>WORKSPACE</strong><select id="cadWorkspaceSelect" aria-label="Choose a saved workspace"></select><button id="cadWorkspaceLoad" type="button">Load</button><button id="cadWorkspaceNew" type="button">Save New</button><button id="cadWorkspaceUpdate" type="button">Update</button><button id="cadWorkspaceRename" type="button">Rename</button><button id="cadWorkspaceDelete" type="button">Delete</button><button id="cadWorkspaceReset" type="button">Reset Layout</button><label class="cad-external-launch">Other monitor <select id="cadExternalPanel" aria-label="Select panel for a separate monitor"><option value="">Choose pane…</option></select></label><button id="cadExternalOpen" type="button" title="Open selected pane as separate browser window">Open Window ↗</button><button id="cadOpenSavedWindows" type="button" title="Reopen saved separate-monitor windows">Restore Windows</button><span id="cadWorkspaceStatus" role="status" aria-live="polite">Workspace layout stored on this browser.</span></section>
+  <section class="cad-workspace-toolbar" aria-label="Saved CAD workspaces"><strong>WORKSPACE</strong><select id="cadWorkspaceSelect" aria-label="Choose a saved workspace"></select><button id="cadWorkspaceLoad" type="button">Load</button><button id="cadWorkspaceNew" type="button">Save New</button><button id="cadWorkspaceUpdate" type="button">Update</button><button id="cadWorkspaceRename" type="button">Rename</button><button id="cadWorkspaceDelete" type="button">Delete</button><button id="cadWorkspaceReset" type="button">Reset Layout</button><label class="cad-external-launch">Other monitor <select id="cadExternalPanel" aria-label="Select panel for a separate monitor"><option value="">Choose pane…</option></select></label><button id="cadExternalOpen" type="button" title="Open selected pane as separate browser window">Open Window ↗</button><button id="cadOpenSavedWindows" type="button" title="Reopen saved separate-monitor windows">Restore Windows</button><label class="cad-workspace-theme-control">Appearance <select id="cadWorkspaceTheme" aria-label="Workspace appearance"><option value="night">Night mode</option><option value="day">Day mode</option></select></label><span id="cadWorkspaceStatus" role="status" aria-live="polite">Workspace layout stored on this browser.</span></section>
 <section class="grid">
     <article class="panel" data-panel="pending">
       <h2><span class="panel-drag" draggable="true" title="Drag to move this panel" aria-label="Drag panel">⠿</span> Pending Calls <span id="pendingCount"></span></h2>
@@ -293,6 +293,7 @@
 <script src="legacy-demo-cleanup.js?v=1"></script>
 
 <script src="board-layout.js?v=30"></script>
+<script src="workspace-theme.js?v=1"></script>
 <script src="sample-calls.js?v=1"></script>
 <script src="incident-intelligence.js?v=18.3"></script>
 <script src="core/voice-text.js?v=2"></script>
