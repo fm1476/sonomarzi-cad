@@ -1,0 +1,13 @@
+const assert=require('node:assert/strict'),fs=require('node:fs');
+const cloud=fs.readFileSync('core/cloud-settings.js','utf8');
+const master=fs.readFileSync('agency-master-settings.js','utf8');
+const index=fs.readFileSync('index.html','utf8');
+assert(cloud.includes("root.dispatchEvent(new CustomEvent('cad-cloud-master-applied'))"));
+assert(cloud.includes('notifyApplied(changedKeys)'),'explicit cloud download must refresh master');
+assert(cloud.includes('notifyApplied(incomingKeys)'),'periodic incoming sync must refresh master');
+assert(cloud.includes('notifyApplied(appliedKeys)'),'login cloud reconciliation must refresh master');
+assert(master.includes("window.addEventListener('cad-cloud-master-applied'"));
+assert(master.includes('data=M.read(localStorage);render();renderDutyLogOnOptions();refreshTypes()'));
+assert(index.includes('core/cloud-settings.js?v=3'));
+assert(index.includes('agency-master-settings.js?v=10'));
+console.log('PASS cloud Agency Master updates refresh available unit logon list');

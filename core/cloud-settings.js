@@ -46,6 +46,7 @@
  const shadowKey=()=>syncKey()+':last-local-snapshot';
  function shadow(){try{return new Map(JSON.parse(localStorage.getItem(shadowKey())||'[]'));}catch{return new Map();}}
  const report=msg=>{const out=el('cadCloudStatus');if(out)out.textContent=msg;};
+ const notifyApplied=keys=>{if(keys.includes('smcad-agency-master-v1'))root.dispatchEvent(new CustomEvent('cad-cloud-master-applied'));if(keys.length)root.dispatchEvent(new CustomEvent('cad-cloud-settings-applied',{detail:{keys}}));};
  async function remote(client,agency){
   const [agencyRows,userRows]=await Promise.all([client.listAgencySettings(agency),client.listMyPreferences(agency)]);
   return rowsToMap(agencyRows,userRows);
@@ -106,12 +107,13 @@
    const client=root.CadDemoLogin.client(),existing=await remote(client,session.agencyId);
    if(!existing.size)throw Error('There are no cloud settings to download yet. Upload from the computer where you configured CAD first.');
    // The caller requires a saved-backup acknowledgment before replacing local values.
-   let changed=0;
+   let changed=0;const changedKeys=[];
    for(const row of existing.values()){
     if(typeof row.raw!=='string')continue;
-    if(localStorage.getItem(row.key)!==row.raw){localStorage.setItem(row.key,row.raw);changed++;}
+    if(localStorage.getItem(row.key)!==row.raw){localStorage.setItem(row.key,row.raw);changed++;changedKeys.push(row.key);}
    }
    localStorage.setItem(syncKey(),'1');enabled=true;remember(existing);startTimer();
+   notifyApplied(changedKeys);
    return {downloaded:changed};
   }finally{busy=false;}
  }
@@ -127,12 +129,12 @@
      enabled=false;report('Cloud conflict on '+row.key+'. Sync paused. Back up local settings and choose which copy to keep.');return;
     }
    }
-   let incoming=0;
+   let incoming=0;const incomingKeys=[];
    for(const [id,row] of fresh){
     const last=versions.get(id),local=now.get(id);
     if(typeof row.raw!=='string')continue;
     if((!last||row.version!==last.version)&&local?.raw===baseline.get(id)?.raw){
-     if(localStorage.getItem(row.key)!==row.raw){localStorage.setItem(row.key,row.raw);incoming++;}
+     if(localStorage.getItem(row.key)!==row.raw){localStorage.setItem(row.key,row.raw);incoming++;incomingKeys.push(row.key);}
     }
    }
    const current=scan(localStorage);
@@ -149,6 +151,7 @@
     }
    }
    remember(fresh);
+   notifyApplied(incomingKeys);
    if(incoming)report(incoming+' cloud settings received. Reload the page to apply all layout/configuration changes; you will need to sign in again.');
    else if(uploaded)report('Saved '+uploaded+' updated settings to Supabase.');
   }catch(error){report('Cloud sync paused: '+error.message);enabled=false;}
@@ -162,13 +165,13 @@
   try{
    const existing=await remote(root.CadDemoLogin.client(),current.agencyId);
    if(localStorage.getItem(syncKey())==='1'){
-    const prior=shadow();let applied=0,conflicts=[],offline=new Map();
+    const prior=shadow();let applied=0,appliedKeys=[],conflicts=[],offline=new Map();
     for(const [id,row] of existing){
      if(typeof row.raw!=='string')continue;
      const local=localStorage.getItem(row.key);
      if(local===row.raw)continue;
      if(prior.has(id)&&local===prior.get(id)){
-      localStorage.setItem(row.key,row.raw);applied++;
+      localStorage.setItem(row.key,row.raw);applied++;appliedKeys.push(row.key);
      }else if(prior.has(id)&&row.raw===prior.get(id)){
       offline.set(id,prior.get(id)); // Local edit since last confirmed sync.
      }else conflicts.push(row.key);
@@ -186,6 +189,7 @@
      try{localStorage.setItem(shadowKey(),JSON.stringify([...syncShadow]));}catch{}
     }
     enabled=true;startTimer();
+    notifyApplied(appliedKeys);
     report(offline.size?offline.size+' offline edits ready to synchronize.':applied?applied+' settings loaded from Supabase. Reload the page to apply updated layout/configuration, then sign in again.':'Cloud sync enabled: '+existing.size+' saved settings. Changes will sync across devices.');
    }else{
     remember(existing);
