@@ -20,7 +20,7 @@
   const units=$('cadSharedUnits');
   const shortages=$('cadSharedShortages');
   const counts=$('cadSharedCounts');
-  let snapshot={incidents:[],roster:[],assignments:[],holds:[],statusCatalog:[]};
+  let snapshot={incidents:[],roster:[],assignments:[],holds:[],statusCatalog:[],customStatuses:[]};
   let refreshing=false;
   let refreshAgain=false;
   let refreshTimer=null;
@@ -249,16 +249,16 @@
    const agency=window.CadDemoLogin.current().agencyId;
    if(!quiet)say('Refreshing shared CAD data…');
    try{
-    const [incidents,roster,missing,assignments,dispatchAreas,areaAgencies,incidentEvents,incidentLocations,holds,statusCatalog]=await Promise.all([
-     client.listIncidents(agency),client.listUnits(agency),client.listOutstanding(agency),client.listAssignments(agency),client.listDispatchAreas(agency),client.listDispatchAreaAgencies(agency),client.listIncidentEvents(agency),client.listIncidentLocations(agency),client.listIncidentHolds(agency),client.listUnitStatusCatalog(agency)
+    const [incidents,roster,missing,assignments,dispatchAreas,areaAgencies,incidentEvents,incidentLocations,holds,statusCatalog,customStatuses]=await Promise.all([
+     client.listIncidents(agency),client.listUnits(agency),client.listOutstanding(agency),client.listAssignments(agency),client.listDispatchAreas(agency),client.listDispatchAreaAgencies(agency),client.listIncidentEvents(agency),client.listIncidentLocations(agency),client.listIncidentHolds(agency),client.listUnitStatusCatalog(agency),client.listUnitCustomStatuses(agency)
     ]);
     if(refreshEpoch!==confirmedMutationEpoch){refreshAgain=true;return;}
     refreshFailures=0;
-    const signature=JSON.stringify({incidents,roster,missing,assignments,incidentEvents,incidentLocations,holds,statusCatalog});
+    const signature=JSON.stringify({incidents,roster,missing,assignments,incidentEvents,incidentLocations,holds,statusCatalog,customStatuses});
     const needsRender=lastSignature!==signature;
     const changed=lastSignature!==''&&needsRender;
     lastSignature=signature;
-    snapshot={incidents,roster,assignments,dispatchAreas,areaAgencies,incidentEvents,incidentLocations,holds,statusCatalog};syncChoices();renderWorkspace();renderSharedBoard();if(needsRender)window.cadSharedApplySnapshot?.(snapshot);window.dispatchEvent(new CustomEvent('cad:unit-status-catalog-updated',{detail:{catalog:statusCatalog}}));
+    snapshot={incidents,roster,assignments,dispatchAreas,areaAgencies,incidentEvents,incidentLocations,holds,statusCatalog,customStatuses};syncChoices();renderWorkspace();renderSharedBoard();if(needsRender)window.cadSharedApplySnapshot?.(snapshot);window.dispatchEvent(new CustomEvent('cad:unit-status-catalog-updated',{detail:{catalog:statusCatalog}}));
     displayRows(tbody,incidents,['incident_number','status','discipline','created_at']);
     displayRows(units,roster.filter(u=>u.status!=='OFF_DUTY'),['call_sign','status','resource_type']);
     displayRows(shortages,missing,['incident_id','resource_type','missing_count']);
@@ -358,6 +358,15 @@
     await refresh({quiet:true});
     throw Error(error.message+' — Refresh shared roster and verify duty status before retrying.');
    }
+  };
+  window.cadSharedApplyCustomStatus=async function(unitId,code){
+   const session=window.CadDemoLogin.current();if(!session)throw Error('Sign in to shared CAD first');
+   const unit=snapshot.roster.find(u=>u.id===unitId||u.call_sign===unitId);
+   if(!unit)throw Error('Unit not found in shared roster');
+   const row=snapshot.statusCatalog?.find(s=>s.code===code&&s.enabled&&['ALL',unit.discipline].includes(s.discipline));
+   if(!row)throw Error('Configured status not available for unit');
+   try{const result=await window.CadDemoLogin.client().applyCustomUnitStatus({agency:session.agencyId,unit:unit.id,code,unitVersion:unit.version});await refresh({quiet:true});return result;}
+   catch(error){await refresh({quiet:true});throw error}
   };
   window.cadSharedCommand=async function(action,args={}){
    const session=window.CadDemoLogin.current();
