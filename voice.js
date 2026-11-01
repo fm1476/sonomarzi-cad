@@ -959,7 +959,7 @@ process=function(text,source=el('voiceSource').value){
  }
  // Explicit on-duty requests must resolve against Agency Master, not only the
  // active roster. Newly configured units are absent from state.units until logon.
- const duty=window.CadUnitDutyIntents?.resolve(text,window.CadAgencyMaster?.read(localStorage)?.units||[]);
+ const duty=window.CadUnitDutyIntents?.resolve(text,(window.cadSharedIsActive?.()?window.CadCloudSettings?.sharedMaster?.():window.CadAgencyMaster?.read(localStorage))?.units||[]);
  if(duty?.kind==='LOG_ON'||duty?.kind==='REVIEW'){
   el('voiceHeard').textContent=String(text||'');
   if(duty.kind==='REVIEW'){
