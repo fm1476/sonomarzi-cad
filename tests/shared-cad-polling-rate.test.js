@@ -12,5 +12,5 @@ assert(src.includes('refreshFailures=0'),'reset failures after successful refres
 assert(src.includes('startPolling();'),'start after login');
 assert(src.includes('stopPolling();'),'stop after logout');
 assert(!src.includes('setInterval(()=>{if(window.CadDemoLogin.current()'),'remove high-frequency query loop');
-assert(html.includes('shared-demo-panel.js?v=24'),'cache bust to force new polling code');
+assert(html.includes('shared-demo-panel.js?v=25'),'cache bust to force new polling code');
 console.log('PASS: CAD reduces polling requests with nonoverlapping refresh and backoff');

@@ -20,7 +20,7 @@
   const units=$('cadSharedUnits');
   const shortages=$('cadSharedShortages');
   const counts=$('cadSharedCounts');
-  let snapshot={incidents:[],roster:[],assignments:[]};
+  let snapshot={incidents:[],roster:[],assignments:[],holds:[]};
   let refreshing=false;
   let refreshAgain=false;
   let refreshTimer=null;
@@ -94,7 +94,7 @@
    boardText('cadSharedActiveCount','('+active.length+')');
    for(const [id,items] of [['cadSharedPendingList',pending],['cadSharedActiveList',active]]){
     const host=document.getElementById(id);host.replaceChildren();
-    for(const i of items)boardRow(host,i,i.incident_number+'  ·  '+i.type+'  ·  '+i.current_location+'  ·  '+i.priority,()=>{selectedSharedIncident=i.id;renderSharedBoard()});
+    for(const i of items)boardRow(host,i,i.incident_number+'  ·  '+i.type+'  ·  '+i.current_location+'  ·  '+i.priority+(snapshot.holds.find(h=>h.incident_id===i.id&&h.active)?' · HELD FOR '+(snapshot.holds.find(h=>h.incident_id===i.id&&h.active).requested_unit||'REVIEW'):''),()=>{selectedSharedIncident=i.id;renderSharedBoard()});
     if(!items.length)host.textContent='No calls in this view';
    }
    const units=document.getElementById('cadSharedUnitList');units.replaceChildren();
@@ -133,6 +133,33 @@
    const heading=document.createElement('div');heading.className='cad-shared-board-heading';
    heading.textContent=i.incident_number+' · '+i.type+' · '+i.current_location+' · '+i.status;
    detail.appendChild(heading);
+   if(i.status!=='CLOSED'){
+    const hold=snapshot.holds.find(h=>h.incident_id===i.id&&h.active);
+    const line=document.createElement('div');line.className='cad-shared-board-assignment';
+    const label=document.createElement('span');label.textContent=hold?'HELD · '+(hold.requested_unit||hold.reason):'Not held';line.append(label);
+    const button=document.createElement('button');button.className='cad-shared-btn';button.type='button';button.textContent=hold?'Release Hold':'Hold for Unit';
+    button.onclick=async()=>{
+     let unit=null,reason='DISPATCHER_HOLD',notes='';
+     if(!hold){
+      const value=window.prompt('Hold for unit (call sign, blank for general hold):','');
+      if(value===null)return;
+      unit=value.trim().toUpperCase();
+      if(unit&&!snapshot.roster.some(u=>u.call_sign.toUpperCase()===unit)){window.alert('Unit not found in shared roster.');return}
+      reason=unit?'SPECIFIC_UNIT':'DISPATCHER_HOLD';
+      const input=window.prompt('Optional hold reason / notes:','');
+      if(input===null)return;notes=input.trim().slice(0,1000);
+     }
+     button.disabled=true;
+     try{await window.cadSharedCommand(hold?'release-hold':'hold',{incidentId:i.id,requestedUnit:unit,reason,notes});}
+     catch(error){window.alert('Hold operation failed: '+error.message)}
+     finally{button.disabled=false}
+    };
+    line.append(button);detail.append(line);
+    if(hold?.requested_unit&&snapshot.roster.some(u=>u.call_sign.toUpperCase()===hold.requested_unit.toUpperCase()&&u.status==='AVAILABLE')){
+     const notice=document.createElement('strong');notice.textContent='Requested unit AVAILABLE. Review for dispatch.';line.append(notice);
+    }
+   }
+
    const assigned=snapshot.assignments.filter(a=>a.incident_id===i.id);
    for(const a of assigned){
     const u=snapshot.roster.find(u=>u.id===a.unit_id);if(!u)continue;
@@ -222,16 +249,16 @@
    const agency=window.CadDemoLogin.current().agencyId;
    if(!quiet)say('Refreshing shared CAD data…');
    try{
-    const [incidents,roster,missing,assignments,dispatchAreas,areaAgencies,incidentEvents,incidentLocations]=await Promise.all([
-     client.listIncidents(agency),client.listUnits(agency),client.listOutstanding(agency),client.listAssignments(agency),client.listDispatchAreas(agency),client.listDispatchAreaAgencies(agency),client.listIncidentEvents(agency),client.listIncidentLocations(agency)
+    const [incidents,roster,missing,assignments,dispatchAreas,areaAgencies,incidentEvents,incidentLocations,holds]=await Promise.all([
+     client.listIncidents(agency),client.listUnits(agency),client.listOutstanding(agency),client.listAssignments(agency),client.listDispatchAreas(agency),client.listDispatchAreaAgencies(agency),client.listIncidentEvents(agency),client.listIncidentLocations(agency),client.listIncidentHolds(agency)
     ]);
     if(refreshEpoch!==confirmedMutationEpoch){refreshAgain=true;return;}
     refreshFailures=0;
-    const signature=JSON.stringify({incidents,roster,missing,assignments,incidentEvents,incidentLocations});
+    const signature=JSON.stringify({incidents,roster,missing,assignments,incidentEvents,incidentLocations,holds});
     const needsRender=lastSignature!==signature;
     const changed=lastSignature!==''&&needsRender;
     lastSignature=signature;
-    snapshot={incidents,roster,assignments,dispatchAreas,areaAgencies,incidentEvents,incidentLocations};syncChoices();renderWorkspace();renderSharedBoard();if(needsRender)window.cadSharedApplySnapshot?.(snapshot);
+    snapshot={incidents,roster,assignments,dispatchAreas,areaAgencies,incidentEvents,incidentLocations,holds};syncChoices();renderWorkspace();renderSharedBoard();if(needsRender)window.cadSharedApplySnapshot?.(snapshot);
     displayRows(tbody,incidents,['incident_number','status','discipline','created_at']);
     displayRows(units,roster.filter(u=>u.status!=='OFF_DUTY'),['call_sign','status','resource_type']);
     displayRows(shortages,missing,['incident_id','resource_type','missing_count']);
@@ -344,7 +371,8 @@
      result=await client.createIncidentAuto({agency,discipline:args.discipline,type:args.type,priority:args.priority,location:args.location});
     }else{
      if(!incident)throw Error('Incident not found. Refresh and retry.');
-     if(action==='allocate-case')result=await client.allocateCaseNumber({agency,incident:incident.id,incidentVersion:incident.version});
+     if(action==='hold'||action==='release-hold')result=await client.setIncidentHold({agency,incident:incident.id,incidentVersion:incident.version,hold:action==='hold',reason:args.reason,requestedUnit:args.requestedUnit,requestedCapability:args.requestedCapability,notes:args.notes});
+     else if(action==='allocate-case')result=await client.allocateCaseNumber({agency,incident:incident.id,incidentVersion:incident.version});
      else if(action==='case')result=await client.setCaseNumber({agency,incident:incident.id,caseNumber:args.caseNumber||'',incidentVersion:incident.version});
      else if(action==='note')result=await client.addNarrative({agency,incident:incident.id,text:args.text,incidentVersion:incident.version});
      else if(action==='batch-assign'){
