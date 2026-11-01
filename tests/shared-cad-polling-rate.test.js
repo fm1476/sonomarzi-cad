@@ -1,0 +1,16 @@
+const assert=require('node:assert/strict'),fs=require('node:fs');
+const src=fs.readFileSync('core/shared-demo-panel.js','utf8');
+const html=fs.readFileSync('index.html','utf8');
+assert(src.includes('const POLL_BASE_MS=5000'));
+assert(src.includes('const POLL_MAX_MS=30000'));
+assert(src.includes('refreshTimer=setTimeout(async()=>'),'schedule after previous request rather than overlapping intervals');
+assert(src.includes('await refresh({quiet:true})'),'wait until previous refresh is finished');
+assert(src.includes("document.visibilityState==='hidden'"),'pause hidden pages');
+assert(src.includes('Math.min(POLL_MAX_MS'),'back off after errors');
+assert(src.includes('refreshFailures++'),'track failures');
+assert(src.includes('refreshFailures=0'),'reset failures after successful refresh');
+assert(src.includes('startPolling();'),'start after login');
+assert(src.includes('stopPolling();'),'stop after logout');
+assert(!src.includes('setInterval(()=>{if(window.CadDemoLogin.current()'),'remove high-frequency query loop');
+assert(html.includes('shared-demo-panel.js?v=24'),'cache bust to force new polling code');
+console.log('PASS: CAD reduces polling requests with nonoverlapping refresh and backoff');
