@@ -9,7 +9,7 @@ assert(js.includes('verifiedSnapshot!==JSON.stringify([...scan(localStorage)])')
 assert(js.includes('proceed.disabled=true'),'disable upload by default');
 assert(js.includes("pending=null;proceed.disabled=true"),'prevent repeated uploads');
 assert(js.includes("link.download='cad-cloud-migration-backup-"),'dated backup filename');
-assert(html.includes('core/cloud-settings.js?v=3'),'cache bust');
+assert(html.includes('core/cloud-settings.js?v=4'),'cache bust');
 const begin=js.indexOf('async function upload()'),end=js.indexOf('async function download()',begin);
 assert(!js.slice(begin,end).includes('backup()'),'cloud writes cannot make browser-download initiation asynchronous');
 console.log('PASS: backup download is a first-click action and upload requires backup acknowledgment');
