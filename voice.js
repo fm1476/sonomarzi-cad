@@ -922,6 +922,29 @@ async function processSharedVoiceCaseNumber(text){
  }catch(error){fail(error?.message||'Case number allocation failed')}
  finally{sharedVoiceDispatchPending=false;}
 }
+async function processSharedVoiceJoinOnScene(text,plan){
+ const heard=String(text||'').trim();
+ const report=reason=>{el('voiceHeard').textContent=heard;el('voiceInterpretation').textContent='HEARD: '+heard+' | UNIT JOIN REVIEW: '+reason+'. No shared changes confirmed.';indicator('REVIEW');activity('SHARED UNIT JOIN REVIEW | '+reason);renderActivity();};
+ if(!plan||plan.kind!=='JOIN_ON_SCENE')return report(plan?.reason||'Unable to identify joining and reference units');
+ if(sharedVoiceDispatchPending)return report('Another shared radio command is processing');
+ if(typeof window.cadSharedCommand!=='function')return report('Shared CAD command gateway unavailable');
+ sharedVoiceDispatchPending=true;
+ const join=plan.joining,ref=plan.reference,incident=plan.incident;
+ el('voiceHeard').textContent=heard;
+ el('voiceInterpretation').textContent='UNIT JOIN PENDING: '+join.id+' joining '+ref.id+' on '+incident.id+' | STATUS: ON SCENE';
+ indicator('PROCESSING');
+ try{
+  await window.cadSharedCommand('join-onscene',{incidentId:incident.sharedUuid,joiningUnitId:join.sharedUuid,referenceUnitId:ref.sharedUuid});
+  const current=window.cadSafetyState?.();
+  const updated=current?.incidents?.find(i=>i.sharedUuid===incident.sharedUuid);
+  const updatedUnit=current?.units?.find(u=>u.sharedUuid===join.sharedUuid);
+  if(!updated||(updated.units||[]).includes(join.id)||updatedUnit?.status!=='ONSCENE')
+   return report('Command completed but incident and ON SCENE status could not both be verified');
+  el('voiceInterpretation').textContent='JOIN CONFIRMED: '+join.id+' ON SCENE WITH '+ref.id+' | EVENT: '+updated.id+' | Reference unit status unchanged';
+  indicator('PROCESSED');activity('SHARED UNIT JOIN CONFIRMED | '+join.id+' with '+ref.id+' on '+updated.id);renderActivity();
+ }catch(error){report(error?.message||'Joining-unit transaction failed');}
+ finally{sharedVoiceDispatchPending=false;}
+}
 async function processSharedVoiceStatus(text){
  const heard=String(text||'').trim();
  const intents=window.CadSharedVoiceIntents;
@@ -1004,6 +1027,8 @@ process=function(text,source=el('voiceSource').value){
  // handlers that mutate projected local state or show false success.
  if(window.cadSharedIsActive?.()){
   if(sharedRadioSegments(text).length>1||/\b(?:break|brake)\b/i.test(text)){void processSharedVoiceCompound(text);return;}
+  const joinPlan=window.CadSharedVoiceIntents?.planJoinUnitOnScene(text,state.units,state.incidents,window.CadVoiceText);
+  if(joinPlan){void processSharedVoiceJoinOnScene(text,joinPlan);return;}
   const parsed=window.CadSharedVoiceIntents?.classify(text);
   const classification=window.cadIncidentIntelligence?.classification(text);
   if(/\b(?:request(?:ing)?|need|give|assign|issue|allocate)\s+(?:me\s+)?(?:a\s+|the\s+)?case\s*(?:number|#)|\bcase\s*number\s*(?:request|please)\b/i.test(text))void processSharedVoiceCaseNumber(text);
