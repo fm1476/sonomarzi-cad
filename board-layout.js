@@ -15,7 +15,7 @@ const alpha=(a,b)=>String(a).localeCompare(String(b),undefined,{numeric:true,sen
 function unitGrid(){return opts.units.columns.map(f=>Math.max(55,Math.min(600,Number(widths[f])||UNIT_WIDTHS[f]))+'px').join(' ')}
 function buildColumns(type){const el=document.querySelector(`[data-columns="${type}"]`);if(!el)return;
  const unit=type==='units';
- el.innerHTML=(unit?'<button type="button" class="cad-column-menu-button" title="Show or hide columns" aria-label="Show or hide columns">☷ Columns</button><div class="cad-column-menu" hidden></div>':'')+'<div class="cad-column-headings">'+opts[type].columns.map(f=>`<span draggable="true" class="col-drag" data-field="${f}" title="Drag to rearrange columns">⠿ ${labels[f]}${unit?'<i class="cad-col-resizer" title="Drag to resize column" aria-hidden="true"></i>':''}</span>`).join('')+'</div>';
+ el.innerHTML=(unit?'<button type="button" class="cad-column-menu-button" title="Show or hide columns" aria-label="Show or hide columns">☷</button><div class="cad-column-menu" hidden></div>':'')+'<div class="cad-column-headings">'+opts[type].columns.map(f=>`<span draggable="true" class="col-drag" data-field="${f}" title="Drag to rearrange columns">⠿ ${labels[f]}${unit?'<i class="cad-col-resizer" title="Drag to resize column" aria-hidden="true"></i>':''}</span>`).join('')+'</div>';
  const headings=el.querySelector('.cad-column-headings');
  if(unit){headings.style.gridTemplateColumns=unitGrid();const button=el.querySelector('.cad-column-menu-button'),menu=el.querySelector('.cad-column-menu');
  button.onclick=()=>{menu.hidden=!menu.hidden};
