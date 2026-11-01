@@ -6,7 +6,7 @@ const roster=[
  {id:'3A11',sharedUuid:'reference-11',discipline:'LAW',status:'ONSCENE'}
 ];
 const incident={id:'26-004512',sharedUuid:'active-incident',status:'ACTIVE',discipline:'LAW',units:['3A11']};
-for(const utterance of ['3adam12 with 3a11','Three Adam Twelve with Three Adam Eleven','3A12 on scene with 3A11']){
+for(const utterance of ['3adam12 with 3a11','Three Adam Twelve with Three Adam Eleven','Three Adam Twelve is out with Three Adam Eleven','3A12 on scene with 3A11']){
  const plan=intents.planJoinUnitOnScene(utterance,roster,[incident],voiceText);
  assert.equal(plan?.kind,'JOIN_ON_SCENE',utterance);
  assert.equal(plan.joining.id,'3A12');
