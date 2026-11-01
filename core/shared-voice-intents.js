@@ -54,6 +54,105 @@
   for(const id of voiceText.numericCallsigns(expanded))if(valid.some(u=>String(u.id).toUpperCase()===id))mentions.push(id);
   return [...new Set(mentions)].map(id=>valid.find(u=>String(u.id).toUpperCase()===id));
  }
+ function parseWorkingFireTransmission(text,units,voiceText){
+  const raw=String(text||'').trim();
+  const t=normalize(raw);
+  if(!/\b(?:requesting|request|need)\s+(?:the\s+)?balance\s+of\s+(?:the\s+)?assignment\b/.test(t))return null;
+  const orderPattern=/\b(?:engine|truck|ladder|medic|ambulance|battalion|rescue)\s+(?:\d{1,3}|one|two|three|four|five|six|seven|eight|nine|ten)(?:\s*,?\s*(?:and\s+)?(?:engine|truck|ladder|medic|ambulance|battalion|rescue)\s+(?:\d{1,3}|one|two|three|four|five|six|seven|eight|nine|ten))*\s*,?\s+(?:respond|dispatch|start|send|assign)\b/ig;
+  let separator=-1;
+  for(const match of raw.matchAll(orderPattern))if(match.index>0&&/\b(?:requesting|request|need)\s+(?:the\s+)?balance\s+of\s+(?:the\s+)?assignment\b/i.test(raw.slice(0,match.index))){separator=match.index;break;}
+  const report=(separator>=0?raw.slice(0,separator):raw).trim().replace(/[\s,.;]+$/,'');
+  const order=separator>=0?raw.slice(separator).trim():null;
+  const reportingClause=report.replace(/^\s*(?:copy|dispatch|radio)\s+/i,'');
+  const onScene=/\b(?:on\s*(?:the\s*)?scene|at\s*(?:the\s*)?scene)\b/i.test(report);
+  const workingFire=/\b(?:confirmed\s+)?working\s+(?:structure\s+)?fire\b/i.test(report);
+  const first=reportingClause.match(/^\s*(?:engine|truck|ladder|medic|ambulance|battalion|rescue)\s+(?:\d{1,3}|one|two|three|four|five|six|seven|eight|nine|ten)\b/i);
+  if(!first)return {report,order,onScene,workingFire,reporter:null,responders:order?unitList(order,units,voiceText):[],reason:'Reporting unit not clearly identified at beginning of transmission'};
+  const identified=unitList(first[0],units,voiceText);
+  const reporter=identified.length===1?identified[0]:null;
+  return {report,order,onScene,workingFire,reporter,responders:order?unitList(order,units,voiceText):[],reason:reporter?null:'Reporting unit '+first[0]+' is not logged on or does not match the active roster'};
+ }
+ function unitAccompaniment(text,units,voiceText){
+  const raw=String(text||'').trim();
+  const match=raw.match(/^\s*(.+?)\s+(?:with|along\s+with|together\s+with)\s+(.+?)\s*[.!?]?\s*$/i);
+  if(!match)return null;
+  const reporterMatches=unitList(match[1],units,voiceText);
+  const companionMatches=unitList(match[2],units,voiceText);
+  const reporter=reporterMatches.length===1?reporterMatches[0]:null;
+  const companions=companionMatches.filter(u=>u.id!==reporter?.id);
+  return {kind:'UNIT_ACCOMPANIMENT',reporter,companions,
+    reason:reporterMatches.length!==1?'Reporting unit not uniquely identified':
+      companions.length!==1?'Accompanying unit not uniquely identified':null,
+    status:null};
+ }
+ function planPreemptWithUnit(text,units,incidents,voiceText){
+  const raw=String(text||'').trim();
+  if(!/\bpreempt\b/i.test(raw))return null;
+  if(/\b(?:do not|don't|cancel|disregard|negative|hold off|never)\b/i.test(raw))
+   return {kind:'REVIEW',reason:'Negated PREEMPT requires dispatcher review'};
+  const match=raw.match(/^\s*(.+?)\s+preempt\s+(?:(?:and|then)\s+)?(?:show\s+(?:me|us|unit)\s+)?(?:on\s+scene\s+)?(?:with|along\s+with)\s+(.+?)\s*[.!?]?\s*$/i);
+  if(!match)return {kind:'REVIEW',reason:'PREEMPT needs a reporting unit and explicit reference unit'};
+  const movers=unitList(match[1],units,voiceText);
+  const references=unitList(match[2],units,voiceText);
+  if(movers.length!==1||references.length!==1)
+   return {kind:'REVIEW',reason:'Both PREEMPT and reference units must be uniquely recognized'};
+  const joining=movers[0],reference=references[0];
+  if(joining.id===reference.id)return {kind:'REVIEW',reason:'Cannot preempt a unit to itself'};
+  const active=(Array.isArray(incidents)?incidents:[]).filter(i=>i.status==='ACTIVE'&&i.sharedUuid&&Array.isArray(i.units));
+  const sources=active.filter(i=>i.units.includes(joining.id));
+  const targets=active.filter(i=>i.units.includes(reference.id));
+  if(sources.length!==1)return {kind:'REVIEW',reason:'PREEMPT unit must have exactly one active assignment'};
+  if(targets.length!==1)return {kind:'REVIEW',reason:'Reference unit must have exactly one active assignment'};
+  if(sources[0].sharedUuid===targets[0].sharedUuid)
+   return {kind:'REVIEW',reason:'Both units are already on the same incident'};
+  if(joining.discipline!==targets[0].discipline)
+   return {kind:'REVIEW',reason:'Cross-discipline PREEMPT requires dispatcher review'};
+  if(!joining.sharedUuid||!reference.sharedUuid)
+   return {kind:'REVIEW',reason:'Shared unit identifiers are missing'};
+  return {kind:'PREEMPT_JOIN_ONSCENE',joining,reference,source:sources[0],destination:targets[0],status:'ONSCENE',reason:null};
+ }
+ function planJoinUnitOnScene(text,units,incidents,voiceText){
+  const statusReport=reportingStatus(text,units,voiceText);
+  const link=statusReport?.companionMentioned?
+   {kind:'UNIT_ACCOMPANIMENT',reporter:statusReport.reporter,companions:statusReport.companions,reason:statusReport.reason,status:'ONSCENE'}:
+   unitAccompaniment(text,units,voiceText);
+  if(!link)return null;
+  if(link.reason)return {...link,kind:'REVIEW',reason:link.reason};
+  if(link.companions.length!==1)return {...link,kind:'REVIEW',reason:'Exactly one reference unit required'};
+  const joining=link.reporter,reference=link.companions[0];
+  if(joining.id===reference.id)return {...link,kind:'REVIEW',reason:'A unit cannot join itself'};
+  const active=(Array.isArray(incidents)?incidents:[]).filter(i=>
+   i.status==='ACTIVE'&&i.sharedUuid&&Array.isArray(i.units));
+  const referenced=active.filter(i=>i.units.includes(reference.id));
+  if(referenced.length!==1)return {...link,kind:'REVIEW',reason:'Reference unit must have exactly one active shared incident assignment'};
+  const target=referenced[0];
+  if(target.discipline!==joining.discipline)
+   return {...link,kind:'REVIEW',reason:'Cross-discipline assignment requires explicit dispatcher review'};
+  if(joining.status!=='AVAILABLE')
+   return {...link,kind:'REVIEW',reason:'Joining unit is not available'};
+  if(active.some(i=>i.units.includes(joining.id)))
+   return {...link,kind:'REVIEW',reason:'Joining unit already has an active incident assignment'};
+  if(!joining.sharedUuid||!reference.sharedUuid)
+   return {...link,kind:'REVIEW',reason:'Shared unit IDs missing'};
+  return {kind:'JOIN_ON_SCENE',joining,reference,incident:target,status:'ONSCENE',reason:null};
+ }
+ function reportingStatus(text,units,voiceText){
+  const t=normalize(text);
+  if(!/\b(?:on\s*(?:the\s*)?scene|at\s*(?:the\s*)?scene|onscene|10\s*97)\b/.test(t))return null;
+  const marker=t.match(/\b(?:on\s*(?:the\s*)?scene|at\s*(?:the\s*)?scene|onscene|10\s*97)\b/);
+  const before=t.slice(0,marker.index).trim();
+  const after=t.slice(marker.index+marker[0].length).trim();
+  const reporterList=unitList(before,units,voiceText);
+  const accompaniment=after.match(/^\s*(?:with|along\s+with|together\s+with)\s+(.+)$/);
+  const companionList=accompaniment?unitList(accompaniment[1],units,voiceText):[];
+  return {
+   kind:'STATUS_REPORT',status:'ONSCENE',
+   reporter:reporterList.length===1?reporterList[0]:null,
+   companions:companionList.filter(u=>!reporterList.some(r=>r.id===u.id)),
+   reason:reporterList.length===1?null:(reporterList.length>1?'Multiple reporting units before status':'Reporting unit not uniquely recognized before status'),
+   companionMentioned:!!accompaniment
+  };
+ }
  function callsigns(text,units,voiceText){
   const matches=unitList(text,units,voiceText);
   return matches.length===1?matches[0]:null;
@@ -74,5 +173,5 @@
   const matched=units.filter(u=>ids.has(String(u.id||'').toUpperCase()));
   return matched.length===1?matched[0]:null;
  }
- return Object.freeze({classify,callsigns,unitList});
+ return Object.freeze({classify,callsigns,unitList,parseWorkingFireTransmission,reportingStatus,unitAccompaniment,planJoinUnitOnScene,planPreemptWithUnit});
 });
