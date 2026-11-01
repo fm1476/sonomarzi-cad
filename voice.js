@@ -728,6 +728,8 @@ function sharedRadioSegments(text){
  const heard=String(text||'').trim();
  const explicit=heard.split(/\s*\b(?:break|brake)\b\s*[,.!?;]*\s*/i).map(x=>x.trim()).filter(Boolean);
  if(explicit.length!==1||/\b(?:break|brake)\b/i.test(heard))return explicit;
+ const structured=typeof window!=='undefined'&&typeof state!=='undefined'?window.CadSharedVoiceIntents?.parseWorkingFireTransmission(heard,state.units,window.CadVoiceText):null;
+ if(structured?.order)return [structured.report,structured.order];
  // ASR sometimes drops "break" while preserving two distinct commands.
  // Never infer a second action without explicit responding units AND a dispatch verb.
  const apparatus=String.raw`\b(?:engine|medic|ambulance|truck|ladder|battalion|rescue)\s+(?:\d{1,3}|one|two|three|four|five|six|seven|eight|nine|ten)\b`;
@@ -760,13 +762,24 @@ async function processSharedVoiceCompound(text,confirmedUnitId=null,firstAlready
  if(segments.length!==2)return review('Transmission contained multiple unclear clauses. Repeat the commands separately.');
  const first=segments[0],second=segments[1];
  const intelligence=window.cadIncidentIntelligence?.classification(first);
- const firstUnits=confirmedUnitId?[state.units.find(u=>u.id===confirmedUnitId)].filter(Boolean):(window.CadSharedVoiceIntents?.unitList(first,state.units,window.CadVoiceText)||[]);
+ const structured=window.CadSharedVoiceIntents?.parseWorkingFireTransmission(heard,state.units,window.CadVoiceText);
+ const firstUnits=confirmedUnitId?[state.units.find(u=>u.id===confirmedUnitId)].filter(Boolean):
+  structured?[structured.reporter].filter(Boolean):(window.CadSharedVoiceIntents?.unitList(first,state.units,window.CadVoiceText)||[]);
  if(firstUnits.length!==1||intelligence?.type!=='Structure Fire'||!(/\b(?:confirmed|working)\b/i.test(first))){
   if(intelligence?.type==='Structure Fire'&&/\b(?:confirmed|working)\b/i.test(first)){
    await processSharedVoiceReclassification(first,intelligence,null,async confirmedId=>{await processSharedVoiceCompound(heard,confirmedId,true);});
    return true; // Preserve the confirmation UI; don't overwrite it with another review.
   }
-  return review('First clause needs a confirmed reporting unit; additional dispatch held.');
+  // Report the units we actually heard, without upgrading the incident or
+  // dispatching apparatus on the strength of an unconfirmed fire report.
+  if(structured){
+   const reporter=structured.reporter?.id||'unresolved ('+(structured.reason||'not in active roster')+')';
+   const responders=structured.responders.map(u=>u.id).join(', ')||'unresolved';
+   const status=structured.onScene?'ON SCENE mentioned; requires event validation':'no on-scene status stated';
+   const fire=structured.workingFire?'working fire mentioned; requires event validation':'structure fire mentioned; working fire NOT confirmed';
+   return review('Reporting unit: '+reporter+'. '+status+'. '+fire+'. Balance of assignment requested. Responding units: '+responders+'. Dispatch order: '+(structured.order||'not found')+'. No automatic dispatch or incident reclassification.');
+  }
+  return review(firstUnits.length!==1?'Reporting unit not uniquely identified':'No confirmed working fire report; additional dispatch held for review.');
  }
  const owned=state.incidents.filter(i=>i.status==='ACTIVE'&&(i.units||[]).includes(firstUnits[0].id));
  if(owned.length!==1||!owned[0].sharedUuid){
@@ -802,7 +815,8 @@ async function processSharedVoiceCompound(text,confirmedUnitId=null,firstAlready
 }
 async function processSharedVoiceReclassification(text,parsed,confirmedUnitId=null,onConfirmed=null){
  const heard=String(text||'').trim();
- const candidates=window.CadSharedVoiceIntents?.unitList(heard,state.units,window.CadVoiceText)||[];
+ const structured=window.CadSharedVoiceIntents?.parseWorkingFireTransmission(heard,state.units,window.CadVoiceText);
+ const candidates=structured?[structured.reporter].filter(Boolean):(window.CadSharedVoiceIntents?.unitList(heard,state.units,window.CadVoiceText)||[]);
  const confirmedUnit=confirmedUnitId&&state.units.find(u=>u.id===confirmedUnitId);
  const reportingUnits=confirmedUnit?[confirmedUnit]:candidates;
  const fail=reason=>{
@@ -816,7 +830,7 @@ async function processSharedVoiceReclassification(text,parsed,confirmedUnitId=nu
     .flatMap(i=>(i.units||[]).map(id=>({id,event:i.id,uuid:i.sharedUuid})))
     .filter(({id})=>/^E\d+$/i.test(id));
   const hint=possible.length===1?' Possible assigned engine: '+possible[0].id+' on '+possible[0].event+'; confirm before any changes.':'';
-  fail('No uniquely recognized reporting unit.'+hint);
+  fail((structured?.reason||'No uniquely recognized reporting unit.')+hint);
   const old=document.getElementById('cadVoiceConfirmReporter');old?.remove();
   if(candidates.length===0&&possible.length===1&&!parsed?.review&&parsed?.type==='Structure Fire'&&
       /\bconfirmed working (?:structure )?fire\b/i.test(heard)&&
@@ -908,11 +922,37 @@ async function processSharedVoiceCaseNumber(text){
  }catch(error){fail(error?.message||'Case number allocation failed')}
  finally{sharedVoiceDispatchPending=false;}
 }
+async function processSharedVoiceJoinOnScene(text,plan){
+ const heard=String(text||'').trim();
+ const report=reason=>{el('voiceHeard').textContent=heard;el('voiceInterpretation').textContent='HEARD: '+heard+' | UNIT JOIN REVIEW: '+reason+'. No shared changes confirmed.';indicator('REVIEW');activity('SHARED UNIT JOIN REVIEW | '+reason);renderActivity();};
+ if(!plan||plan.kind!=='JOIN_ON_SCENE')return report(plan?.reason||'Unable to identify joining and reference units');
+ if(sharedVoiceDispatchPending)return report('Another shared radio command is processing');
+ if(typeof window.cadSharedCommand!=='function')return report('Shared CAD command gateway unavailable');
+ sharedVoiceDispatchPending=true;
+ const join=plan.joining,ref=plan.reference,incident=plan.incident;
+ el('voiceHeard').textContent=heard;
+ el('voiceInterpretation').textContent='UNIT JOIN PENDING: '+join.id+' joining '+ref.id+' on '+incident.id+' | STATUS: ON SCENE';
+ indicator('PROCESSING');
+ try{
+  await window.cadSharedCommand('join-onscene',{incidentId:incident.sharedUuid,joiningUnitId:join.sharedUuid,referenceUnitId:ref.sharedUuid});
+  const current=window.cadSafetyState?.();
+  const updated=current?.incidents?.find(i=>i.sharedUuid===incident.sharedUuid);
+  const updatedUnit=current?.units?.find(u=>u.sharedUuid===join.sharedUuid);
+  if(!updated||(updated.units||[]).includes(join.id)||updatedUnit?.status!=='ONSCENE')
+   return report('Command completed but incident and ON SCENE status could not both be verified');
+  el('voiceInterpretation').textContent='JOIN CONFIRMED: '+join.id+' ON SCENE WITH '+ref.id+' | EVENT: '+updated.id+' | Reference unit status unchanged';
+  indicator('PROCESSED');activity('SHARED UNIT JOIN CONFIRMED | '+join.id+' with '+ref.id+' on '+updated.id);renderActivity();
+ }catch(error){report(error?.message||'Joining-unit transaction failed');}
+ finally{sharedVoiceDispatchPending=false;}
+}
 async function processSharedVoiceStatus(text){
  const heard=String(text||'').trim();
  const intents=window.CadSharedVoiceIntents;
  const intent=intents?.classify(heard)||{kind:'REVIEW',reason:'Radio intent library unavailable'};
- const unit=intents?.callsigns(heard,state.units,window.CadVoiceText);
+ const report=intents?.reportingStatus(heard,state.units,window.CadVoiceText);
+ const unit=report?report.reporter:intents?.callsigns(heard,state.units,window.CadVoiceText);
+ const companionNames=report?.companions?.map(u=>u.id)||[];
+ const companionContext=report?.companionMentioned?' | WITH: '+(companionNames.join(', ')||'unresolved; review required'):'';
  const fail=reason=>{
   el('voiceHeard').textContent=heard;
   el('voiceInterpretation').textContent='HEARD: '+heard+' | UNIT: '+(unit?.id||'unresolved')+' | SHARED CAD REVIEW: '+reason+'. No status change confirmed.';
@@ -920,7 +960,8 @@ async function processSharedVoiceStatus(text){
  };
  if(intent.kind==='REVIEW')return fail(intent.reason);
  if(sharedVoiceDispatchPending)return fail('Another shared radio transaction is processing');
- if(!unit?.sharedUuid)return fail('No unique roster unit identified');
+ if(!unit?.sharedUuid)return fail(report?.reason||'No unique roster unit identified');
+ if(report?.companionMentioned&&!companionNames.length)return fail('Accompanying unit not identified. No status changed; confirm the accompanying callsign.');
  const assigned=state.incidents.filter(i=>i.status==='ACTIVE'&&(i.units||[]).includes(unit.id));
  if(assigned.length!==1||!assigned[0].sharedUuid)return fail('Exactly one active unit assignment is required');
  const incident=assigned[0];
@@ -929,7 +970,7 @@ async function processSharedVoiceStatus(text){
  if(intent.kind==='CLEAR'&&unit.status==='AVAILABLE')return fail('Unit already available');
  sharedVoiceDispatchPending=true;
  el('voiceHeard').textContent=heard;
- el('voiceInterpretation').textContent='HEARD: '+heard+' | UNIT: '+unit.id+' | EVENT: '+incident.id+' | PENDING: verifying shared radio transaction…';
+ el('voiceInterpretation').textContent='HEARD: '+heard+' | UNIT: '+unit.id+' | EVENT: '+incident.id+' | PENDING: verifying shared radio transaction…'+companionContext;
  indicator('PROCESSING');
  try{
   if(intent.kind==='STATUS')await window.cadSharedCommand('status',{incidentId:incident.sharedUuid,unitId:unit.sharedUuid,status:intent.status});
@@ -942,7 +983,7 @@ async function processSharedVoiceStatus(text){
    :freshUnit?.status==='AVAILABLE'&&!(freshEvent?.units||[]).includes(unit.id);
   if(!confirmed)return fail('Database operation returned, but refreshed status and assignment do not match');
   const label=intent.kind==='CLEAR'?'CLEARED / AVAILABLE':intent.status;
-  el('voiceInterpretation').textContent='HEARD: '+heard+' | UNIT: '+unit.id+' | EVENT: '+incident.id+' | CONFIRMED IN SHARED CAD: '+label;
+  el('voiceInterpretation').textContent='HEARD: '+heard+' | UNIT: '+unit.id+' | EVENT: '+incident.id+' | CONFIRMED IN SHARED CAD: '+label+companionContext+' (accompanying unit status unchanged)';
   activity('SHARED RADIO CONFIRMED | '+unit.id+' '+label);renderActivity();indicator('PROCESSED');
  }catch(err){fail(err?.message||'Shared operation failed')}
  finally{sharedVoiceDispatchPending=false;}
@@ -986,6 +1027,8 @@ process=function(text,source=el('voiceSource').value){
  // handlers that mutate projected local state or show false success.
  if(window.cadSharedIsActive?.()){
   if(sharedRadioSegments(text).length>1||/\b(?:break|brake)\b/i.test(text)){void processSharedVoiceCompound(text);return;}
+  const joinPlan=window.CadSharedVoiceIntents?.planJoinUnitOnScene(text,state.units,state.incidents,window.CadVoiceText);
+  if(joinPlan){void processSharedVoiceJoinOnScene(text,joinPlan);return;}
   const parsed=window.CadSharedVoiceIntents?.classify(text);
   const classification=window.cadIncidentIntelligence?.classification(text);
   if(/\b(?:request(?:ing)?|need|give|assign|issue|allocate)\s+(?:me\s+)?(?:a\s+|the\s+)?case\s*(?:number|#)|\bcase\s*number\s*(?:request|please)\b/i.test(text))void processSharedVoiceCaseNumber(text);
@@ -995,6 +1038,15 @@ process=function(text,source=el('voiceSource').value){
   else if(parsed?.kind==='STATUS'||parsed?.kind==='CLEAR')void processSharedVoiceStatus(text);
   else if(source==='DISPATCH'&&dispatchIntent(text,source)&&(window.CadSharedVoiceIntents?.unitList(text,state.units,window.CadVoiceText)||[]).length>1)void processSharedVoiceBatchDispatch(text);
   else if(source==='DISPATCH'&&dispatchIntent(text,source)&&!/\b(?:traffic stop|out with|follow[ -]?up|cancel|disregard|do not|don't|preempt)\b/i.test(text))void processSharedVoiceDispatch(text);
+  else if(!/\b(?:dispatch|respond|assign|send|clear|enroute|on\s*scene|onscene|code\s*(?:4|four))\b/i.test(text)&&
+    window.CadSharedVoiceIntents?.unitAccompaniment(text,state.units,window.CadVoiceText)){
+   const link=window.CadSharedVoiceIntents.unitAccompaniment(text,state.units,window.CadVoiceText);
+   const summary=link.reason?'REVIEW: '+link.reason:
+    'REPORTING UNIT: '+link.reporter.id+' | WITH: '+link.companions.map(u=>u.id).join(', ')+' | STATUS: Not stated';
+   el('voiceHeard').textContent=String(text||'');
+   el('voiceInterpretation').textContent='HEARD: '+text+' | '+summary+' | No status, incident assignment or shared records changed.';
+   activity('SHARED UNIT ACCOMPANIMENT | '+summary);renderActivity();indicator('REVIEW');
+  }
   else{
    el('voiceHeard').textContent=String(text||'');
    el('voiceInterpretation').textContent='SHARED CAD REVIEW: '+(parsed?.reason||'This voice action lacks a verified shared workflow')+'. No shared change made.';
