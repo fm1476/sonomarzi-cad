@@ -9,5 +9,5 @@ assert(cloud.includes('notifyApplied(appliedKeys)'),'login cloud reconciliation 
 assert(master.includes("window.addEventListener('cad-cloud-master-applied'"));
 assert(master.includes('data=M.read(localStorage);render();renderDutyLogOnOptions();refreshTypes()'));
 assert(index.includes('core/cloud-settings.js?v=4'));
-assert(index.includes('agency-master-settings.js?v=11'));
+assert(index.includes('agency-master-settings.js?v=12'));
 console.log('PASS cloud Agency Master updates refresh available unit logon list');
