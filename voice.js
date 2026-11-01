@@ -918,8 +918,8 @@ async function processSharedVoiceUnitAssist(text){
   activity('SHARED UNIT ASSIST REVIEW | '+reason);renderActivity();indicator('REVIEW');
  };
  if(sharedVoiceDispatchPending)return fail('Another shared command is processing');
- if(/\\b(?:not|negative|cancel|disregard|preempt|override)\\b/i.test(heard))return fail('Negated or transfer command requires separate verification');
- const pair=heard.match(/^\\s*(.+?)\\s+(?:is\\s+|\\x27s\\s+)?out\\s+with\\s+(.+?)\\s*[.!]?\\s*$/i);
+ if(/\b(?:not|negative|cancel|disregard|preempt|override)\b/i.test(heard))return fail('Negated or transfer command requires separate verification');
+ const pair=heard.match(/^\s*(.+?)\s+(?:is\s+|\x27s\s+)?out\s+with\s+(.+?)\s*[.!]?\s*$/i);
  if(!pair)return fail('Expected reporting unit out with another unit');
  const first=intents?.unitList(pair[1],state.units,window.CadVoiceText)||[];
  const second=intents?.unitList(pair[2],state.units,window.CadVoiceText)||[];
