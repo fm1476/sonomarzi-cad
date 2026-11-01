@@ -86,7 +86,10 @@
     status:null};
  }
  function planJoinUnitOnScene(text,units,incidents,voiceText){
-  const link=unitAccompaniment(text,units,voiceText);
+  const statusReport=reportingStatus(text,units,voiceText);
+  const link=statusReport?.companionMentioned?
+   {kind:'UNIT_ACCOMPANIMENT',reporter:statusReport.reporter,companions:statusReport.companions,reason:statusReport.reason,status:'ONSCENE'}:
+   unitAccompaniment(text,units,voiceText);
   if(!link)return null;
   if(link.reason)return {...link,kind:'REVIEW',reason:link.reason};
   if(link.companions.length!==1)return {...link,kind:'REVIEW',reason:'Exactly one reference unit required'};
