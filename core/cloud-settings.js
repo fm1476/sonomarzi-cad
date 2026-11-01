@@ -50,15 +50,26 @@
   const [agencyRows,userRows]=await Promise.all([client.listAgencySettings(agency),client.listMyPreferences(agency)]);
   return rowsToMap(agencyRows,userRows);
  }
+ // Preparing the backup is synchronous and runs from the actual button click.
+ // Do not await Supabase requests before initiating a browser download: Safari
+ // and other browsers can otherwise reject it without any visible feedback.
+ let backupUrl=null;
  function backup(){
   const values={};
   for(let i=0;i<localStorage.length;i++){
    const k=localStorage.key(i);if(keyScope(k))values[k]=localStorage.getItem(k);
   }
   const data={format:'sonomarzi-cad-cloud-migration-backup-v1',timestamp:new Date().toISOString(),origin:location.origin,values};
-  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');
-  a.href=url;a.download='cad-cloud-migration-backup-'+new Date().toISOString().slice(0,10)+'.json';a.click();
-  setTimeout(()=>URL.revokeObjectURL(url),30000);
+  if(backupUrl){URL.revokeObjectURL(backupUrl);backupUrl=null;}
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  backupUrl=URL.createObjectURL(blob);
+  const link=el('cadCloudBackupLink');
+  if(!link)throw Error('Backup link is missing. Reload the CAD page.');
+  link.href=backupUrl;
+  link.download='cad-cloud-migration-backup-'+new Date().toISOString().replace(/[:.]/g,'-')+'.json';
+  link.hidden=false;
+  // A real anchor remains available if programmatic download is blocked.
+  link.click();
   return Object.keys(values).length;
  }
  function remember(remoteRows){
@@ -77,8 +88,7 @@
    if(!changed.length){remember(existing);return {uploaded:0};}
    // Upload is first-write only unless an explicit follow-up workflow resolves conflicts.
    if(changed.some(([id])=>existing.has(id)))throw Error('Cloud already has different settings. Download and review cloud settings first; no records were overwritten.');
-   const count=backup();
-   if(!confirm('A local backup download has started ('+count+' keys). After saving it, upload '+changed.length+' settings to shared CAD? Existing cloud settings are protected.'))return {cancelled:true};
+   // An explicit saved-backup acknowledgment is required by the UI before this function runs.
    let uploaded=0;
    for(const [id,item] of changed){
     const result=await client.saveCloudSetting({agency,scope:item.scope,key:item.key,payload:{raw:item.raw},expectedVersion:0});
@@ -95,8 +105,7 @@
   try{
    const client=root.CadDemoLogin.client(),existing=await remote(client,session.agencyId);
    if(!existing.size)throw Error('There are no cloud settings to download yet. Upload from the computer where you configured CAD first.');
-   const count=backup();
-   if(!confirm('A backup of '+count+' local settings has started. Apply '+existing.size+' cloud settings to this browser? Differences will be replaced and you must reload to apply them.'))return {cancelled:true};
+   // The caller requires a saved-backup acknowledgment before replacing local values.
    let changed=0;
    for(const row of existing.values()){
     if(typeof row.raw!=='string')continue;
@@ -186,11 +195,55 @@
  }
  function install(){
   const node=el('cadCloudSettings');if(!node)return;
-  node.innerHTML='<strong>Cloud configuration & personal preferences</strong><p>Move your browser-only agency configuration and individual workspace layouts into Supabase. Always start on the computer holding your complete configuration. An automatic local backup is generated before import.</p><div style="display:flex;gap:8px;flex-wrap:wrap"><button id="cadCloudUpload" type="button">Back up & Upload This Browser</button><button id="cadCloudDownload" type="button">Back up & Use Cloud Settings</button><button id="cadCloudCheck" type="button">Check Sync Now</button></div><p id="cadCloudStatus" role="status">Sign in to shared CAD to begin.</p>';
-  el('cadCloudUpload').onclick=async()=>{try{const r=await upload();report(r.cancelled?'Upload canceled.':r.uploaded+' new settings uploaded. Cloud sync is enabled.')}catch(e){report('Upload blocked: '+e.message)}};
-  el('cadCloudDownload').onclick=async()=>{try{const r=await download();report(r.cancelled?'Download canceled.':r.downloaded+' settings applied locally. Reload to use them and sign in again.')}catch(e){report('Download blocked: '+e.message)}};
+  node.innerHTML='<strong>Cloud configuration & personal preferences</strong>'+
+  '<p>First, save a backup of this browser. Then explicitly approve an upload or cloud download. This keeps your existing agencies, units and workspace preferences safe.</p>'+
+  '<div style="display:flex;gap:8px;flex-wrap:wrap"><button id="cadCloudUpload" type="button">Back up & Upload This Browser</button><button id="cadCloudDownload" type="button">Back up & Use Cloud Settings</button><button id="cadCloudCheck" type="button">Check Sync Now</button></div>'+
+  '<div id="cadCloudBackupStep" hidden style="margin-top:12px;padding:12px;border:1px solid #60869b;border-radius:9px">'+
+  '<p id="cadCloudBackupDescription"></p>'+
+  '<p><a id="cadCloudBackupLink" hidden>Download backup file (click here if nothing downloaded)</a></p>'+
+  '<label style="display:flex;gap:8px;align-items:center"><input id="cadCloudBackupConfirmed" type="checkbox"> I saved the JSON backup file somewhere safe.</label>'+
+  '<button id="cadCloudProceed" type="button" disabled style="margin-top:8px">Continue</button>'+
+  '</div><p id="cadCloudStatus" role="status">Sign in to shared CAD to begin.</p>';
+  const uploadBtn=el('cadCloudUpload'),downloadBtn=el('cadCloudDownload'),
+   proceed=el('cadCloudProceed'),ack=el('cadCloudBackupConfirmed'),step=el('cadCloudBackupStep');
+  let pending=null,verifiedSnapshot=null;
+  function startBackup(action){
+   if(!root.CadDemoLogin?.current()||!session){report('Sign in to shared CAD first.');return;}
+   if(busy){report('Cloud operation is already running.');return;}
+   try{
+    pending=null;ack.checked=false;proceed.disabled=true;
+    step.hidden=false;
+    const count=backup(); // Must run directly in the original click handler.
+    verifiedSnapshot=JSON.stringify([...scan(localStorage)]);
+    pending=action;
+    el('cadCloudBackupDescription').textContent=count+' local settings included. If your browser blocked the automatic download, use the download link below. Check the box only after saving the file.';
+    proceed.textContent=action==='upload'?'Upload Settings to Supabase':'Apply Cloud Settings to This Browser';
+    report('Backup prepared ('+count+' settings). Verify the file is saved before continuing. Nothing has been uploaded or overwritten.');
+   }catch(error){pending=null;proceed.disabled=true;report('Backup failed: '+error.message+'. No cloud changes were made.');}
+  }
+  uploadBtn.onclick=()=>startBackup('upload');
+  downloadBtn.onclick=()=>startBackup('download');
+  ack.onchange=()=>{proceed.disabled=!ack.checked||!pending;};
+  proceed.onclick=async()=>{
+   if(!pending||!ack.checked||busy)return;
+   if(verifiedSnapshot!==JSON.stringify([...scan(localStorage)])){
+    proceed.disabled=true;ack.checked=false;report('Local configuration changed since the backup. Create and save a new backup before continuing.');return;
+   }
+   const action=pending;
+   pending=null;proceed.disabled=true;uploadBtn.disabled=true;downloadBtn.disabled=true;
+   report(action==='upload'?'Checking existing cloud settings before upload…':'Loading cloud settings before replacing local settings…');
+   try{
+    const result=action==='upload'?await upload():await download();
+    report(action==='upload'
+      ?result.uploaded+' settings uploaded. Cloud sync is enabled.'
+      :result.downloaded+' cloud settings applied locally. Reload the page and sign in again to use them.');
+    step.hidden=true;
+   }catch(error){report((action==='upload'?'Upload':'Cloud download')+' blocked: '+error.message+'. Your browser settings were preserved unless a successful cloud download was explicitly approved.');}
+   finally{uploadBtn.disabled=false;downloadBtn.disabled=false;}
+  };
   el('cadCloudCheck').onclick=()=>void tick();
  }
+
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install);else install();
  return Object.freeze({keyScope,scan,rowsToMap,connect,stop,tick,AGENCY_KEYS,USER_KEYS});
 });
