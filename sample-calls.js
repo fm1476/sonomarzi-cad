@@ -23,16 +23,7 @@
      completed++;
     }
    }else{
-    if(!root.state||typeof root.save!=='function')throw Error('Local CAD workspace unavailable.');
-    for(const item of samples){
-     const id=root.cadNextSampleIncidentNumber?.()||(''+new Date().getFullYear()).slice(-2)+'-'+String(++root.state.seq).padStart(6,'0');
-     root.state.incidents.push({id,agency:item.agency,discipline:item.discipline,priority:item.priority,
-      type:item.type,location:item.location,caller:'Fictional sample caller',phone:'',
-      narrative:['Fictional sample call for CAD testing.'],status:'PENDING',units:[],
-      events:[new Date().toLocaleTimeString('en-US',{hour12:false})+' SAMPLE_CALL_CREATED']});
-     completed++;
-    }
-    root.save();
+    completed=root.cadAddLocalSampleCalls(samples);
    }
    root.alert('Created '+completed+' sample calls. Existing calls and unit assignments were preserved.');
   }catch(err){root.alert('Created '+completed+' of '+samples.length+' requested calls. '+err.message+' Review the board before trying again.');}
@@ -41,12 +32,12 @@
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
  'use strict';
  const catalog=Object.freeze([
-  Object.freeze({discipline:'FIRE',type:'Fire Alarm',priority:'P2',location:'1000 Lakeville Street, Petaluma, CA',agency:'Petaluma Fire'}),
-  Object.freeze({discipline:'EMS',type:'Medical Aid',priority:'P2',location:'401 Washington Street, Petaluma, CA',agency:'Petaluma Fire'}),
-  Object.freeze({discipline:'LAW',type:'Traffic Collision',priority:'P2',location:'123 Main Street, Petaluma, CA',agency:'Petaluma Police'}),
-  Object.freeze({discipline:'LAW',type:'Welfare Check',priority:'P3',location:'500 Petaluma Boulevard North, Petaluma, CA',agency:'Petaluma Police'}),
-  Object.freeze({discipline:'LAW',type:'Suspicious Person',priority:'P3',location:'725 D Street, Petaluma, CA',agency:'Petaluma Police'}),
-  Object.freeze({discipline:'LAW',type:'Burglary Alarm',priority:'P2',location:'250 Kentucky Street, Petaluma, CA',agency:'Petaluma Police'})
+  Object.freeze({discipline:'FIRE',type:'Fire Alarm',priority:'P2',location:'900 Lakeville Street, Petaluma, CA',agency:'Petaluma Fire / EMS'}),
+  Object.freeze({discipline:'EMS',type:'Medical Aid',priority:'P2',location:'600 East Washington Street, Petaluma, CA',agency:'Petaluma Fire / EMS'}),
+  Object.freeze({discipline:'LAW',type:'Traffic Collision',priority:'P2',location:'101 Fourth Street, Petaluma, CA',agency:'Petaluma Police'}),
+  Object.freeze({discipline:'LAW',type:'Welfare Check',priority:'P3',location:'125 Petaluma Boulevard North, Petaluma, CA',agency:'Petaluma Police'}),
+  Object.freeze({discipline:'LAW',type:'Suspicious Person',priority:'P3',location:'400 D Street, Petaluma, CA',agency:'Petaluma Police'}),
+  Object.freeze({discipline:'LAW',type:'Burglary Alarm',priority:'P2',location:'200 Kentucky Street, Petaluma, CA',agency:'Petaluma Police'})
  ]);
  const normal=s=>String(s||'').toLowerCase().replace(/\b(street|st)\b/g,'st').replace(/\b(avenue|ave)\b/g,'ave').replace(/[.,]/g,'').replace(/\s+/g,' ').trim();
  function selectMissing(existing){
