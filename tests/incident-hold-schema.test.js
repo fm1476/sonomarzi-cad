@@ -1,0 +1,15 @@
+const assert=require('node:assert/strict'),fs=require('node:fs');
+const src=fs.readFileSync('migrations/20261101_cad_incident_holds.sql','utf8');
+const model=require('../core/incident-hold.js');
+assert(src.includes('create table if not exists public.cad_incident_holds'));
+assert(src.includes('requested_unit text'));
+assert(src.includes('requested_capability text'));
+assert(src.includes('held_at timestamptz'));
+assert(src.includes('cad_has_access(p_agency,true)'));
+assert(src.includes('v_i.version<>p_expected_version'));
+assert(src.includes('create policy cad_incident_holds_read'));
+assert(src.includes("p_hold boolean"));
+assert(src.includes("case when p_hold then 'INCIDENT_HELD' else 'INCIDENT_HOLD_RELEASED' end"));
+assert(!src.includes("status='HELD'"),'HOLD is independent of database incident assignment status');
+assert.equal(model.queue({id:'1',status:'ACTIVE'},[{incident_id:'1',unit_id:'u1',cleared_at:null}],{active:true,reason:'UNIT_BUSY'}),'HELD');
+console.log('PASS: staged hold schema supports assigned calls, specific-unit holds and audit events');
