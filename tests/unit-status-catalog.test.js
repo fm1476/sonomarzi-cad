@@ -6,7 +6,7 @@ const client=fs.readFileSync('core/supabase-client.js','utf8');
 const sql=fs.readFileSync('migrations/20261101_cad_unit_status_catalog.sql','utf8');
 assert(html.includes('value="unit-status"'));
 for(const id of ['cadStatusNew','cadStatusSave','cadStatusCanonical','cadStatusDiscipline','cadStatusAliases','cadUnitStatusCatalogList'])assert(html.includes('id="'+id+'"'));
-assert(html.includes('unit-status-settings.js?v=1'));
+assert(html.includes('unit-status-settings.js?v=2'));
 assert(editor.includes('saveUnitStatusCatalog(')&&editor.includes('listUnitStatusCatalog('));
 assert(panel.includes('client.listUnitStatusCatalog(agency)'),'shared polling fetches agency status catalog');
 assert(panel.includes("cad:unit-status-catalog-updated"));
