@@ -64,8 +64,14 @@ begin
  insert into public.cad_assignments(agency_id,incident_id,unit_id)
   values(p_agency,p_to_incident,p_joining_unit);
  update public.cad_units set status='ONSCENE',version=version+1 where id=p_joining_unit and agency_id=p_agency;
- update public.cad_incidents set version=version+1,updated_at=now()
-  where agency_id=p_agency and id in(p_from_incident,p_to_incident);
+ update public.cad_incidents set
+  status=case when exists(select 1 from public.cad_assignments a
+   where a.agency_id=p_agency and a.incident_id=p_from_incident and a.cleared_at is null)
+   then 'ACTIVE' else 'PENDING' end,
+  version=version+1,updated_at=now()
+  where agency_id=p_agency and id=p_from_incident;
+ update public.cad_incidents set status='ACTIVE',version=version+1,updated_at=now()
+  where agency_id=p_agency and id=p_to_incident;
  insert into public.cad_incident_events(agency_id,incident_id,event_type,payload,actor_id)
  values(p_agency,p_from_incident,'UNIT_PREEMPTED_OUT',
   jsonb_build_object('unit_id',p_joining_unit,'to_incident',p_to_incident,'reference_unit',p_reference_unit,'previous_unit_status',v_join.status),auth.uid());
