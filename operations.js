@@ -23,6 +23,15 @@ async function shared(action,args,success){
 function sharedMode(){return window.cadSharedIsActive?.()===true;}
 
 function detach(u,except){for(const call of state.incidents){if(call.id===except)continue;if(call.status==='ACTIVE'&&call.units.includes(u.id)){call.units=call.units.filter(id=>id!==u.id);event(call,`UNIT_REASSIGNED ${u.id} to ${except||'available'}`);}}}
+// The same authenticated hold editor is available from Dispatch Operations.
+const opsHold=document.createElement('button');opsHold.type='button';opsHold.id='opsHoldForUnit';opsHold.textContent='Hold for Unit';
+$('opsIncident').closest('label')?.append(opsHold);
+opsHold.addEventListener('click',()=>{
+ const incident=selected();
+ if(!incident){info('Select an open incident first.');return;}
+ if(!sharedMode()){info('Hold for Unit requires shared CAD.');return;}
+ window.cadOpenHoldForUnit?.(incident.id);
+});
 $('opsIncident').onchange=()=>{chosenIncident=$('opsIncident').value;state.selected=chosenIncident;if(sharedMode())render();else save();refresh();};
 $('opsUnit').onchange=()=>{chosenUnit=$('opsUnit').value;};
 $('opsAssign').onclick=()=>{const i=selected(),u=unit();if(!i||!u){info('Choose an incident and unit first.');return;}if(sharedMode()){if(u.status!=='AVAILABLE'){info(u.id+' is not available.');return;}return shared('assign',{incidentId:i.id,unitId:u.id},u.id+' dispatched to '+i.id+'.');}if(u.status==='OUT_OF_SERVICE'){info('Unit is out of service. Change its status before dispatching.');return;}const existing=state.incidents.filter(x=>x.status!=='CLOSED'&&x.units.includes(u.id)&&x.id!==i.id);if(existing.length){info(`DISPATCH CONFLICT: ${u.id} assigned to ${existing.map(x=>x.id).join(', ')}. Release or preempt first.`);return;}const resolved=cadDispatchTarget(i,u);if(resolved.error){info(resolved.error);return;}const target=resolved.incident;if(target.units.includes(u.id)){info(`${u.id} already assigned to ${target.id}.`);return;}target.units.push(u.id);target.status='ACTIVE';const old=u.status;u.status='DISPATCHED';u.location=target.location;event(target,`UNIT_DISPATCHED ${u.id} ${old} -> DISPATCHED`);state.selected=target.id;chosenIncident=target.id;commit(`${u.id} dispatched to ${target.id}.${resolved.linked?' Linked to '+i.id+'.':''}`);};

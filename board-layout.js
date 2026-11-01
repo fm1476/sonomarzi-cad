@@ -45,7 +45,7 @@ function initialize(){document.querySelectorAll('.board-controls').forEach(bar=>
  });}
 const itemHTML=(type,item)=>{
  if(type!=='units'){
- const components={event:`<span class="prio ${String(item.priority).toLowerCase()}">${escapeCad(item.priority)}<div class="meta">${escapeCad(item.id)}</div></span>`,call:`<span><b>${escapeCad(item.type)}</b>${item.alarmLevel?`<span class="cad-alarm-chip">${escapeCad(item.alarmLevel)}</span>`:''}<div>${(()=>{const place=window.cadCommonPlaces?.resolve(item.location);const name=item.commonPlaceName||place?.name;return name?`<span class="cad-board-common-place">${escapeCad(name)}</span><span class="cad-board-street-address">${escapeCad(item.location)}</span>`:escapeCad(item.location)})()}</div><div class="meta">${escapeCad(item.agency)} • <strong class="cad-discipline cad-discipline-${String(item.discipline).toLowerCase()}">${escapeCad(item.discipline)}</strong></div>${item.linkedFrom?`<div class="meta cad-linked-note">↳ Linked from ${escapeCad(item.linkedFrom)}</div>`:''}${typeof cadIncidentFamily==='function' && state.incidents.some(other=>other.id!==item.id&&cadIncidentFamily(other).id===cadIncidentFamily(item).id)?`<span class="cad-linked-board-label">🔗 LINKED ${escapeCad(item.discipline)}</span>`:''}</span>`,units:`<span>${(item.units||[]).length?(item.units||[]).map(id=>`<span class="cad-unit-chip status-${String(state.units.find(u=>u.id===id)?.status||'UNKNOWN').toLowerCase().replace(/[^a-z0-9]+/g,'-')}" draggable="true" data-drag-unit="${escapeCad(id)}" title="Drag to another incident or Units Status">${escapeCad(id)}</span>`).join(' '):'—'}<div class="meta">${item.caseNumber?'Case '+escapeCad(item.caseNumber):'No case number'}</div></span>`};
+ const components={event:`<span class="prio ${String(item.priority).toLowerCase()}">${escapeCad(item.priority)}<div class="meta">${escapeCad(item.id)}</div></span>`,call:`<span><b>${escapeCad(item.type)}</b>${item.sharedHold?`<span class="cad-hold-chip" title="Held incident">HELD${item.sharedHold.requested_unit?' · '+escapeCad(item.sharedHold.requested_unit):''}</span>`:''}${item.alarmLevel?`<span class="cad-alarm-chip">${escapeCad(item.alarmLevel)}</span>`:''}<div>${(()=>{const place=window.cadCommonPlaces?.resolve(item.location);const name=item.commonPlaceName||place?.name;return name?`<span class="cad-board-common-place">${escapeCad(name)}</span><span class="cad-board-street-address">${escapeCad(item.location)}</span>`:escapeCad(item.location)})()}</div><div class="meta">${escapeCad(item.agency)} • <strong class="cad-discipline cad-discipline-${String(item.discipline).toLowerCase()}">${escapeCad(item.discipline)}</strong></div>${item.linkedFrom?`<div class="meta cad-linked-note">↳ Linked from ${escapeCad(item.linkedFrom)}</div>`:''}${typeof cadIncidentFamily==='function' && state.incidents.some(other=>other.id!==item.id&&cadIncidentFamily(other).id===cadIncidentFamily(item).id)?`<span class="cad-linked-board-label">🔗 LINKED ${escapeCad(item.discipline)}</span>`:''}</span>`,units:`<span>${((item.units||[]).length||item.sharedHold?.requested_unit)?(item.units||[]).map(id=>`<span class="cad-unit-chip status-${String(state.units.find(u=>u.id===id)?.status||'UNKNOWN').toLowerCase().replace(/[^a-z0-9]+/g,'-')}" draggable="true" data-drag-unit="${escapeCad(id)}" title="Drag to another incident or Units Status">${escapeCad(id)}</span>`).join(' ')+(item.sharedHold?.requested_unit&&!(item.units||[]).includes(item.sharedHold.requested_unit)?` <span class="cad-held-unit-ghost" title="Held for ${escapeCad(item.sharedHold.requested_unit)}; unit not assigned">${escapeCad(item.sharedHold.requested_unit)} · HOLD</span>`:''):'—'}<div class="meta">${item.caseNumber?'Case '+escapeCad(item.caseNumber):'No case number'}</div></span>`};
  return `<div class="row board-flex ${state.selected===item.id?'selected':''}" data-id="${escapeCad(item.id)}">${opts[type].columns.map(f=>components[f]).join('')}</div>`;
  }
  const unitStatusClass=`status-${String(item.status).toLowerCase().replace(/[^a-z0-9]+/g,'-')}`;
@@ -88,6 +88,23 @@ function closeUnitMenu(){unitMenu.style.display='none';unitMenu.replaceChildren(
 document.addEventListener('click',e=>{if(!unitMenu.contains(e.target))closeUnitMenu()});
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeUnitMenu()});
 document.addEventListener('contextmenu',e=>{
+ const row=e.target.closest('#pending .row[data-id]');
+ if(row&&window.cadSharedIsActive?.()&&!e.target.closest('.cad-unit-chip')){
+  const incident=state.incidents.find(i=>i.id===row.dataset.id);
+  if(incident?.sharedUuid&&incident.status==='PENDING'){
+   e.preventDefault();e.stopImmediatePropagation();closeUnitMenu();
+   const title=document.createElement('strong');title.textContent=incident.id+' · '+incident.type;
+   title.style.cssText='display:block;padding:7px 9px 10px';unitMenu.append(title);
+   const action=document.createElement('button');action.type='button';action.setAttribute('role','menuitem');
+   action.textContent=incident.sharedHold?'Release Hold':'Hold for Unit';
+   action.style.cssText='display:block;width:100%;background:#1e4868;color:#fff;border:0;text-align:left;padding:10px;border-radius:6px';
+   action.onclick=()=>{closeUnitMenu();window.cadOpenHoldForUnit?.(incident.id)};
+   unitMenu.append(action);
+   unitMenu.style.left=Math.min(e.clientX,window.innerWidth-240)+'px';
+   unitMenu.style.top=Math.min(e.clientY,window.innerHeight-120)+'px';unitMenu.style.display='block';
+   action.focus();return;
+  }
+ }
  const chip=e.target.closest('.cad-unit-chip');
  if(!chip)return;
  const unitId=chip.dataset.unitId||chip.dataset.dragUnit||chip.closest('.unit[data-id]')?.dataset.id;
