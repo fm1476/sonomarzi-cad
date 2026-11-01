@@ -1013,6 +1013,15 @@ process=function(text,source=el('voiceSource').value){
   else if(parsed?.kind==='STATUS'||parsed?.kind==='CLEAR')void processSharedVoiceStatus(text);
   else if(source==='DISPATCH'&&dispatchIntent(text,source)&&(window.CadSharedVoiceIntents?.unitList(text,state.units,window.CadVoiceText)||[]).length>1)void processSharedVoiceBatchDispatch(text);
   else if(source==='DISPATCH'&&dispatchIntent(text,source)&&!/\b(?:traffic stop|out with|follow[ -]?up|cancel|disregard|do not|don't|preempt)\b/i.test(text))void processSharedVoiceDispatch(text);
+  else if(!/\b(?:dispatch|respond|assign|send|clear|enroute|on\s*scene|onscene|code\s*(?:4|four))\b/i.test(text)&&
+    window.CadSharedVoiceIntents?.unitAccompaniment(text,state.units,window.CadVoiceText)){
+   const link=window.CadSharedVoiceIntents.unitAccompaniment(text,state.units,window.CadVoiceText);
+   const summary=link.reason?'REVIEW: '+link.reason:
+    'REPORTING UNIT: '+link.reporter.id+' | WITH: '+link.companions.map(u=>u.id).join(', ')+' | STATUS: Not stated';
+   el('voiceHeard').textContent=String(text||'');
+   el('voiceInterpretation').textContent='HEARD: '+text+' | '+summary+' | No status, incident assignment or shared records changed.';
+   activity('SHARED UNIT ACCOMPANIMENT | '+summary);renderActivity();indicator('REVIEW');
+  }
   else{
    el('voiceHeard').textContent=String(text||'');
    el('voiceInterpretation').textContent='SHARED CAD REVIEW: '+(parsed?.reason||'This voice action lacks a verified shared workflow')+'. No shared change made.';
