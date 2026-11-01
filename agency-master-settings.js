@@ -69,20 +69,22 @@ function renderDutyLogOnOptions(){
  }
  const roster=shared?(window.cadSharedRoster?.()||[]):[];
  const local=window.cadMasterActiveUnits?.()||[];
- // Show all configured units, with already-on-duty units labeled and disabled.
- const options=master.units.map(def=>{
-  const match=shared?roster.find(u=>u.call_sign.toUpperCase()===def.designator.toUpperCase()):local.find(u=>u.masterUnitId===def.id);
-  const unavailable=!!match&&(shared?match.status!=='OFF_DUTY':true);
+ // Only units not currently on duty can be selected.
+ const options=master.units.flatMap(def=>{
+  const match=shared?roster.find(u=>String(u.call_sign||'').toUpperCase()===String(def.designator||'').toUpperCase()):local.find(u=>u.masterUnitId===def.id||String(u.id||'').toUpperCase()===String(def.designator||'').toUpperCase());
+  if(match&&(shared?match.status!=='OFF_DUTY':true))return [];
   const agency=master.agencies.find(a=>a.id===def.agencyId)?.name||'Unknown agency';
-  const suffix=unavailable?' · ON DUTY ('+(match.status||'ACTIVE')+')':'';
-  return '<option value="'+esc(def.id)+'"'+(unavailable?' disabled':'')+'>'+esc(def.designator+' · '+agency+' · '+def.discipline+suffix)+'</option>';
+  return ['<option value="'+esc(def.id)+'">'+esc(def.designator+' · '+agency+' · '+def.discipline)+'</option>'];
  });
- select.innerHTML='<option value="">Choose configured unit ('+master.units.length+')</option>'+options.join('');
+ select.innerHTML='<option value="">'+(options.length?'Choose available unit ('+options.length+')':'No units available to log on')+'</option>'+options.join('');
  if([...select.options].some(o=>o.value===previous&&!o.disabled))select.value=previous;
  button.disabled=!select.value;
- if(status)status.textContent=shared?'Shared Agency Master: '+master.units.length+' configured units from Supabase.':'Local Agency Master: '+master.units.length+' configured units.';
+ if(status)status.textContent=options.length?'':(shared?'No off-duty configured units available in the shared roster.':'All configured units are already on duty.');
 }
 
+const logOnDialog=el('cadDutyLogOnDialog');
+el('cadDutyLogOnOpen')?.addEventListener('click',()=>{renderDutyLogOnOptions();if(!logOnDialog.open)logOnDialog.showModal();});
+el('cadDutyLogOnCancel')?.addEventListener('click',()=>logOnDialog?.close());
 const logOnSelect=el('cadDutyLogOnSelect'),logOnButton=el('cadDutyLogOnButton');
 logOnSelect?.addEventListener('change',()=>{if(logOnButton)logOnButton.disabled=!logOnSelect.value;});
 logOnButton?.addEventListener('click',async()=>{
@@ -93,6 +95,7 @@ logOnButton?.addEventListener('click',async()=>{
   el('cadDutyLogOnStatus').textContent=result.alreadyOnDuty?result.callSign+' is already on duty.':result.callSign+' is now AVAILABLE.';
  }catch(error){el('cadDutyLogOnStatus').textContent='Logon failed: '+error.message;}
  renderDutyLogOnOptions();
+  if(result?.ok&&!result.alreadyOnDuty)logOnDialog?.close();
 });
 window.addEventListener('cad-master-updated',renderDutyLogOnOptions);
 window.addEventListener('cad-cloud-master-available',renderDutyLogOnOptions);
