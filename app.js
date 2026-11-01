@@ -745,6 +745,23 @@ function simulate(){
  steps.forEach((step,index)=>setTimeout(step,index*1800));
 }
 
+window.cadAddLocalSampleCalls=function(items){
+ if(cadSharedWorkspaceMode)throw Error('Shared CAD active; local sample creation blocked.');
+ if(!Array.isArray(items)||items.length>7)throw Error('Invalid sample call batch.');
+ const existing=new Set(state.incidents.map(i=>i.id));
+ for(const item of items){
+  let id;
+  do {id=String(new Date().getFullYear()).slice(-2)+'-'+String(++state.seq).padStart(6,'0');} while(existing.has(id));
+  existing.add(id);
+  const time=new Date().toLocaleTimeString('en-US',{hour12:false});
+  const incident={id,agency:item.agency,discipline:item.discipline,priority:item.priority,type:item.type,
+   location:item.location,caller:'Fictional sample caller',phone:'',
+   narrative:['Fictional sample call for CAD testing.'],status:'PENDING',units:[],events:[time+' SAMPLE_CALL_CREATED']};
+  state.incidents.push(incident);
+ }
+ save();
+ return items.length;
+};
 window.addEventListener('storage',()=>{state=JSON.parse(localStorage.getItem(KEY)||'null')||state;render()});
 setInterval(()=>$('#clock').textContent=new Date().toLocaleString('en-US',{hour12:false}),1000);
 populate();render();
