@@ -371,7 +371,16 @@
      result=await client.createIncidentAuto({agency,discipline:args.discipline,type:args.type,priority:args.priority,location:args.location});
     }else{
      if(!incident)throw Error('Incident not found. Refresh and retry.');
-     if(action==='hold'||action==='release-hold')result=await client.setIncidentHold({agency,incident:incident.id,incidentVersion:incident.version,hold:action==='hold',reason:args.reason,requestedUnit:args.requestedUnit,requestedCapability:args.requestedCapability,notes:args.notes});
+     if(action==='join-onscene'){
+      const joining=snapshot.roster.find(u=>u.id===args.joiningUnitId||u.call_sign===args.joiningUnitId);
+      const reference=snapshot.roster.find(u=>u.id===args.referenceUnitId||u.call_sign===args.referenceUnitId);
+      if(!joining||!reference||joining.id===reference.id)throw Error('Two distinct roster units required');
+      if(joining.status!=='AVAILABLE')throw Error('Joining unit not AVAILABLE');
+      if(!snapshot.assignments.some(a=>a.incident_id===incident.id&&a.unit_id===reference.id))throw Error('Reference unit not assigned to destination event');
+      if(snapshot.assignments.some(a=>a.unit_id===joining.id))throw Error('Joining unit already assigned; explicit PREEMPT required');
+      result=await client.joinUnitOnScene({agency,incident:incident.id,joiningUnit:joining.id,referenceUnit:reference.id,incidentVersion:incident.version,joiningVersion:joining.version,referenceVersion:reference.version});
+     }
+     else if(action==='hold'||action==='release-hold')result=await client.setIncidentHold({agency,incident:incident.id,incidentVersion:incident.version,hold:action==='hold',reason:args.reason,requestedUnit:args.requestedUnit,requestedCapability:args.requestedCapability,notes:args.notes});
      else if(action==='allocate-case')result=await client.allocateCaseNumber({agency,incident:incident.id,incidentVersion:incident.version});
      else if(action==='case')result=await client.setCaseNumber({agency,incident:incident.id,caseNumber:args.caseNumber||'',incidentVersion:incident.version});
      else if(action==='note')result=await client.addNarrative({agency,incident:incident.id,text:args.text,incidentVersion:incident.version});
