@@ -20,4 +20,8 @@ assert(customSql.includes('cad_has_access(p_agency,true)'),'custom status transi
 assert(client.includes("rpc('cad_apply_custom_unit_status'"),'client must invoke atomic status transition');
 assert(board.includes('window.cadSharedApplyCustomStatus(u.id,row.code)'),'unit menu permits configured transitions');
 assert(board.includes('customLabel||String(item.status)'),'custom status label displays only with canonical match');
+assert(html.includes('cadStatusColor')&&html.includes('workspace-theme.js?v=1'));
+assert(fs.readFileSync('workspace-theme.js','utf8').includes("dataset.cadTheme"));
+assert(fs.readFileSync('styles.css','utf8').includes('data-cad-theme="day"'));
+assert(fs.readFileSync('migrations/20261101_cad_status_colors.sql','utf8').includes('cad_save_unit_status_color'));
 console.log('PASS: agency unit status catalog editor, shared synchronization, authorized persistence');
