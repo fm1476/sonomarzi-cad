@@ -9,8 +9,8 @@ assert(cloud.includes("root.dispatchEvent(new Event('cad-cloud-master-available'
 assert(cloud.includes('sharedMaster:()=>sharedMaster'));
 assert(master.includes("const master=shared?cloud:data;"),'shared unit list must read cloud');
 assert(master.includes("const master=shared?window.CadCloudSettings?.sharedMaster?.():data;"),'shared logon action must use cloud too');
-assert(master.includes("master.units.map(def=>"),'show all configured units');
-assert(master.includes("unavailable?' disabled'"),'already on-duty units shown but cannot be logged on again');
+assert(master.includes("master.units.flatMap(def=>"),'show only eligible configured units');
+assert(master.includes('if(match&&(shared?match.status!==\'OFF_DUTY\':true))return []'),'already-on-duty units are excluded from logon selection');
 assert(master.includes("window.addEventListener('cad-cloud-master-available',renderDutyLogOnOptions)"));
 assert(voice.includes("window.CadCloudSettings?.sharedMaster?.()"),'voice uses same cloud definitions');
 assert(html.includes('core/cloud-settings.js?v=4'));
