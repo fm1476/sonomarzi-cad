@@ -977,3 +977,31 @@ html[data-cad-theme="day"] .actions button{background:#e6eef6;color:#19364d;bord
 .cad-status-config-item small{display:block;color:inherit;opacity:.75}
 .cad-status-swatch{display:inline-block;vertical-align:middle;width:17px;height:17px;border:1px solid #777;border-radius:5px;margin-right:8px}
 #cadStatusColor{width:80px;height:43px;cursor:pointer}
+
+
+/* Day mode v2: consistent dispatch-board surfaces, contrast, and selection. */
+html[data-cad-theme="day"]{--cad-day-paper:#fff;--cad-day-surface:#f4f7fb;--cad-day-header:#dfe9f3;--cad-day-border:#becddd;--cad-day-text:#172b40;--cad-day-muted:#4c647a}
+html[data-cad-theme="day"] body,html[data-cad-theme="day"] main,html[data-cad-theme="day"] .view,html[data-cad-theme="day"] .grid{color:var(--cad-day-text)}
+html[data-cad-theme="day"] :is(.panel,.panel.ops,.panel.config,#pending,#active,#units,#detail,.cad-ct-empty-editor,.cad-ct-editor,.cad-ct-workspace,.cad-ct-list,.cad-ct-form,.cad-shared-board){background:var(--cad-day-paper)!important;color:var(--cad-day-text)!important;border-color:var(--cad-day-border)!important}
+html[data-cad-theme="day"] :is(.board-group,.board-group-header,.board-columns,.cad-column-headings,.board-controls,.cad-panel-heading,.detailhead,.detailwrap,.cad-ct-heading,.cad-ct-section,.cad-ct-editor){color:var(--cad-day-text)!important}
+html[data-cad-theme="day"] .board-group{background:var(--cad-day-header)!important;color:#183d59!important;border-color:var(--cad-day-border)!important}
+html[data-cad-theme="day"] .board-group>span{color:#445d73!important}
+html[data-cad-theme="day"] :is(#pending,#active,#units) :is(.row,.unit,.board-flex,.cad-unit-grid){background:#fff!important;color:#192e43!important;border-color:#d0dce7!important}
+html[data-cad-theme="day"] :is(#pending,#active,#units) .row:hover{background:#eaf3fc!important}
+html[data-cad-theme="day"] :is(#pending,#active,#units) .row.selected{background:#d8eafa!important;box-shadow:inset 4px 0 #2377bd!important}
+html[data-cad-theme="day"] :is(#pending,#active,#units) .row :is(b,span,div):not(.cad-unit-chip):not(.prio):not(.cad-discipline):not(.cad-hold-chip):not(.cad-held-unit-ghost):not(.status):not(.cad-safety-clock){color:inherit}
+html[data-cad-theme="day"] :is(#pending,#active,#units) .meta,html[data-cad-theme="day"] :is(#pending,#active,#units) .row .meta,html[data-cad-theme="day"] :is(#pending,#active,#units) .unit .meta{color:#516b80!important}
+html[data-cad-theme="day"] :is(.detailwrap,.detailhead,.detailwrap .meta,.detailwrap .muted,.detailwrap p,.detailwrap h3,.detailwrap h4,.timeline,.timeline div,.cad-ct-heading p){color:#253f55!important}
+html[data-cad-theme="day"] #detail :is(.detailwrap,.narr,.timeline,.cad-location-intelligence,.cad-location-card,.cad-response-areas,.location-intelligence){background:#f5f9fd;color:#1c354b;border-color:#c4d3e1}
+html[data-cad-theme="day"] #detail .actions button,html[data-cad-theme="day"] .actions button{background:#e3edf7!important;color:#143a5a!important;border:1px solid #95b0c7!important}
+html[data-cad-theme="day"] :is(.board-controls select,.board-controls input,.cad-column-headings,.cad-column-menu,.cad-ct-editor input,.cad-ct-editor select){background:#fff!important;color:#17324a!important;border-color:#aebfce!important}
+html[data-cad-theme="day"] .cad-column-headings{background:#e2ebf3!important}
+html[data-cad-theme="day"] :is(.prio.p1,.p1){color:#bb2534!important}
+html[data-cad-theme="day"] :is(.prio.p2,.p2){color:#995500!important}
+html[data-cad-theme="day"] :is(.prio.p3,.p3){color:#095a9c!important}
+html[data-cad-theme="day"] :is(.cad-hold-chip,.cad-held-unit-ghost){background:#fff0d6!important;color:#75450b!important;border-color:#bd832a!important}
+html[data-cad-theme="day"] :is(.cad-unit-chip,.board-unit-pill){color:#fff}
+html[data-cad-theme="day"] :is(.voice-output>div,.voice-panel,.voice-activity,.voice-activity>div){background:#f5f9fd;color:#1c354b;border-color:#cbd8e3}
+html[data-cad-theme="day"] :is(.cad-safety-clock,.cad-safety-due){color:#fff}
+html[data-cad-theme="day"] :is(.cad-hold-dialog,.cad-duty-logon-dialog,dialog){background:#fff!important;color:#192f44!important;border-color:#9bb3c7!important}
+html[data-cad-theme="day"] :is(dialog input,dialog select,dialog textarea){background:#fff!important;color:#142f47!important;border-color:#9db5c8!important}
