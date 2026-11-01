@@ -10,7 +10,7 @@ assert.equal(hold.queue({...incident,status:'PENDING'},[]),'PENDING');
 const state={active:true,reason:'SPECIFIC_UNIT',requestedUnit:'3A11',heldAt:'2026-11-01T20:00:00Z'};
 assert.equal(hold.queue(incident,[],state),'HELD','explicit hold remains visible');
 assert.equal(hold.afterUnitRemoved(incident,[],state),'PENDING','database status remains pending even when held');
-assert.equal(hold.queue(incident,[a],state),'ASSIGNED','live assignments always take precedence over stale hold');
+assert.equal(hold.queue(incident,[a],state),'HELD','an explicitly held call stays in Hold even with assigned units');
 assert.equal(hold.holdSummary(state).requestedUnit,'3A11');
 assert.equal(hold.needsAttention(state,[{call_sign:'3A11',status:'DISPATCHED'}]),false);
 assert.equal(hold.needsAttention(state,[{call_sign:'3A11',status:'AVAILABLE'}]),true,'available requested unit alerts dispatcher');
