@@ -908,6 +908,54 @@ async function processSharedVoiceCaseNumber(text){
  }catch(error){fail(error?.message||'Case number allocation failed')}
  finally{sharedVoiceDispatchPending=false;}
 }
+// "3A12 is out with 3A11": only attach to the colleague's unique active
+// shared incident. Never silently preempt a reporting unit from another event.
+async function processSharedVoiceUnitAssist(text){
+ const heard=String(text||'').trim(),intents=window.CadSharedVoiceIntents;
+ const fail=reason=>{
+  el('voiceHeard').textContent=heard;
+  el('voiceInterpretation').textContent='SHARED CAD REVIEW: OUT WITH UNIT | '+reason+'. No shared change made.';
+  activity('SHARED UNIT ASSIST REVIEW | '+reason);renderActivity();indicator('REVIEW');
+ };
+ if(sharedVoiceDispatchPending)return fail('Another shared command is processing');
+ if(/\\b(?:not|negative|cancel|disregard|preempt|override)\\b/i.test(heard))return fail('Negated or transfer command requires separate verification');
+ const pair=heard.match(/^\\s*(.+?)\\s+(?:is\\s+|\\x27s\\s+)?out\\s+with\\s+(.+?)\\s*[.!]?\\s*$/i);
+ if(!pair)return fail('Expected reporting unit out with another unit');
+ const first=intents?.unitList(pair[1],state.units,window.CadVoiceText)||[];
+ const second=intents?.unitList(pair[2],state.units,window.CadVoiceText)||[];
+ if(first.length!==1||second.length!==1||first[0].id===second[0].id)return fail('Both distinct unit designators must uniquely match the active roster');
+ const reporting=first[0],partner=second[0];
+ if(!reporting.sharedUuid||!partner.sharedUuid)return fail('Both units must have shared roster records');
+ const destinations=state.incidents.filter(i=>i.status==='ACTIVE'&&(i.units||[]).includes(partner.id));
+ if(destinations.length!==1||!destinations[0].sharedUuid)return fail(partner.id+' must have exactly one active incident; an unassigned out-with event requires a separate self-initiated workflow');
+ const dest=destinations[0];
+ if(dest.discipline!==reporting.discipline)return fail('Cross-discipline unit assist requires dispatcher review');
+ const occupied=state.incidents.filter(i=>i.status==='ACTIVE'&&(i.units||[]).includes(reporting.id));
+ if(occupied.some(i=>i.sharedUuid!==dest.sharedUuid))return fail(reporting.id+' is assigned to another incident; say PREEMPT explicitly to transfer');
+ if(typeof window.cadSharedCommand!=='function')return fail('Authenticated shared command gateway unavailable');
+ sharedVoiceDispatchPending=true;
+ el('voiceHeard').textContent=heard;
+ el('voiceInterpretation').textContent='OUT WITH UNIT | '+reporting.id+' with '+partner.id+' on '+dest.id+' | PENDING shared verification…';
+ indicator('PROCESSING');
+ try{
+  if(!occupied.length){
+   if(!['AVAILABLE','CLEAR'].includes(reporting.status))return fail(reporting.id+' is '+reporting.status+' and is not available for assignment');
+   await window.cadSharedCommand('assign',{incidentId:dest.sharedUuid,unitId:reporting.sharedUuid});
+  }
+  let updated=window.cadSafetyState?.();
+  let unit=updated?.units?.find(u=>u.sharedUuid===reporting.sharedUuid);
+  let incident=updated?.incidents?.find(i=>i.sharedUuid===dest.sharedUuid);
+  if(!incident||(incident.units||[]).includes(reporting.id)===false)return fail('Assignment not confirmed after shared refresh; inspect event before proceeding');
+  if(unit?.status!=='ONSCENE')await window.cadSharedCommand('status',{incidentId:dest.sharedUuid,unitId:reporting.sharedUuid,status:'ONSCENE'});
+  updated=window.cadSafetyState?.();
+  unit=updated?.units?.find(u=>u.sharedUuid===reporting.sharedUuid);
+  incident=updated?.incidents?.find(i=>i.sharedUuid===dest.sharedUuid);
+  if(unit?.status!=='ONSCENE'||!(incident?.units||[]).includes(reporting.id))return fail('Assignment or ON SCENE status could not be verified in shared CAD');
+  el('voiceInterpretation').textContent='SHARED CAD CONFIRMED: '+reporting.id+' ON SCENE with '+partner.id+' at '+incident.id;
+  activity('SHARED UNIT ASSIST CONFIRMED | '+reporting.id+' with '+partner.id+' at '+incident.id);renderActivity();indicator('PROCESSED');
+ }catch(error){fail(error?.message||'Shared unit assist failed')}
+ finally{sharedVoiceDispatchPending=false;}
+}
 async function processSharedVoiceStatus(text){
  const heard=String(text||'').trim();
  const intents=window.CadSharedVoiceIntents;
@@ -992,6 +1040,7 @@ process=function(text,source=el('voiceSource').value){
   else if(/\bpreempt\b/i.test(text))void processSharedVoicePreempt(text);
   else if(classification?.type||classification?.review&&/\b(?:working|structure fire|vegetation fire|vehicle fire|cardiac arrest|overdose|reclassify|upgrade)\b/i.test(text))
    void processSharedVoiceReclassification(text,classification);
+  else if(parsed?.kind==='UNIT_ASSIST')void processSharedVoiceUnitAssist(text);
   else if(parsed?.kind==='STATUS'||parsed?.kind==='CLEAR')void processSharedVoiceStatus(text);
   else if(source==='DISPATCH'&&dispatchIntent(text,source)&&(window.CadSharedVoiceIntents?.unitList(text,state.units,window.CadVoiceText)||[]).length>1)void processSharedVoiceBatchDispatch(text);
   else if(source==='DISPATCH'&&dispatchIntent(text,source)&&!/\b(?:traffic stop|out with|follow[ -]?up|cancel|disregard|do not|don't|preempt)\b/i.test(text))void processSharedVoiceDispatch(text);
