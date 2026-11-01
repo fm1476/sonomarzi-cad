@@ -54,6 +54,7 @@
    assignUnit:({agency,incident,unit,incidentVersion,unitVersion})=>rpc('cad_assign_unit',{p_agency:id(agency),p_incident:id(incident),p_unit:id(unit),p_expected_incident_version:incidentVersion,p_expected_unit_version:unitVersion}),
    reclassifyIncident:({agency,incident,unit,type,incidentVersion,report})=>rpc('cad_reclassify_incident',{p_agency:id(agency),p_incident:id(incident),p_unit:id(unit),p_type:type,p_expected_version:incidentVersion,p_report:report}),
    registerUnit:({agency,callSign,discipline,resourceType,temporary=false,homeAgency})=>rpc('cad_register_unit',{p_agency:id(agency),p_call_sign:callSign,p_discipline:discipline,p_resource_type:resourceType,p_temporary:!!temporary,p_home_agency:homeAgency||null}),
+   reconcileOffDutyUnit:({agency,unit,unitVersion,discipline,resourceType,homeAgency})=>rpc('cad_reconcile_off_duty_unit',{p_agency:id(agency),p_unit:id(unit),p_expected_version:unitVersion,p_discipline:discipline,p_resource_type:resourceType,p_home_agency:homeAgency}),
    setUnitDuty:({agency,unit,unitVersion,onDuty})=>rpc('cad_set_unit_duty',{p_agency:id(agency),p_unit:id(unit),p_expected_unit_version:unitVersion,p_on_duty:!!onDuty}),
    changeUnitStatus:({agency,incident,unit,status,unitVersion})=>rpc('cad_change_unit_status',{p_agency:id(agency),p_incident:id(incident),p_unit:id(unit),p_status:status,p_expected_unit_version:unitVersion}),
    listOutstanding:agency=>read('cad_outstanding_resources',agency,'select=*&order=incident_id,resource_type'),
