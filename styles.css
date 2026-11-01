@@ -949,3 +949,12 @@ button.cad-station-card:hover,button.cad-station-card.is-selected{border-color:#
 
 /* Visible held-call marker for the standard Dispatch queues */
 .cad-hold-chip{display:inline-block;margin-left:7px;padding:2px 7px;border:1px solid #efb45d;border-radius:5px;color:#ffe0a2;background:#60401b;font-size:11px;font-weight:700;white-space:nowrap}
+
+/* Dispatch hold: visually distinct from assigned, draggable status pills. */
+.cad-held-unit-ghost{display:inline-flex;align-items:center;border:1px dashed #f0b65e;color:#ffdfa0;background:rgba(105,70,25,.18);font-size:12px;padding:4px 8px;border-radius:6px;font-weight:700;white-space:nowrap}
+.cad-hold-dialog{background:#11283c;color:#f3f8fc;border:1px solid #567b97;border-radius:12px;padding:20px;min-width:min(390px,90vw);max-width:95vw;box-shadow:0 16px 60px #0009}
+.cad-hold-dialog::backdrop{background:rgba(0,0,0,.65)}
+.cad-hold-dialog label{display:flex;flex-direction:column;gap:7px;margin:10px 0}
+.cad-hold-dialog select,.cad-hold-dialog textarea{background:#091a29;color:#fff;border:1px solid #547b99;border-radius:7px;padding:10px;width:100%}
+.cad-hold-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}
+.cad-hold-actions button{padding:9px 14px;background:#1c567c;border:1px solid #5080a2;color:#fff;border-radius:7px;cursor:pointer}
