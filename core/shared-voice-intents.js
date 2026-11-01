@@ -72,6 +72,23 @@
   const reporter=identified.length===1?identified[0]:null;
   return {report,order,onScene,workingFire,reporter,responders:order?unitList(order,units,voiceText):[],reason:reporter?null:'Reporting unit '+first[0]+' is not logged on or does not match the active roster'};
  }
+ function reportingStatus(text,units,voiceText){
+  const t=normalize(text);
+  if(!/\b(?:on\s*(?:the\s*)?scene|at\s*(?:the\s*)?scene|onscene|10\s*97)\b/.test(t))return null;
+  const marker=t.match(/\b(?:on\s*(?:the\s*)?scene|at\s*(?:the\s*)?scene|onscene|10\s*97)\b/);
+  const before=t.slice(0,marker.index).trim();
+  const after=t.slice(marker.index+marker[0].length).trim();
+  const reporterList=unitList(before,units,voiceText);
+  const accompaniment=after.match(/^\s*(?:with|along\s+with|together\s+with)\s+(.+)$/);
+  const companionList=accompaniment?unitList(accompaniment[1],units,voiceText):[];
+  return {
+   kind:'STATUS_REPORT',status:'ONSCENE',
+   reporter:reporterList.length===1?reporterList[0]:null,
+   companions:companionList.filter(u=>!reporterList.some(r=>r.id===u.id)),
+   reason:reporterList.length===1?null:(reporterList.length>1?'Multiple reporting units before status':'Reporting unit not uniquely recognized before status'),
+   companionMentioned:!!accompaniment
+  };
+ }
  function callsigns(text,units,voiceText){
   const matches=unitList(text,units,voiceText);
   return matches.length===1?matches[0]:null;
@@ -92,5 +109,5 @@
   const matched=units.filter(u=>ids.has(String(u.id||'').toUpperCase()));
   return matched.length===1?matched[0]:null;
  }
- return Object.freeze({classify,callsigns,unitList,parseWorkingFireTransmission});
+ return Object.freeze({classify,callsigns,unitList,parseWorkingFireTransmission,reportingStatus});
 });
