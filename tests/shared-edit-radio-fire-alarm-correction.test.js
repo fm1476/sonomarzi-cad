@@ -8,5 +8,5 @@ assert(app.includes("'Vehicle Fire','Fire Alarm','Alarm'"),'Fire Alarm should be
 assert(voice.includes("const alarmCorrection="),'radio correction route is present');
 assert(voice.includes("const confirmedAlarmCorrection="),'validated correction bypasses broad negative-word exclusion');
 assert(voice.includes("type:'Fire Alarm',discipline:'FIRE'"),'correction explicitly requests Fire Alarm');
-assert(html.includes('voice.js?v=21.6')&&html.includes('app.js?v=61'),'new assets cache-busted');
+assert(html.includes('voice.js?v=21.6')&&html.includes('app.js?v=62'),'new assets cache-busted');
 console.log('PASS: shared incident CFS picker/address verification and explicit fire alarm downgrade wiring');
