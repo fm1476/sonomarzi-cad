@@ -16,13 +16,14 @@ const client=()=>window.CadDemoLogin?.client?.();
 function render(){
  const host=$('cadUnitStatusCatalogList');if(!host)return;
  const rows=current.length?current:defaults.map(([code,label,canonical_status,discipline])=>({code,label,canonical_status,discipline,enabled:true,radio_phrases:[]}));
- host.innerHTML=rows.map(x=>'<div class="cad-status-config-item"><div><b>'+escape(x.label)+'</b><small>'+escape(x.code)+' · '+escape(x.discipline)+' · '+escape(x.canonical_status)+(x.enabled===false?' · Disabled':'')+'</small></div><button type="button" data-status-edit="'+escape(x.code)+'">Edit</button></div>').join('');
+ host.innerHTML=rows.map(x=>'<div class="cad-status-config-item"><div><span class="cad-status-swatch" style="background:'+(/^#[0-9a-f]{6}$/i.test(x.display_color||'')?x.display_color:'#4388C7')+'"></span><b>'+escape(x.label)+'</b><small>'+escape(x.code)+' · '+escape(x.discipline)+' · '+escape(x.canonical_status)+(x.enabled===false?' · Disabled':'')+'</small></div><button type="button" data-status-edit="'+escape(x.code)+'">Edit</button></div>').join('');
  host.querySelectorAll('[data-status-edit]').forEach(button=>button.onclick=()=>{
   const row=rows.find(x=>x.code===button.dataset.statusEdit);if(!row)return;
   editing=row.code;
   $('cadStatusCode').value=row.code;$('cadStatusCode').readOnly=true;
   $('cadStatusLabel').value=row.label;$('cadStatusCanonical').value=row.canonical_status;
   $('cadStatusDiscipline').value=row.discipline;$('cadStatusAliases').value=(row.radio_phrases||[]).join(', ');
+  $('cadStatusColor').value=row.display_color||'#4388C7';
   $('cadStatusEnabled').checked=row.enabled!==false;
   $('cadStatusEditor').hidden=false;
  });
@@ -33,6 +34,7 @@ $('cadStatusNew').onclick=()=>{
  editing=null;$('cadStatusCode').readOnly=false;$('cadStatusCode').value='';
  $('cadStatusLabel').value='';$('cadStatusCanonical').value='AVAILABLE';
  $('cadStatusDiscipline').value='ALL';$('cadStatusAliases').value='';
+ $('cadStatusColor').value='#4388C7';
  $('cadStatusEnabled').checked=true;$('cadStatusEditor').hidden=false;
 };
 $('cadStatusCancel').onclick=()=>{$('cadStatusEditor').hidden=true;};
@@ -46,6 +48,7 @@ $('cadStatusSave').onclick=async()=>{
  const button=$('cadStatusSave');button.disabled=true;status.textContent='Saving agency status…';
  try{
   await client().saveUnitStatusCatalog({agency:login.agencyId,code,label,canonicalStatus,discipline,radioPhrases,enabled:$('cadStatusEnabled').checked});
+  await client().saveUnitStatusColor({agency:login.agencyId,code,color:$('cadStatusColor').value});
   current=await client().listUnitStatusCatalog(login.agencyId);
   window.dispatchEvent(new CustomEvent('cad:unit-status-catalog-updated',{detail:{catalog:current}}));
   $('cadStatusEditor').hidden=true;status.textContent='Saved to shared agency catalog.';

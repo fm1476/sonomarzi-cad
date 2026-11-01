@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
 <meta name="theme-color" content="#0b1220"/>
 <title>SonoMarzi CAD POC</title>
-<link rel="stylesheet" href="styles.css?v=25.4"/>
+<link rel="stylesheet" href="styles.css?v=25.5"/>
 <link rel="stylesheet" href="core/shared-demo-panel.css?v=4"/>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <style>
@@ -59,7 +59,7 @@
 
 
 <main id="dispatch" class="view active">
-  <section class="cad-workspace-toolbar" aria-label="Saved CAD workspaces"><strong>WORKSPACE</strong><select id="cadWorkspaceSelect" aria-label="Choose a saved workspace"></select><button id="cadWorkspaceLoad" type="button">Load</button><button id="cadWorkspaceNew" type="button">Save New</button><button id="cadWorkspaceUpdate" type="button">Update</button><button id="cadWorkspaceRename" type="button">Rename</button><button id="cadWorkspaceDelete" type="button">Delete</button><button id="cadWorkspaceReset" type="button">Reset Layout</button><label class="cad-external-launch">Other monitor <select id="cadExternalPanel" aria-label="Select panel for a separate monitor"><option value="">Choose pane…</option></select></label><button id="cadExternalOpen" type="button" title="Open selected pane as separate browser window">Open Window ↗</button><button id="cadOpenSavedWindows" type="button" title="Reopen saved separate-monitor windows">Restore Windows</button><span id="cadWorkspaceStatus" role="status" aria-live="polite">Workspace layout stored on this browser.</span></section>
+  <section class="cad-workspace-toolbar" aria-label="Saved CAD workspaces"><strong>WORKSPACE</strong><select id="cadWorkspaceSelect" aria-label="Choose a saved workspace"></select><button id="cadWorkspaceLoad" type="button">Load</button><button id="cadWorkspaceNew" type="button">Save New</button><button id="cadWorkspaceUpdate" type="button">Update</button><button id="cadWorkspaceRename" type="button">Rename</button><button id="cadWorkspaceDelete" type="button">Delete</button><button id="cadWorkspaceReset" type="button">Reset Layout</button><label class="cad-external-launch">Other monitor <select id="cadExternalPanel" aria-label="Select panel for a separate monitor"><option value="">Choose pane…</option></select></label><button id="cadExternalOpen" type="button" title="Open selected pane as separate browser window">Open Window ↗</button><button id="cadOpenSavedWindows" type="button" title="Reopen saved separate-monitor windows">Restore Windows</button><label class="cad-workspace-theme-control">Appearance <select id="cadWorkspaceTheme" aria-label="Workspace appearance"><option value="night">Night mode</option><option value="day">Day mode</option></select></label><span id="cadWorkspaceStatus" role="status" aria-live="polite">Workspace layout stored on this browser.</span></section>
 <section class="grid">
     <article class="panel" data-panel="pending">
       <h2><span class="panel-drag" draggable="true" title="Drag to move this panel" aria-label="Drag panel">⠿</span> Pending Calls <span id="pendingCount"></span></h2>
@@ -174,7 +174,7 @@
  <label>Display label<input id="cadStatusLabel" maxlength="60" placeholder="Report Writing"/></label>
  <label>CAD operational status<select id="cadStatusCanonical"><option>AVAILABLE</option><option>DISPATCHED</option><option>ENROUTE</option><option>ONSCENE</option><option>TRANSPORTING</option><option>AT_HOSPITAL</option><option>OUT_OF_SERVICE</option></select></label>
  <label>Discipline<select id="cadStatusDiscipline"><option>ALL</option><option>LAW</option><option>FIRE</option><option>EMS</option></select></label>
- <label>Radio phrase aliases, comma separated<input id="cadStatusAliases" placeholder="report writing, writing a report"/></label>
+ <label>Status color<input id="cadStatusColor" type="color" value="#4388C7"/></label><label>Radio phrase aliases, comma separated<input id="cadStatusAliases" placeholder="report writing, writing a report"/></label>
  <label><input id="cadStatusEnabled" type="checkbox" checked/> Enabled</label>
  <div><button type="button" id="cadStatusCancel">Cancel</button><button type="button" id="cadStatusSave" class="primary">Save Status</button></div></section>
  <p id="cadStatusConfigStatus" role="status"></p></div>
@@ -270,7 +270,7 @@
 <div id="toast"></div>
 <script src="core/discipline.js?v=1"></script>
 <script src="core/persistence.js?v=1"></script>
-<script src="core/supabase-client.js?v=10"></script>
+<script src="core/supabase-client.js?v=11"></script>
 <script src="core/demo-login.js?v=2"></script>
 <script src="core/cloud-settings.js?v=4"></script>
 <script src="core/shared-demo-panel.js?v=27"></script>
@@ -289,10 +289,11 @@
 <script src="resource-types.js?v=4"></script>
 <script src="core/unit-duty-intents.js?v=1"></script>
 <script src="agency-master-settings.js?v=12"></script>
-<script src="unit-status-settings.js?v=1"></script>\n<link rel="stylesheet" href="agency-master-polish.css?v=1">
+<script src="unit-status-settings.js?v=2"></script>\n<link rel="stylesheet" href="agency-master-polish.css?v=1">
 <script src="legacy-demo-cleanup.js?v=1"></script>
 
-<script src="board-layout.js?v=29"></script>
+<script src="board-layout.js?v=30"></script>
+<script src="workspace-theme.js?v=1"></script>
 <script src="sample-calls.js?v=1"></script>
 <script src="incident-intelligence.js?v=18.3"></script>
 <script src="core/voice-text.js?v=2"></script>

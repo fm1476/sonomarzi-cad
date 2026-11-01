@@ -958,3 +958,22 @@ button.cad-station-card:hover,button.cad-station-card.is-selected{border-color:#
 .cad-hold-dialog select,.cad-hold-dialog textarea{background:#091a29;color:#fff;border:1px solid #547b99;border-radius:7px;padding:10px;width:100%}
 .cad-hold-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}
 .cad-hold-actions button{padding:9px 14px;background:#1c567c;border:1px solid #5080a2;color:#fff;border-radius:7px;cursor:pointer}
+
+
+/* Workstation day mode: intentionally scoped, preserving priority and officer-safety colors. */
+html[data-cad-theme="day"],html[data-cad-theme="day"] body{background:#edf2f7;color:#17283a;color-scheme:light}
+html[data-cad-theme="day"] header,html[data-cad-theme="day"] nav{background:#f8fafc;color:#14283a;border-color:#c8d4df}
+html[data-cad-theme="day"] .panel,html[data-cad-theme="day"] .cad-shared-board,html[data-cad-theme="day"] .config{background:#fff;color:#182c40;border-color:#c4d1de;box-shadow:0 3px 12px #14283a12}
+html[data-cad-theme="day"] .panel h2,html[data-cad-theme="day"] .cad-column-headings{background:#e8eff5;color:#22394c;border-color:#c8d4df}
+html[data-cad-theme="day"] .row,html[data-cad-theme="day"] .unit,html[data-cad-theme="day"] .voice-entry{border-color:#d8e1e8;color:#20364a}
+html[data-cad-theme="day"] .row:hover,html[data-cad-theme="day"] .row.selected{background:#dcebf8}
+html[data-cad-theme="day"] .meta,html[data-cad-theme="day"] .muted,html[data-cad-theme="day"] .config label,html[data-cad-theme="day"] .voice-controls label{color:#546c7d}
+html[data-cad-theme="day"] button:not(.primary):not(.cad-unit-chip):not(.cad-ask-ptt),html[data-cad-theme="day"] nav button,html[data-cad-theme="day"] .filters button{background:#e8eef5;color:#1b3449;border-color:#aebfcf}
+html[data-cad-theme="day"] input,html[data-cad-theme="day"] select,html[data-cad-theme="day"] textarea{background:#fff;color:#152b3e;border-color:#aebfcf}
+html[data-cad-theme="day"] .command{background:#dce6ef;color:#17283a;border-color:#b7c8d8}
+html[data-cad-theme="day"] .narr,html[data-cad-theme="day"] .voice-output>div,html[data-cad-theme="day"] .voice-log-count{background:#eef4f9;color:#173047;border-color:#c8d6e2}
+html[data-cad-theme="day"] .actions button{background:#e6eef6;color:#19364d;border-color:#b4c6d5}
+.cad-status-config-item{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 4px;border-bottom:1px solid #55718a55}
+.cad-status-config-item small{display:block;color:inherit;opacity:.75}
+.cad-status-swatch{display:inline-block;vertical-align:middle;width:17px;height:17px;border:1px solid #777;border-radius:5px;margin-right:8px}
+#cadStatusColor{width:80px;height:43px;cursor:pointer}
