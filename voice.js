@@ -728,7 +728,7 @@ function sharedRadioSegments(text){
  const heard=String(text||'').trim();
  const explicit=heard.split(/\s*\b(?:break|brake)\b\s*[,.!?;]*\s*/i).map(x=>x.trim()).filter(Boolean);
  if(explicit.length!==1||/\b(?:break|brake)\b/i.test(heard))return explicit;
- const structured=window.CadSharedVoiceIntents?.parseWorkingFireTransmission(heard,state.units,window.CadVoiceText);
+ const structured=typeof window!=='undefined'&&typeof state!=='undefined'?window.CadSharedVoiceIntents?.parseWorkingFireTransmission(heard,state.units,window.CadVoiceText):null;
  if(structured?.order)return [structured.report,structured.order];
  // ASR sometimes drops "break" while preserving two distinct commands.
  // Never infer a second action without explicit responding units AND a dispatch verb.
