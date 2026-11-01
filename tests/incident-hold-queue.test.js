@@ -1,0 +1,18 @@
+const assert=require('node:assert/strict');
+const hold=require('../core/incident-hold.js');
+const incident={id:'incident-1',status:'ACTIVE'};
+const a={incident_id:'incident-1',unit_id:'3A12',cleared_at:null};
+const b={incident_id:'incident-1',unit_id:'3A11',cleared_at:null};
+assert.equal(hold.queue(incident,[a,b]),'ASSIGNED');
+assert.equal(hold.afterUnitRemoved(incident,[b]),'ACTIVE','remaining unit keeps call assigned');
+assert.equal(hold.afterUnitRemoved(incident,[]),'PENDING','last unit removed returns call to pending');
+assert.equal(hold.queue({...incident,status:'PENDING'},[]),'PENDING');
+const state={active:true,reason:'SPECIFIC_UNIT',requestedUnit:'3A11',heldAt:'2026-11-01T20:00:00Z'};
+assert.equal(hold.queue(incident,[],state),'HELD','explicit hold remains visible');
+assert.equal(hold.afterUnitRemoved(incident,[],state),'PENDING','database status remains pending even when held');
+assert.equal(hold.queue(incident,[a],state),'HELD','an explicitly held call stays in Hold even with assigned units');
+assert.equal(hold.holdSummary(state).requestedUnit,'3A11');
+assert.equal(hold.needsAttention(state,[{call_sign:'3A11',status:'DISPATCHED'}]),false);
+assert.equal(hold.needsAttention(state,[{call_sign:'3A11',status:'AVAILABLE'}]),true,'available requested unit alerts dispatcher');
+assert.equal(hold.queue({...incident,status:'CLOSED'},[],state),'CLOSED','never revive closed incident');
+console.log('PASS: preempt queue semantics and explicit hold without automatic reassign');
