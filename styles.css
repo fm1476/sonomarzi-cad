@@ -926,3 +926,23 @@ button.cad-station-card:hover,button.cad-station-card.is-selected{border-color:#
 .cad-gis-dialog .cad-gis-sync{display:block;width:100%;margin:15px 0 5px;padding:12px 15px;border:1px solid #399ac6;border-radius:10px;background:#153d5a;color:#e6f5ff;font-size:13px;font-weight:800;cursor:pointer;text-align:center}
 .cad-gis-dialog .cad-gis-sync:hover{background:#1b5174}
 .cad-gis-dialog .cad-gis-sync:disabled{opacity:.6;cursor:wait}
+
+/* Compact Unit Status logon and aligned column configuration, v25.2 */
+#dispatch [data-panel="units"] .filters{display:flex;align-items:center;flex-wrap:wrap;gap:6px}
+#cadDutyLogOnOpen{white-space:nowrap}
+.cad-duty-logon-dialog{width:min(440px,calc(100vw - 32px));max-width:calc(100vw - 32px);box-sizing:border-box;background:#0f2031;color:#e6f0fa;border:1px solid #476780;border-radius:12px;padding:20px;box-shadow:0 24px 70px #000a}
+.cad-duty-logon-dialog::backdrop{background:#020913b8}
+.cad-duty-logon-header{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:10px}
+.cad-duty-logon-header h3{margin:0;font-size:19px}
+.cad-duty-logon-close{font-size:24px;background:transparent;border:0;color:inherit;cursor:pointer}
+.cad-duty-logon-dialog label{display:block;margin:16px 0 6px;font-size:13px;font-weight:600}
+.cad-duty-logon-dialog select{width:100%;padding:10px;border:1px solid #42627e;border-radius:7px;background:#0a1725;color:#e6f0fa}
+.cad-duty-logon-dialog #cadDutyLogOnStatus{font-size:12px;min-height:18px}
+.cad-duty-logon-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:15px}
+.cad-duty-logon-actions button{padding:8px 13px;cursor:pointer}
+.board-columns[data-columns="units"]{display:block;overflow-x:auto;overflow-y:visible}
+.board-columns[data-columns="units"] .cad-column-headings{display:grid;flex:none;width:max-content;min-width:0;gap:0}
+.board-columns[data-columns="units"] .col-drag{box-sizing:border-box;padding:7px 10px;overflow:hidden;text-overflow:ellipsis;font-size:12px}
+.board-columns[data-columns="units"] .cad-column-menu-button{position:absolute;right:5px;top:-32px;width:27px;height:27px;z-index:5;font-size:16px;padding:0}
+.board-columns[data-columns="units"] .cad-column-menu{left:auto;right:0}
+#units .cad-unit-grid{box-sizing:border-box}
