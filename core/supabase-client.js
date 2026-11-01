@@ -60,6 +60,8 @@
    listOutstanding:agency=>read('cad_outstanding_resources',agency,'select=*&order=incident_id,resource_type'),
    listIncidentEvents:agency=>read('cad_incident_events',agency,'select=*&order=occurred_at.desc&limit=500'),
    listIncidentLocations:agency=>read('cad_incident_locations',agency,'select=*&order=recorded_at.desc&limit=500'),
+   listIncidentHolds:agency=>read('cad_incident_holds',agency,'select=*'),
+   setIncidentHold:({agency,incident,incidentVersion,hold,reason,requestedUnit,requestedCapability,notes})=>rpc('cad_set_incident_hold',{p_agency:id(agency),p_incident:id(incident),p_expected_version:incidentVersion,p_hold:!!hold,p_reason:reason||'DISPATCHER_HOLD',p_requested_unit:requestedUnit||null,p_requested_capability:requestedCapability||null,p_notes:notes||''}),
    allocateCaseNumber:({agency,incident,incidentVersion})=>rpc('cad_allocate_case_number',{p_agency:id(agency),p_incident:id(incident),p_expected_version:incidentVersion}),
    setCaseNumber:({agency,incident,caseNumber,incidentVersion})=>rpc('cad_set_case_number',{p_agency:id(agency),p_incident:id(incident),p_case_number:caseNumber,p_expected_version:incidentVersion}),
    addNarrative:({agency,incident,text,incidentVersion})=>rpc('cad_add_narrative',{p_agency:id(agency),p_incident:id(incident),p_text:text,p_expected_version:incidentVersion}),
