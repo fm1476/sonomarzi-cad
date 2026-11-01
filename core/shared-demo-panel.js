@@ -287,6 +287,7 @@
    }
   };
   window.cadSharedRoster=()=>snapshot.roster.slice();
+  window.cadSharedRefresh=()=>refresh({quiet:true});
   window.cadSharedSetUnitDuty=async function(unitId,onDuty){
    const session=window.CadDemoLogin.current();
    if(!session)throw Error('Sign in to shared CAD first.');
