@@ -244,11 +244,34 @@
    if(!/^[A-Z0-9]{1,12}$/.test(callSign))throw Error('Shared CAD callsigns must be 1–12 letters or digits, no spaces.');
    const previous=snapshot.roster.find(u=>u.call_sign.toUpperCase()===callSign);
    if(previous){
-    if(previous.discipline!==def.discipline||previous.resource_type!==String(def.resourceType).trim().toUpperCase())
-     throw Error(callSign+' already exists with different discipline or resource type. Resolve the conflict before logon.');
-    if(previous.status==='AVAILABLE')return {ok:true,alreadyOnDuty:true,callSign};
-    if(previous.status==='OFF_DUTY')return await window.cadSharedSetUnitDuty(previous.id,true).then(result=>({ok:true,callSign,result}));
-    throw Error(callSign+' is already in service ('+previous.status+').');
+    const targetType=String(def.resourceType).trim().toUpperCase();
+    const mismatch=previous.discipline!==def.discipline||previous.resource_type!==targetType||
+      (previous.home_agency_name||'SonoMarzi CAD Demo Agency')!==agencyName;
+    if(!mismatch){
+     if(previous.status==='AVAILABLE')return {ok:true,alreadyOnDuty:true,callSign};
+     if(previous.status==='OFF_DUTY')return await window.cadSharedSetUnitDuty(previous.id,true).then(result=>({ok:true,callSign,result}));
+     throw Error(callSign+' is already in service ('+previous.status+').');
+    }
+    if(previous.status!=='OFF_DUTY')
+     throw Error(callSign+' is active with a different agency/unit configuration. Take it off duty first; existing incident history is protected.');
+    if(snapshot.assignments.some(a=>a.unit_id===previous.id))
+     throw Error(callSign+' has an incident assignment and cannot be reconciled.');
+    const details=callSign+' exists in the legacy shared CAD roster with different definitions.\n\n'+
+      'SHARED RECORD: '+(previous.home_agency_name||'SonoMarzi CAD Demo Agency')+' | '+previous.discipline+' | '+previous.resource_type+'\n'+
+      'YOUR CONFIGURATION: '+agencyName+' | '+def.discipline+' | '+targetType+'\n\n'+
+      'Update this off-duty roster record and log it on as AVAILABLE? Its existing ID, assignments and history will be preserved.';
+    if(!window.confirm(details))throw Error('Reconciliation canceled. No records changed.');
+    const client=window.CadDemoLogin.client();
+    try{
+     const result=await client.reconcileOffDutyUnit({agency:session.agencyId,unit:previous.id,unitVersion:previous.version,
+      discipline:def.discipline,resourceType:targetType,homeAgency:agencyName});
+     await refresh({quiet:true});
+     const current=snapshot.roster.find(u=>u.id===previous.id);
+     if(!current||current.status!=='AVAILABLE'||current.discipline!==def.discipline||
+       current.resource_type!==targetType||current.home_agency_name!==agencyName)
+       throw Error('Reconciliation not yet reflected in shared CAD. Refresh before retrying.');
+     return {ok:true,callSign,unitId:current.id,reconciled:true,result};
+    }catch(error){await refresh({quiet:true});throw Error(error.message+' — Verify the shared roster before retrying.');}
    }
    const client=window.CadDemoLogin.client();
    let result;
