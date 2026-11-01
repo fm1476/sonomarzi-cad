@@ -472,27 +472,41 @@ function cadSharedEditEvent(i){
  };
  dialog.addEventListener('close',()=>dialog.remove());dialog.showModal();
 }
+// Unified hold editor for incident actions, context menus and Dispatch Operations.
+window.cadOpenHoldForUnit=function(incidentId){
+ if(!window.cadSharedIsActive?.())return alert('Sign in to shared CAD to hold an incident.');
+ const incident=state.incidents.find(x=>x.id===incidentId);
+ if(!incident||!incident.sharedUuid||incident.status==='CLOSED')return alert('Choose an open shared incident.');
+ const active=incident.sharedHold;
+ const roster=window.cadSharedLastSnapshot?.roster||[];
+ const dialog=document.createElement('dialog');dialog.className='cad-hold-dialog';
+ const title=document.createElement('h3');title.textContent=(active?'Release hold':'Hold for Unit')+' · '+incident.id;dialog.append(title);
+ const info=document.createElement('p');info.textContent=active?'This call is held for '+(active.requested_unit||'dispatcher review')+'.':'Reserve this call without removing the unit from an existing assignment.';dialog.append(info);
+ const select=document.createElement('select');select.setAttribute('aria-label','Requested unit');
+ const general=document.createElement('option');general.value='';general.textContent='General dispatcher hold';select.append(general);
+ for(const u of roster.slice().sort((a,b)=>String(a.call_sign).localeCompare(String(b.call_sign),undefined,{numeric:true}))){const opt=document.createElement('option');opt.value=u.call_sign;opt.textContent=u.call_sign+' · '+u.status;select.append(opt)}
+ if(!active){const label=document.createElement('label');label.textContent='Hold for';label.append(select);dialog.append(label);}
+ const note=document.createElement('textarea');note.placeholder='Optional reason / notes';note.rows=2;if(!active)dialog.append(note);
+ const status=document.createElement('p');status.setAttribute('role','status');dialog.append(status);
+ const controls=document.createElement('div');controls.className='cad-hold-actions';
+ const cancel=document.createElement('button');cancel.textContent='Cancel';cancel.type='button';cancel.onclick=()=>dialog.close();
+ const submit=document.createElement('button');submit.type='button';submit.textContent=active?'Release Hold':'Hold Call';
+ controls.append(cancel,submit);dialog.append(controls);
+ submit.onclick=async()=>{
+  submit.disabled=true;status.textContent='Saving shared hold…';
+  try{
+   await window.cadSharedCommand(active?'release-hold':'hold',{incidentId:incident.id,requestedUnit:active?null:select.value,reason:select.value?'SPECIFIC_UNIT':'DISPATCHER_HOLD',notes:note.value.trim().slice(0,1000)});
+   const fresh=state.incidents.find(x=>x.id===incident.id);
+   if(!!fresh?.sharedHold===!!active)throw Error('Updated hold was not verified in refreshed shared CAD');
+   dialog.close();
+  }catch(error){status.textContent='Hold could not be confirmed: '+error.message;submit.disabled=false;}
+ };
+ dialog.addEventListener('close',()=>dialog.remove());document.body.append(dialog);dialog.showModal();
+};
 function detailAction(i,a){
  if(a==='shared-edit'){cadSharedEditEvent(i);return;}
  if(a==='shared-dispatch'){window.dispatchEvent(new CustomEvent('cad:shared-dispatch',{detail:{incidentId:i.id}}));return;}
- if(a==='shared-hold'){
-  if(i.status==='CLOSED')return alert('Closed incidents cannot be held.');
-  const existing=i.sharedHold;
-  let requestedUnit=null,reason='DISPATCHER_HOLD',notes='';
-  if(!existing){
-   const roster=window.cadSharedLastSnapshot?.roster||[];
-   const value=prompt('Hold for which unit? Enter callsign, or leave blank for general hold:','');
-   if(value===null)return;
-   requestedUnit=value.trim().toUpperCase();
-   if(requestedUnit&&!roster.some(u=>String(u.call_sign).toUpperCase()===requestedUnit)){alert('No such unit in the shared roster.');return;}
-   reason=requestedUnit?'SPECIFIC_UNIT':'DISPATCHER_HOLD';
-   const note=prompt('Hold reason / notes (optional):','');
-   if(note===null)return;notes=note.trim().slice(0,1000);
-  }
-  window.cadSharedCommand(existing?'release-hold':'hold',{incidentId:i.id,requestedUnit,reason,notes})
-   .catch(error=>alert('Hold operation failed: '+error.message));
-  return;
- }
+ if(a==='shared-hold'){window.cadOpenHoldForUnit(i.id);return;}
  if(a==='shared-case'){const caseNumber=prompt('Case number:',i.caseNumber||'');if(caseNumber===null)return;window.cadSharedCommand('case',{incidentId:i.id,caseNumber:caseNumber.trim()}).catch(e=>alert(e.message));return;}
  if(a==='shared-note'){const text=prompt('Add narrative to '+i.id+':');if(!text?.trim())return;window.cadSharedCommand('note',{incidentId:i.id,text:text.trim()}).catch(e=>alert(e.message));return;}
  if(a==='shared-close'){const disposition=prompt('Disposition for '+i.id+':');if(!disposition?.trim())return;window.cadSharedCommand('close',{incidentId:i.id,disposition:disposition.trim()}).catch(e=>alert(e.message));return;}
