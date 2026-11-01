@@ -1,7 +1,7 @@
 name: Validate CAD
 on:
   push:
-    branches: [main, develop, 'refactor/**']
+    branches: [main, develop, 'refactor/**', 'feature/voice-radio-clause-intelligence-20261101']
   pull_request:
     branches: [main, develop]
 permissions:
