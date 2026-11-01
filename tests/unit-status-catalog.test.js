@@ -1,0 +1,16 @@
+const assert=require('node:assert/strict'),fs=require('node:fs');
+const html=fs.readFileSync('index.html','utf8');
+const editor=fs.readFileSync('unit-status-settings.js','utf8');
+const panel=fs.readFileSync('core/shared-demo-panel.js','utf8');
+const client=fs.readFileSync('core/supabase-client.js','utf8');
+const sql=fs.readFileSync('migrations/20261101_cad_unit_status_catalog.sql','utf8');
+assert(html.includes('value="unit-status"'));
+for(const id of ['cadStatusNew','cadStatusSave','cadStatusCanonical','cadStatusDiscipline','cadStatusAliases','cadUnitStatusCatalogList'])assert(html.includes('id="'+id+'"'));
+assert(html.includes('unit-status-settings.js?v=1'));
+assert(editor.includes('saveUnitStatusCatalog(')&&editor.includes('listUnitStatusCatalog('));
+assert(panel.includes('client.listUnitStatusCatalog(agency)'),'shared polling fetches agency status catalog');
+assert(panel.includes("cad:unit-status-catalog-updated"));
+assert(client.includes("rpc('cad_save_unit_status_catalog'"));
+assert(sql.includes('enable row level security')&&sql.includes('cad_has_access(p_agency,true)'));
+assert(!sql.includes('update public.cad_units'),'catalog must not directly alter live unit statuses');
+console.log('PASS: agency unit status catalog editor, shared synchronization, authorized persistence');
