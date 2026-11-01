@@ -1,7 +1,7 @@
 const KEY='smcad-poc-v1', CFG='smcad-config-v1';
 const CAD_LEGACY_CLEAN_KEY='smcad-original-demo-cleaned-v1';
 const cadLegacyCleaned=()=>localStorage.getItem(CAD_LEGACY_CLEAN_KEY)==='1';
-const defaultConfig={agencies:['Sonoma County Sheriff','Petaluma Police','Petaluma Fire / EMS','REDCOM'],types:{LAW:['Traffic Stop','Domestic','Suspicious Person','Alarm','Traffic Collision','Welfare Check','Disturbance'],FIRE:['Structure Fire','Vegetation Fire','Vehicle Fire','Alarm','Hazard'],EMS:['Medical Aid','Cardiac Arrest','Fall','Overdose','Traffic Collision']}};
+const defaultConfig={agencies:['Sonoma County Sheriff','Petaluma Police','Petaluma Fire / EMS','REDCOM'],types:{LAW:['Traffic Stop','Domestic','Suspicious Person','Alarm','Traffic Collision','Welfare Check','Disturbance'],FIRE:['Structure Fire','Vegetation Fire','Vehicle Fire','Fire Alarm','Alarm','Hazard'],EMS:['Medical Aid','Cardiac Arrest','Fall','Overdose','Traffic Collision']}};
 const defaultState=()=>({seq:4525,selected:null,incidents:[
 {id:'26-004518',agency:'Petaluma Police',discipline:'LAW',priority:'P1',type:'Domestic',location:'725 D St',caller:'RP',phone:'707-555-0144',narrative:['Caller reports physical fight, possible weapon.'],status:'ACTIVE',units:['3A21'],events:[]},
 {id:'26-004519',agency:'Petaluma Fire / EMS',discipline:'FIRE',priority:'P2',type:'Alarm',location:'1000 Lakeville St',caller:'Alarm Co',phone:'800-555-0199',narrative:['Commercial fire alarm, zone 2.'],status:'PENDING',units:[],events:[]},
