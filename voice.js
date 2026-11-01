@@ -863,7 +863,8 @@ async function processSharedVoiceReclassification(text,parsed,confirmedUnitId=nu
  const alreadyClassified=parsed.type===incident.type;
  if(!['Structure Fire','Vegetation Fire','Vehicle Fire','Fire Alarm','Cardiac Arrest','Medical Aid','Overdose','Burglary','Robbery','Domestic','Traffic Collision','Welfare Check'].includes(parsed.type))
   return fail('This classification requires agency configuration and server validation');
- if(/\b(?:possible|possibly|potential|suspected|maybe|might|may be|unconfirmed|negative|not|no evidence|cancel|disregard)\b/i.test(heard))
+ const confirmedAlarmCorrection=parsed.type==='Fire Alarm'&&/\\b(?:negative|not|no)\\b.{0,55}\\b(?:structure|working)\\s+fire\\b/i.test(heard)&&/\\bfire\\s+alarm\\s+(?:only|instead)\\b/i.test(heard);
+ if(/\\b(?:possible|possibly|potential|suspected|maybe|might|may be|unconfirmed|cancel|disregard)\\b/i.test(heard)||(!confirmedAlarmCorrection&&/\\b(?:negative|not|no evidence)\\b/i.test(heard)))
   return fail('Unconfirmed or negated report');
  sharedVoiceDispatchPending=true;
  el('voiceHeard').textContent=heard;
@@ -1030,10 +1031,11 @@ process=function(text,source=el('voiceSource').value){
   const joinPlan=window.CadSharedVoiceIntents?.planJoinUnitOnScene(text,state.units,state.incidents,window.CadVoiceText);
   if(joinPlan){void processSharedVoiceJoinOnScene(text,joinPlan);return;}
   const parsed=window.CadSharedVoiceIntents?.classify(text);
-  const classification=window.cadIncidentIntelligence?.classification(text);
+  const alarmCorrection=/\\b(?:negative|not|no)\\b.{0,55}\\b(?:structure|working)\\s+fire\\b/i.test(text)&&/\\bfire\\s+alarm\\s+(?:only|instead)\\b/i.test(text);
+  const classification=alarmCorrection?{type:'Fire Alarm',discipline:'FIRE'}:window.cadIncidentIntelligence?.classification(text);
   if(/\b(?:request(?:ing)?|need|give|assign|issue|allocate)\s+(?:me\s+)?(?:a\s+|the\s+)?case\s*(?:number|#)|\bcase\s*number\s*(?:request|please)\b/i.test(text))void processSharedVoiceCaseNumber(text);
   else if(/\bpreempt\b/i.test(text))void processSharedVoicePreempt(text);
-  else if(classification?.type||classification?.review&&/\b(?:working|structure fire|vegetation fire|vehicle fire|cardiac arrest|overdose|reclassify|upgrade)\b/i.test(text))
+  else if(classification?.type||classification?.review&&/\b(?:working|structure fire|fire alarm|vegetation fire|vehicle fire|cardiac arrest|overdose|reclassify|upgrade)\b/i.test(text))
    void processSharedVoiceReclassification(text,classification);
   else if(parsed?.kind==='STATUS'||parsed?.kind==='CLEAR')void processSharedVoiceStatus(text);
   else if(source==='DISPATCH'&&dispatchIntent(text,source)&&(window.CadSharedVoiceIntents?.unitList(text,state.units,window.CadVoiceText)||[]).length>1)void processSharedVoiceBatchDispatch(text);

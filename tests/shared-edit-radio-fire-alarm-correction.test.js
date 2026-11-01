@@ -1,0 +1,12 @@
+const assert=require('node:assert/strict'),fs=require('node:fs');
+const app=fs.readFileSync('app.js','utf8'),voice=fs.readFileSync('voice.js','utf8'),html=fs.readFileSync('index.html','utf8');
+assert(app.includes("const type=document.createElement('select')"),'shared incident type must be a selector');
+assert(app.includes("defaultConfig.types[i.discipline]"),'CFS selector filters to discipline');
+assert(app.includes("config.types?.[i.discipline]"),'agency custom CFS types are available');
+assert(app.includes("window.cadAddressPicker?.(location,()=>i.discipline"),'shared edit uses location verification picker');
+assert(app.includes("'Vehicle Fire','Fire Alarm','Alarm'"),'Fire Alarm should be selectable');
+assert(voice.includes("const alarmCorrection="),'radio correction route is present');
+assert(voice.includes("const confirmedAlarmCorrection="),'validated correction bypasses broad negative-word exclusion');
+assert(voice.includes("type:'Fire Alarm',discipline:'FIRE'"),'correction explicitly requests Fire Alarm');
+assert(html.includes('voice.js?v=21.6')&&html.includes('app.js?v=61'),'new assets cache-busted');
+console.log('PASS: shared incident CFS picker/address verification and explicit fire alarm downgrade wiring');

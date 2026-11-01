@@ -1,7 +1,7 @@
 const KEY='smcad-poc-v1', CFG='smcad-config-v1';
 const CAD_LEGACY_CLEAN_KEY='smcad-original-demo-cleaned-v1';
 const cadLegacyCleaned=()=>localStorage.getItem(CAD_LEGACY_CLEAN_KEY)==='1';
-const defaultConfig={agencies:['Sonoma County Sheriff','Petaluma Police','Petaluma Fire / EMS','REDCOM'],types:{LAW:['Traffic Stop','Domestic','Suspicious Person','Alarm','Traffic Collision','Welfare Check','Disturbance'],FIRE:['Structure Fire','Vegetation Fire','Vehicle Fire','Alarm','Hazard'],EMS:['Medical Aid','Cardiac Arrest','Fall','Overdose','Traffic Collision']}};
+const defaultConfig={agencies:['Sonoma County Sheriff','Petaluma Police','Petaluma Fire / EMS','REDCOM'],types:{LAW:['Traffic Stop','Domestic','Suspicious Person','Alarm','Traffic Collision','Welfare Check','Disturbance'],FIRE:['Structure Fire','Vegetation Fire','Vehicle Fire','Fire Alarm','Alarm','Hazard'],EMS:['Medical Aid','Cardiac Arrest','Fall','Overdose','Traffic Collision']}};
 const defaultState=()=>({seq:4525,selected:null,incidents:[
 {id:'26-004518',agency:'Petaluma Police',discipline:'LAW',priority:'P1',type:'Domestic',location:'725 D St',caller:'RP',phone:'707-555-0144',narrative:['Caller reports physical fight, possible weapon.'],status:'ACTIVE',units:['3A21'],events:[]},
 {id:'26-004519',agency:'Petaluma Fire / EMS',discipline:'FIRE',priority:'P2',type:'Alarm',location:'1000 Lakeville St',caller:'Alarm Co',phone:'800-555-0199',narrative:['Commercial fire alarm, zone 2.'],status:'PENDING',units:[],events:[]},
@@ -448,9 +448,16 @@ function cadSharedEditEvent(i){
   const input=document.createElement('input');input.value=value||'';input.style.cssText='background:#18334b;color:white;border:1px solid #456986;border-radius:9px;padding:12px';
   wrap.append(input);form.append(wrap);return input;
  };
- const type=make('Call for Service type',i.type);
+ const typeLabel=document.createElement('label');typeLabel.textContent='Call for Service type';typeLabel.style.cssText='display:grid;gap:6px';
+ const type=document.createElement('select');type.setAttribute('aria-label','Call for Service type');
+ type.style.cssText='background:#18334b;color:white;border:1px solid #456986;border-radius:9px;padding:12px';
+ const options=[...new Set([...(defaultConfig.types[i.discipline]||[]),...(config.types?.[i.discipline]||[]),i.type])].filter(Boolean).sort((a,b)=>a.localeCompare(b));
+ for(const name of options){const o=document.createElement('option');o.value=name;o.textContent=name;type.append(o)}
+ type.value=i.type;typeLabel.append(type);form.append(typeLabel);
  const priority=make('Priority',i.priority);
  const location=make('Primary location',i.location);
+ let verifiedLocation=null;window.cadAddressPicker?.(location,()=>i.discipline,v=>{verifiedLocation=v});
+ const locationNotice=document.createElement('small');locationNotice.textContent='Choose a suggested address to verify beat or response zone. Unverified locations require dispatcher review.';location.parentElement.append(locationNotice);
  const caseNumber=make('Case number',i.caseNumber||'');
  const status=document.createElement('p');status.setAttribute('role','status');status.textContent='Changes are saved to shared CAD and verified by reloading.';
  const actions=document.createElement('div');actions.style.cssText='display:flex;gap:12px;justify-content:flex-end';
