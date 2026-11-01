@@ -85,6 +85,28 @@
       companions.length!==1?'Accompanying unit not uniquely identified':null,
     status:null};
  }
+ function planJoinUnitOnScene(text,units,incidents,voiceText){
+  const link=unitAccompaniment(text,units,voiceText);
+  if(!link)return null;
+  if(link.reason)return {...link,kind:'REVIEW',reason:link.reason};
+  if(link.companions.length!==1)return {...link,kind:'REVIEW',reason:'Exactly one reference unit required'};
+  const joining=link.reporter,reference=link.companions[0];
+  if(joining.id===reference.id)return {...link,kind:'REVIEW',reason:'A unit cannot join itself'};
+  const active=(Array.isArray(incidents)?incidents:[]).filter(i=>
+   i.status==='ACTIVE'&&i.sharedUuid&&Array.isArray(i.units));
+  const referenced=active.filter(i=>i.units.includes(reference.id));
+  if(referenced.length!==1)return {...link,kind:'REVIEW',reason:'Reference unit must have exactly one active shared incident assignment'};
+  const target=referenced[0];
+  if(target.discipline!==joining.discipline)
+   return {...link,kind:'REVIEW',reason:'Cross-discipline assignment requires explicit dispatcher review'};
+  if(joining.status!=='AVAILABLE')
+   return {...link,kind:'REVIEW',reason:'Joining unit is not available'};
+  if(active.some(i=>i.units.includes(joining.id)))
+   return {...link,kind:'REVIEW',reason:'Joining unit already has an active incident assignment'};
+  if(!joining.sharedUuid||!reference.sharedUuid)
+   return {...link,kind:'REVIEW',reason:'Shared unit IDs missing'};
+  return {kind:'JOIN_ON_SCENE',joining,reference,incident:target,status:'ONSCENE',reason:null};
+ }
  function reportingStatus(text,units,voiceText){
   const t=normalize(text);
   if(!/\b(?:on\s*(?:the\s*)?scene|at\s*(?:the\s*)?scene|onscene|10\s*97)\b/.test(t))return null;
@@ -122,5 +144,5 @@
   const matched=units.filter(u=>ids.has(String(u.id||'').toUpperCase()));
   return matched.length===1?matched[0]:null;
  }
- return Object.freeze({classify,callsigns,unitList,parseWorkingFireTransmission,reportingStatus,unitAccompaniment});
+ return Object.freeze({classify,callsigns,unitList,parseWorkingFireTransmission,reportingStatus,unitAccompaniment,planJoinUnitOnScene});
 });
