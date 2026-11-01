@@ -24,6 +24,30 @@
   let refreshing=false;
   let refreshAgain=false;
   let refreshTimer=null;
+  const POLL_BASE_MS=5000;
+  const POLL_MAX_MS=30000;
+  let pollingStopped=true,refreshFailures=0;
+  function stopPolling(){
+   pollingStopped=true;
+   if(refreshTimer)clearTimeout(refreshTimer);
+   refreshTimer=null;
+  }
+  function schedulePolling(delay){
+   if(pollingStopped||!window.CadDemoLogin?.current())return;
+   if(refreshTimer)clearTimeout(refreshTimer);
+   refreshTimer=setTimeout(async()=>{
+    refreshTimer=null;
+    if(pollingStopped)return;
+    if(document.visibilityState==='hidden'){schedulePolling(POLL_BASE_MS);return;}
+    await refresh({quiet:true});
+    if(!pollingStopped){
+     const next=Math.min(POLL_MAX_MS,POLL_BASE_MS*Math.pow(2,Math.min(refreshFailures,3)));
+     schedulePolling(next);
+    }
+   },delay);
+  }
+  function startPolling(){stopPolling();pollingStopped=false;schedulePolling(POLL_BASE_MS);}
+
   let lastSignature='';
   let confirmedMutationEpoch=0;
   const workspace=document.getElementById('cadSharedWorkspace');
@@ -42,7 +66,7 @@
    };
    make(workIncidents,snapshot.incidents.slice(0,8),i=>i.incident_number+'  ·  '+i.discipline+'  ·  '+i.status+'  ·  '+i.current_location);
    make(workUnits,snapshot.roster.filter(u=>u.status!=='OFF_DUTY'),u=>u.call_sign+'  ·  '+u.status);
-   workUpdated.textContent=snapshot.incidents.length+' incidents · '+snapshot.roster.filter(u=>u.status!=='OFF_DUTY').length+' on-duty units · auto-sync every 4s';
+   workUpdated.textContent=snapshot.incidents.length+' incidents · '+snapshot.roster.filter(u=>u.status!=='OFF_DUTY').length+' on-duty units · auto-sync every 5s';
   }
 
   const sharedBoard=document.getElementById('cadSharedOperational');
@@ -202,6 +226,7 @@
      client.listIncidents(agency),client.listUnits(agency),client.listOutstanding(agency),client.listAssignments(agency),client.listDispatchAreas(agency),client.listDispatchAreaAgencies(agency),client.listIncidentEvents(agency),client.listIncidentLocations(agency)
     ]);
     if(refreshEpoch!==confirmedMutationEpoch){refreshAgain=true;return;}
+    refreshFailures=0;
     const signature=JSON.stringify({incidents,roster,missing,assignments,incidentEvents,incidentLocations});
     const needsRender=lastSignature!==signature;
     const changed=lastSignature!==''&&needsRender;
@@ -212,7 +237,7 @@
     displayRows(shortages,missing,['incident_id','resource_type','missing_count']);
     text(counts,incidents.length+' incidents · '+roster.length+' units · '+missing.length+' resource shortages');
     if(!quiet||changed)say(changed?'Shared CAD updated from another dispatcher. Local workspace remains separate.':'Shared CAD snapshot loaded. Local workspace remains separate.');
-   }catch(error){say(error.message)}finally{
+   }catch(error){refreshFailures++;say('Shared CAD refresh failed: '+error.message+'. Retrying at reduced frequency.')}finally{
     refreshing=false;
     if(refreshAgain){refreshAgain=false;queueMicrotask(()=>refresh({quiet:true}));}
    }
@@ -412,13 +437,12 @@
     setOpen(false);
     await refresh();
     await window.CadCloudSettings?.connect();
-    if(refreshTimer)clearInterval(refreshTimer);
-    refreshTimer=setInterval(()=>{if(window.CadDemoLogin.current()&&document.visibilityState!=='hidden')refresh({quiet:true})},750);
+    startPolling();
    }catch(error){say(error.message)}finally{submit.disabled=false}
   });
   $('cadSharedRefresh').addEventListener('click',()=>refresh());
   $('cadSharedLogout').addEventListener('click',()=>{
-   if(refreshTimer){clearInterval(refreshTimer);refreshTimer=null}
+   stopPolling();
    lastSignature='';
    window.CadCloudSettings?.stop();
    window.CadDemoLogin.logout();
