@@ -1,0 +1,17 @@
+const assert=require('node:assert/strict'),fs=require('node:fs');
+const panel=fs.readFileSync('core/shared-demo-panel.js','utf8');
+const client=fs.readFileSync('core/supabase-client.js','utf8');
+const sql=fs.readFileSync('migrations/20261101_reconcile_off_duty_units.sql','utf8');
+assert(panel.includes("client.reconcileOffDutyUnit({agency:session.agencyId"));
+assert(panel.includes("previous.status!=='OFF_DUTY'"));
+assert(panel.includes("snapshot.assignments.some(a=>a.unit_id===previous.id)"));
+assert(panel.includes("if(!window.confirm(details))"));
+assert(panel.includes("current.home_agency_name!==agencyName"));
+assert(client.includes("rpc('cad_reconcile_off_duty_unit'"));
+assert(sql.includes('p_expected_version bigint'));
+assert(sql.includes("v.status<>'OFF_DUTY'"));
+assert(sql.includes('a.cleared_at is null'));
+assert(sql.includes('cad_unit_configuration_events'));
+assert(sql.includes('cad_unit_duty_events'));
+assert(!sql.includes('delete from public.cad_units'),'migration must not delete units');
+console.log('PASS: configured POC unit logon reconciles off-duty legacy roster without incident changes');
