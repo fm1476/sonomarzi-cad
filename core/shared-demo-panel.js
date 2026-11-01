@@ -259,7 +259,7 @@
     const details=callSign+' exists in the legacy shared CAD roster with different definitions.\n\n'+
       'SHARED RECORD: '+(previous.home_agency_name||'SonoMarzi CAD Demo Agency')+' | '+previous.discipline+' | '+previous.resource_type+'\n'+
       'YOUR CONFIGURATION: '+agencyName+' | '+def.discipline+' | '+targetType+'\n\n'+
-      'Update this off-duty roster record and log it on as AVAILABLE? Its existing ID, assignments and history will be preserved.';
+      'Replace the obsolete demo unit details with your configured definition and log it on as AVAILABLE?';
     if(!window.confirm(details))throw Error('Reconciliation canceled. No records changed.');
     const client=window.CadDemoLogin.client();
     try{
