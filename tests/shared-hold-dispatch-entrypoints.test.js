@@ -16,5 +16,5 @@ assert(ops.includes("opsHoldForUnit"),'event management needs hold control');
 assert(ops.includes('window.cadOpenHoldForUnit?.(incident.id)'),'event management should use same hold editor');
 assert(panel.includes("action==='hold'||action==='release-hold'"),'shared gateway must support both actions');
 assert(html.includes('operations.js?v=21'),'updated event management code must be uncached');
-assert(html.includes('board-layout.js?v=29'),'updated pending queue must be uncached');
+assert(html.includes('board-layout.js?v=30'),'updated pending queue must be uncached');
 console.log('PASS: all shared hold entry points, ghost-only rendering and RPC confirmation wiring');
