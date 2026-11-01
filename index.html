@@ -16,7 +16,7 @@
 <header>
   <div class="cad-brand-and-tabs"><div class="cad-brand"><b>SONOMARZI CAD</b><span class="badge">POC</span></div><nav class="cad-header-tabs" aria-label="Main navigation"><button data-view="dispatch" class="active">Dispatch</button><button data-view="calltake">Call Taking</button><button data-view="config">Configuration</button></nav></div>
   <div class="header-radio"><label for="radioIncident">Radio event <select id="radioIncident" aria-label="Radio event"></select></label><button id="voicePTT" class="voice-ptt header-ptt" type="button">🎙 Hold to Talk</button><span class="header-radio-indicator" id="headerRadioIndicator">READY</span></div><div class="cad-shared-header"><button id="cadSharedToggle" type="button" class="cad-shared-trigger" aria-expanded="false" aria-controls="cadSharedDemo"><span class="cad-shared-indicator"></span><span>Dispatcher</span><span id="cadSharedHeaderUser">Offline</span><span aria-hidden="true">⌄</span></button></div><div id="clock"></div>
-  <div><span id="systemDot">●</span> SYSTEM NORMAL <button id="simulateBtn">Run Simulation</button></div>
+  <div><span id="systemDot">●</span> SYSTEM NORMAL</div>
 </header>
 <section id="cadSharedDemo" class="cad-shared-popover" hidden aria-label="Shared CAD connection">
 <div class="cad-shared-heading"><div><span class="cad-shared-eyebrow">MULTI-DISPATCHER</span><h3>Shared CAD connection</h3></div><button id="cadSharedClose" class="cad-shared-close" type="button" aria-label="Close dispatcher panel">×</button></div>
@@ -100,7 +100,7 @@
     </article>
   </section>
   <section class="voice-panel panel" aria-label="CAD Voice Intelligence">
-    <div class="voice-heading"><div><b>CAD VOICE INTELLIGENCE</b><span class="badge">HACKATHON POC</span><div class="muted">Press and hold to simulate a radio transmission. Radio traffic is never sent to an actual radio.</div></div><span id="voiceIndicator" class="voice-indicator">READY</span></div>
+    <div class="voice-heading"><div><b>CAD VOICE INTELLIGENCE</b><div class="muted">Press and hold to simulate a radio transmission. Radio traffic is never sent to an actual radio.</div></div><span id="voiceIndicator" class="voice-indicator">READY</span></div>
     <div class="voice-controls">
       <label>Source <select id="voiceSource"><option value="DISPATCH">Dispatcher (outgoing)</option><option value="FIELD">Field unit (incoming)</option></select></label>
       <span class="muted">Use the top-center radio button. Choose the incident there before transmitting.</span>
@@ -112,7 +112,7 @@
     <h3>Voice Automation Activity</h3><div id="voiceActivity" class="voice-activity"></div>
   </section>
   <section class="panel ops" id="operationsPanel">
-    <h2>Dispatch Operations | Hackathon Control Desk</h2>
+    <h2>Dispatch Operations</h2>
     <div class="ops-grid">
       <label>Incident<select id="opsIncident"></select></label>
       <label>Unit<select id="opsUnit"></select></label>
@@ -121,10 +121,10 @@
       <datalist id="cadDispoOptions"><option value="Report Taken"><option value="Arrest Made"><option value="Advice Given"></datalist>
       <label>Case number<input id="opsCase" placeholder="Optional case/reference number" maxlength="80"></label>
     </div>
-    <div class="ops-extra"><input id="opsNewUnitId" placeholder="New unit ID (e.g. 3A32)" maxlength="12"><select id="opsNewUnitAgency"><option value="Petaluma Police">Petaluma Police</option><option value="Sonoma County Sheriff">Sonoma County Sheriff</option><option value="Petaluma Fire / EMS">Petaluma Fire / EMS</option></select><select id="opsNewUnitType"><option value="LAW">Law</option><option value="FIRE">Fire</option><option value="EMS">EMS</option></select><button id="opsCreateUnit">Add Demo Unit</button></div><div class="ops-buttons"><button id="opsAssign" class="primary">Assign / Dispatch Unit</button><button id="opsApplyStatus">Change Unit Status</button><button id="opsRelease">Release Unit</button><button id="opsSaveCase">Save Case Number</button><button id="opsAutoCase">Generate Case #</button><button id="opsNewCall">Create Another Call</button></div>
+    <div class="ops-extra"><input id="opsNewUnitId" placeholder="New unit ID (e.g. 3A32)" maxlength="12"><select id="opsNewUnitAgency"><option value="Petaluma Police">Petaluma Police</option><option value="Sonoma County Sheriff">Sonoma County Sheriff</option><option value="Petaluma Fire / EMS">Petaluma Fire / EMS</option></select><select id="opsNewUnitType"><option value="LAW">Law</option><option value="FIRE">Fire</option><option value="EMS">EMS</option></select><button id="opsCreateUnit">Add Demo Unit</button></div><div class="ops-buttons"><button id="cadLoadSampleCalls" type="button" title="Add six fictional Petaluma calls without resetting existing calls">Load Sample Calls</button><button id="opsAssign" class="primary">Assign / Dispatch Unit</button><button id="opsApplyStatus">Change Unit Status</button><button id="opsRelease">Release Unit</button><button id="opsSaveCase">Save Case Number</button><button id="opsAutoCase">Generate Case #</button><button id="opsNewCall">Create Another Call</button></div>
     <div class="muted" id="opsInfo">Choose an incident and unit. Actions are saved in incident history.</div>
   </section>
-  <section class="panel demo-tools"><h2>Hackathon Scenario Controls</h2><p class="muted">Save or reload this browser's demo scenario. Export a backup file to keep across browsers. Undo reverses the most recent supported CAD action; voice corrections are reviewed before they change CAD.</p><div class="demo-actions"><button id="saveDemoPoint">Save Demo Restore Point</button><button id="restoreDemoPoint">Restore Demo Point</button><button id="exportDemoPoint">Export JSON</button><label class="import-label">Import JSON<input type="file" id="importDemoPoint" accept="application/json,.json" hidden></label><button id="undoCadAction" disabled>Undo Last CAD Action</button></div><div id="demoToolStatus" class="muted" aria-live="polite">Ready</div></section>
+  
   <section class="command cad-smart-command" aria-label="Intelligent CAD command line"><div id="cadCommandHandle" class="cad-command-handle" title="Drag to move command pane"><strong>COMMAND &gt;</strong></div><select hidden id="commandPlacement" aria-label="Command line position" title="Place command line"><option value="top">Top of dispatch</option><option value="after-boards">Below incident boards</option><option value="bottom">Bottom of dispatch</option><option value="floating">Floating / draggable</option></select><button hidden id="resetCommandLocation" type="button" title="Return command line to top">Reset position</button><div class="cad-smart-entry"><input id="command" autocomplete="off" spellcheck="false" aria-label="CAD command" aria-controls="cadSuggestions" placeholder="OS E2; C M2; D 3A12 #4518; RT #4518 Additional unit requested"/><div id="cadSuggestions" class="cad-suggestions" role="listbox" hidden></div></div><button id="executeCadCommand" type="button">Execute</button></section><section class="panel cad-command-results" id="cadCommandResultsPanel" aria-label="Command results"><div class="cad-result-header"><strong>Command Results</strong><span class="muted">Use semicolons to stack actions. Type # to find a CFS.</span><button hidden id="findCommandLine" type="button" title="Bring the command line to the top and focus it">Find Command Line ↑</button></div><div id="cadCommandResults" aria-live="polite" class="muted">Ready for commands. Type HELP for the full command list.</div></section><section class="panel cad-board-assistant" aria-label="Board intelligence"><h2>CAD Board Intelligence <span class="badge">LIVE STATE</span></h2><p class="muted">Ask about the current board. Answers are calculated from CAD records; questions never change unit status or assignments.</p><div class="cad-ask-row"><input id="cadAsk" placeholder="What's happening on my board?" aria-label="Ask CAD about the current board"/><button id="cadAskGo" class="cad-ask-action" type="button">Ask CAD <span aria-hidden="true">→</span></button><button id="cadAskPTT" class="cad-ask-ptt" type="button" aria-label="Press and hold to ask CAD a question">🎙 Hold to Ask</button><label class="cad-voice-reply"><input type="checkbox" id="cadSpeakReply"/> Speak answer</label></div><div id="cadAskMicStatus" class="cad-ask-mic-status" role="status" aria-live="polite">Ready for a question. Hold the mic button and speak.</div><div class="cad-ask-examples"><button type="button" data-cad-question="What's happening on my board?">Board rundown</button><button type="button" data-cad-question="Which units have been on scene over 20 minutes?">On scene over 20m</button><button type="button" data-cad-question="Show priority one incidents with no units">Unassigned P1 calls</button><button type="button" data-cad-question="What units are available?">Available units</button></div><div id="cadAnswer" class="cad-answer" aria-live="polite">Ready to answer questions about the active CAD board.</div></section>
 </main>
 
@@ -246,10 +246,7 @@
   </section>
 </main>
 
-<footer class="demo-reset-footer">
-  <span>Hackathon demo controls. Reset restores the original sample incidents and unit lineup.</span>
-  <button id="reset" type="button" aria-label="Reset all CAD demo data">↻ Reset Entire Demo</button>
-</footer>
+
 
 <div id="toast"></div>
 <script src="core/discipline.js?v=1"></script>
@@ -397,7 +394,7 @@ window.CadIncidentZones={async lookup(location,discipline){
 </script>
 <script src="station-manager.js?v=6"></script><script src="response-plan-designer.js?v=29"></script>
 <script src="alarm-levels.js?v=6"></script>
-<script src="demo-tools.js?v=18"></script>
+<script src="sample-calls.js?v=1"></script>
 <script src="extended-ops.js?v=18"></script>
 <script src="structured-command.js?v=19.6"></script>
 <script src="command-intelligence.js?v=23"></script>
