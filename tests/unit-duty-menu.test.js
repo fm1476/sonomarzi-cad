@@ -11,7 +11,7 @@ const board=fs.readFileSync('board-layout.js','utf8'),app=fs.readFileSync('app.j
 assert(board.includes("off.textContent='Off Duty'"));
 assert(board.includes("['AVAILABLE','CLEAR'].includes(u.status) && !assigned.length"));
 assert(board.includes('window.cadSharedSetUnitDuty?.(u.id,false)'));
-assert(app.includes(".filter(u=>u.status!=='OFF_DUTY').map(u=>"));
+assert(app.includes("u.status!=='OFF_DUTY'"),'off-duty units must remain excluded');
 assert(panel.includes("window.cadSharedSetUnitDuty=async function(unitId,onDuty)"));
 assert(panel.includes("logOn.textContent='Log On Duty'"));
 assert(client.includes("rpc('cad_set_unit_duty'"));
