@@ -726,6 +726,8 @@ async function processSharedVoiceBatchDispatch(text){
 }
 function sharedRadioSegments(text){
  const heard=String(text||'').trim();
+ const structured=window.CadSharedVoiceIntents?.parseWorkingFireTransmission(heard,state.units,window.CadVoiceText);
+ if(structured?.order)return [structured.report,structured.order];
  const explicit=heard.split(/\s*\b(?:break|brake)\b\s*[,.!?;]*\s*/i).map(x=>x.trim()).filter(Boolean);
  if(explicit.length!==1||/\b(?:break|brake)\b/i.test(heard))return explicit;
  // ASR sometimes drops "break" while preserving two distinct commands.
@@ -760,7 +762,9 @@ async function processSharedVoiceCompound(text,confirmedUnitId=null,firstAlready
  if(segments.length!==2)return review('Transmission contained multiple unclear clauses. Repeat the commands separately.');
  const first=segments[0],second=segments[1];
  const intelligence=window.cadIncidentIntelligence?.classification(first);
- const firstUnits=confirmedUnitId?[state.units.find(u=>u.id===confirmedUnitId)].filter(Boolean):(window.CadSharedVoiceIntents?.unitList(first,state.units,window.CadVoiceText)||[]);
+ const structured=window.CadSharedVoiceIntents?.parseWorkingFireTransmission(heard,state.units,window.CadVoiceText);
+ const firstUnits=confirmedUnitId?[state.units.find(u=>u.id===confirmedUnitId)].filter(Boolean):
+  structured?[structured.reporter].filter(Boolean):(window.CadSharedVoiceIntents?.unitList(first,state.units,window.CadVoiceText)||[]);
  if(firstUnits.length!==1||intelligence?.type!=='Structure Fire'||!(/\b(?:confirmed|working)\b/i.test(first))){
   if(intelligence?.type==='Structure Fire'&&/\b(?:confirmed|working)\b/i.test(first)){
    await processSharedVoiceReclassification(first,intelligence,null,async confirmedId=>{await processSharedVoiceCompound(heard,confirmedId,true);});
@@ -802,7 +806,8 @@ async function processSharedVoiceCompound(text,confirmedUnitId=null,firstAlready
 }
 async function processSharedVoiceReclassification(text,parsed,confirmedUnitId=null,onConfirmed=null){
  const heard=String(text||'').trim();
- const candidates=window.CadSharedVoiceIntents?.unitList(heard,state.units,window.CadVoiceText)||[];
+ const structured=window.CadSharedVoiceIntents?.parseWorkingFireTransmission(heard,state.units,window.CadVoiceText);
+ const candidates=structured?[structured.reporter].filter(Boolean):(window.CadSharedVoiceIntents?.unitList(heard,state.units,window.CadVoiceText)||[]);
  const confirmedUnit=confirmedUnitId&&state.units.find(u=>u.id===confirmedUnitId);
  const reportingUnits=confirmedUnit?[confirmedUnit]:candidates;
  const fail=reason=>{
@@ -816,7 +821,7 @@ async function processSharedVoiceReclassification(text,parsed,confirmedUnitId=nu
     .flatMap(i=>(i.units||[]).map(id=>({id,event:i.id,uuid:i.sharedUuid})))
     .filter(({id})=>/^E\d+$/i.test(id));
   const hint=possible.length===1?' Possible assigned engine: '+possible[0].id+' on '+possible[0].event+'; confirm before any changes.':'';
-  fail('No uniquely recognized reporting unit.'+hint);
+  fail((structured?.reason||'No uniquely recognized reporting unit.')+hint);
   const old=document.getElementById('cadVoiceConfirmReporter');old?.remove();
   if(candidates.length===0&&possible.length===1&&!parsed?.review&&parsed?.type==='Structure Fire'&&
       /\bconfirmed working (?:structure )?fire\b/i.test(heard)&&
