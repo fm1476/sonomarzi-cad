@@ -689,62 +689,6 @@ window.cadLogOffMasterUnit=function(unitId){
 };
 window.cadMasterActiveUnits=function(){return state.units.filter(u=>u.masterUnitId).map(u=>({id:u.id,masterUnitId:u.masterUnitId,status:u.status,staffing:u.staffing||null}));};
 // Demo incidents are optional and can be reloaded without touching Agency Master or unit status.
-if($('#reset')&&!document.getElementById('cadLoadDemoCalls')){
- const btn=document.createElement('button');
- btn.id='cadLoadDemoCalls';btn.type='button';btn.textContent='Load Demo Calls';
- btn.title='Restore missing fictional sample incidents without resetting agencies, units or existing calls';
- $('#reset').insertAdjacentElement('beforebegin',btn);
- btn.addEventListener('click',()=>{
-  const count=window.cadRestoreMissingDemoCalls();
-  toast(count?count+' demo calls loaded; existing records preserved':'All standard demo calls are already present');
- });
-}
-$('#reset').onclick=()=>{
- if(!confirm('RESET ENTIRE DEMO?\n\nThis will erase all browser-saved incidents, cases, unit assignments/statuses, radio transcripts, AI summaries, activity history, and legacy demo settings. Permanent Agency Master records will NOT be erased. It will restore the original sample data.\n\nThis cannot be undone.'))return;
- localStorage.setItem(KEY,JSON.stringify(cadLegacyCleaned()?{seq:4525,selected:null,incidents:[],units:[]}:defaultState()));
- localStorage.removeItem(CFG);
- localStorage.removeItem('smcad-agency-phrase-preview-v1');
- localStorage.setItem(SIX_UNIT_SEED_KEY,'1');
- // Reload cancels any pending summary requests and resets voice/operations UI.
- window.location.reload();
-}
-$('#simulateBtn').onclick=()=>simulate();
-function simulate(){
- toast('Simulation running');
- let demoId=null;
- const steps=[
-  ()=>{
-   const i={id:`26-${String(++state.seq).padStart(6,'0')}`,agency:'Petaluma Fire / EMS',discipline:'FIRE',priority:'P1',type:'Structure Fire',location:'450 East Washington St',caller:'Multiple callers',phone:'911',narrative:['Smoke and flames visible from second floor.'],status:'PENDING',units:[],events:[]};
-   event(i,'911_CALL_RECEIVED');state.incidents.push(i);state.selected=i.id;demoId=i.id;save();
-  },
-  ()=>{
-   const incident=state.incidents.find(i=>i.id===demoId);
-   if(!incident)return;
-   const result=window.CadUnitCommands.assignPlan({state,incident,unitIds:['E1','E2','M2'],event,sharedGroups:cadSharedCrewGroups()});
-   if(!result.ok){toast('Simulation dispatch blocked: '+result.message);demoId=null;return}
-   save();
-  },
-  ()=>{
-   const incident=state.incidents.find(i=>i.id===demoId);
-   if(!incident)return;
-   for(const id of ['E1','E2','M2']){
-    const result=window.CadUnitCommands.setStatus({state,unit:state.units.find(u=>u.id===id),status:'ENROUTE',incident,event,source:'SIMULATION'});
-    if(!result.ok){toast('Simulation status blocked: '+result.message);return}
-   }
-   event(incident,'UNITS_ENROUTE');save();
-  },
-  ()=>{
-   const incident=state.incidents.find(i=>i.id===demoId);
-   if(!incident)return;
-   const result=window.CadUnitCommands.setStatus({state,unit:state.units.find(u=>u.id==='E1'),status:'ONSCENE',incident,event,source:'SIMULATION'});
-   if(!result.ok){toast('Simulation status blocked: '+result.message);return}
-   incident.narrative.push('E1 on scene, working fire declared.');
-   event(incident,'E1 ONSCENE / WORKING FIRE');save();
-  }
- ];
- steps.forEach((step,index)=>setTimeout(step,index*1800));
-}
-
 window.cadAddLocalSampleCalls=function(items){
  if(cadSharedWorkspaceMode)throw Error('Shared CAD active; local sample creation blocked.');
  if(!Array.isArray(items)||items.length>7)throw Error('Invalid sample call batch.');
