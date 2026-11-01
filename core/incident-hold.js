@@ -13,8 +13,8 @@
  }
  function queue(incident,assignments,hold){
   if(incident.status==='CLOSED')return 'CLOSED';
-  if(activeAssignments(incident,assignments).length)return 'ASSIGNED';
   if(hold?.active)return 'HELD';
+  if(activeAssignments(incident,assignments).length)return 'ASSIGNED';
   return 'PENDING';
  }
  function afterUnitRemoved(incident,remainingAssignments,hold){
