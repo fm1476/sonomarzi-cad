@@ -37,11 +37,14 @@ function importDemoRoster(){
  catch(e){message.textContent='Import failed; nothing changed: '+e.message}
 }
 async function logOnDuty(masterUnitId){
- const def=data.units.find(u=>u.id===masterUnitId);
- if(!def)throw Error('Unit definition not found.');
- const agency=data.agencies.find(a=>a.id===def.agencyId);
+ const shared=!!window.cadSharedIsActive?.();
+ const master=shared?window.CadCloudSettings?.sharedMaster?.():data;
+ if(!master)throw Error('Shared Agency Master has not loaded from Supabase. Reconnect the dispatcher and try again.');
+ const def=master.units.find(u=>u.id===masterUnitId);
+ if(!def)throw Error('Unit definition not found in '+(shared?'shared cloud':'local')+' configuration.');
+ const agency=master.agencies.find(a=>a.id===def.agencyId);
  if(!agency)throw Error('Owning agency not found.');
- if(window.cadSharedIsActive?.()){
+ if(shared){
   if(typeof window.cadSharedRegisterMasterUnit!=='function')throw Error('Shared CAD logon unavailable. Check dispatcher connection.');
   return await window.cadSharedRegisterMasterUnit(def,agency.name);
  }
@@ -53,22 +56,33 @@ async function logOnDuty(masterUnitId){
 }
 window.cadLogOnConfiguredUnit=logOnDuty;
 function renderDutyLogOnOptions(){
- const select=el('cadDutyLogOnSelect'),button=el('cadDutyLogOnButton');if(!select||!button)return;
- const previous=select.value;
- const shared=!!window.cadSharedIsActive?.();
+ const select=el('cadDutyLogOnSelect'),button=el('cadDutyLogOnButton'),status=el('cadDutyLogOnStatus');
+ if(!select||!button)return;
+ const previous=select.value,shared=!!window.cadSharedIsActive?.();
+ const cloud=shared?window.CadCloudSettings?.sharedMaster?.():null;
+ const master=shared?cloud:data;
+ if(!master){
+  select.innerHTML='<option value="">Waiting for shared agency configuration…</option>';
+  button.disabled=true;
+  if(status)status.textContent='Shared Agency Master is loading from Supabase. Your local configuration has not been overwritten.';
+  return;
+ }
  const roster=shared?(window.cadSharedRoster?.()||[]):[];
  const local=window.cadMasterActiveUnits?.()||[];
- const eligible=data.units.filter(def=>{
+ // Show all configured units, with already-on-duty units labeled and disabled.
+ const options=master.units.map(def=>{
   const match=shared?roster.find(u=>u.call_sign.toUpperCase()===def.designator.toUpperCase()):local.find(u=>u.masterUnitId===def.id);
-  return !match||shared&&match.status==='OFF_DUTY';
+  const unavailable=!!match&&(shared?match.status!=='OFF_DUTY':true);
+  const agency=master.agencies.find(a=>a.id===def.agencyId)?.name||'Unknown agency';
+  const suffix=unavailable?' · ON DUTY ('+(match.status||'ACTIVE')+')':'';
+  return '<option value="'+esc(def.id)+'"'+(unavailable?' disabled':'')+'>'+esc(def.designator+' · '+agency+' · '+def.discipline+suffix)+'</option>';
  });
- select.innerHTML='<option value="">Choose configured unit</option>'+eligible.map(def=>{
-  const agency=data.agencies.find(a=>a.id===def.agencyId)?.name||'';
-  return '<option value="'+esc(def.id)+'">'+esc(def.designator+' · '+agency+' · '+def.discipline)+'</option>';
- }).join('');
- if(eligible.some(x=>x.id===previous))select.value=previous;
+ select.innerHTML='<option value="">Choose configured unit ('+master.units.length+')</option>'+options.join('');
+ if([...select.options].some(o=>o.value===previous&&!o.disabled))select.value=previous;
  button.disabled=!select.value;
+ if(status)status.textContent=shared?'Shared Agency Master: '+master.units.length+' configured units from Supabase.':'Local Agency Master: '+master.units.length+' configured units.';
 }
+
 const logOnSelect=el('cadDutyLogOnSelect'),logOnButton=el('cadDutyLogOnButton');
 logOnSelect?.addEventListener('change',()=>{if(logOnButton)logOnButton.disabled=!logOnSelect.value;});
 logOnButton?.addEventListener('click',async()=>{
@@ -81,6 +95,7 @@ logOnButton?.addEventListener('click',async()=>{
  renderDutyLogOnOptions();
 });
 window.addEventListener('cad-master-updated',renderDutyLogOnOptions);
+window.addEventListener('cad-cloud-master-available',renderDutyLogOnOptions);
 
 function renderStaff(){
  const unitSelect=el('cadStaffUnit'),crewSelect=el('cadStaffCrew'),status=el('cadStaffCurrent');

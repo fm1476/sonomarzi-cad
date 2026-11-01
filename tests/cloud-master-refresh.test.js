@@ -8,6 +8,6 @@ assert(cloud.includes('notifyApplied(incomingKeys)'),'periodic incoming sync mus
 assert(cloud.includes('notifyApplied(appliedKeys)'),'login cloud reconciliation must refresh master');
 assert(master.includes("window.addEventListener('cad-cloud-master-applied'"));
 assert(master.includes('data=M.read(localStorage);render();renderDutyLogOnOptions();refreshTypes()'));
-assert(index.includes('core/cloud-settings.js?v=3'));
-assert(index.includes('agency-master-settings.js?v=10'));
+assert(index.includes('core/cloud-settings.js?v=4'));
+assert(index.includes('agency-master-settings.js?v=11'));
 console.log('PASS cloud Agency Master updates refresh available unit logon list');
