@@ -57,19 +57,20 @@
  function parseWorkingFireTransmission(text,units,voiceText){
   const raw=String(text||'').trim();
   const t=normalize(raw);
-  if(!/\b(?:on\s*(?:the\s*)?scene|at\s*(?:the\s*)?scene)\b/.test(t)||
-     !/\bworking\s+(?:structure\s+)?fire\b/.test(t))return null;
+  if(!/\b(?:requesting|request|need)\s+(?:the\s+)?balance\s+of\s+(?:the\s+)?assignment\b/.test(t))return null;
   const orderPattern=/\b(?:engine|truck|ladder|medic|ambulance|battalion|rescue)\s+(?:\d{1,3}|one|two|three|four|five|six|seven|eight|nine|ten)(?:\s*,?\s*(?:and\s+)?(?:engine|truck|ladder|medic|ambulance|battalion|rescue)\s+(?:\d{1,3}|one|two|three|four|five|six|seven|eight|nine|ten))*\s*,?\s+(?:respond|dispatch|start|send|assign)\b/ig;
   let separator=-1;
   for(const match of raw.matchAll(orderPattern))if(match.index>0&&/\b(?:requesting|request|need)\s+(?:the\s+)?balance\s+of\s+(?:the\s+)?assignment\b/i.test(raw.slice(0,match.index))){separator=match.index;break;}
   const report=(separator>=0?raw.slice(0,separator):raw).trim().replace(/[\s,.;]+$/,'');
   const order=separator>=0?raw.slice(separator).trim():null;
   const reportingClause=report.replace(/^\s*(?:copy|dispatch|radio)\s+/i,'');
+  const onScene=/\b(?:on\s*(?:the\s*)?scene|at\s*(?:the\s*)?scene)\b/i.test(report);
+  const workingFire=/\b(?:confirmed\s+)?working\s+(?:structure\s+)?fire\b/i.test(report);
   const first=reportingClause.match(/^\s*(?:engine|truck|ladder|medic|ambulance|battalion|rescue)\s+(?:\d{1,3}|one|two|three|four|five|six|seven|eight|nine|ten)\b/i);
-  if(!first)return {report,order,reporter:null,responders:order?unitList(order,units,voiceText):[],reason:'Reporting unit not clearly identified at beginning of transmission'};
+  if(!first)return {report,order,onScene,workingFire,reporter:null,responders:order?unitList(order,units,voiceText):[],reason:'Reporting unit not clearly identified at beginning of transmission'};
   const identified=unitList(first[0],units,voiceText);
   const reporter=identified.length===1?identified[0]:null;
-  return {report,order,reporter,responders:order?unitList(order,units,voiceText):[],reason:reporter?null:'Reporting unit '+first[0]+' is not logged on or does not match the active roster'};
+  return {report,order,onScene,workingFire,reporter,responders:order?unitList(order,units,voiceText):[],reason:reporter?null:'Reporting unit '+first[0]+' is not logged on or does not match the active roster'};
  }
  function callsigns(text,units,voiceText){
   const matches=unitList(text,units,voiceText);
