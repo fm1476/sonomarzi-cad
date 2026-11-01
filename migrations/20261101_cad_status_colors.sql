@@ -1,0 +1,6 @@
+alter table public.cad_unit_status_catalog add column if not exists display_color text not null default '#4388C7';
+alter table public.cad_unit_status_catalog drop constraint if exists cad_status_color_check;
+alter table public.cad_unit_status_catalog add constraint cad_status_color_check check(display_color ~ '^#[0-9A-Fa-f]{6}$');
+create or replace function public.cad_save_unit_status_color(p_agency uuid,p_code text,p_color text) returns jsonb language plpgsql security definer set search_path to '' as $$ begin if auth.uid() is null or not public.cad_has_access(p_agency,true) then raise exception 'CAD access denied' using errcode='42501';end if; if p_color !~ '^#[0-9A-Fa-f]{6}$' then raise exception 'Invalid color';end if; update public.cad_unit_status_catalog set display_color=upper(p_color),updated_at=now(),updated_by=auth.uid() where agency_id=p_agency and code=upper(btrim(p_code)); if not found then raise exception 'Status does not exist';end if; return jsonb_build_object('ok',true); end $$;
+revoke all on function public.cad_save_unit_status_color(uuid,text,text) from public,anon;
+grant execute on function public.cad_save_unit_status_color(uuid,text,text) to authenticated;
