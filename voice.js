@@ -926,7 +926,10 @@ async function processSharedVoiceStatus(text){
  const heard=String(text||'').trim();
  const intents=window.CadSharedVoiceIntents;
  const intent=intents?.classify(heard)||{kind:'REVIEW',reason:'Radio intent library unavailable'};
- const unit=intents?.callsigns(heard,state.units,window.CadVoiceText);
+ const report=intents?.reportingStatus(heard,state.units,window.CadVoiceText);
+ const unit=report?report.reporter:intents?.callsigns(heard,state.units,window.CadVoiceText);
+ const companionNames=report?.companions?.map(u=>u.id)||[];
+ const companionContext=report?.companionMentioned?' | WITH: '+(companionNames.join(', ')||'unresolved; review required'):'';
  const fail=reason=>{
   el('voiceHeard').textContent=heard;
   el('voiceInterpretation').textContent='HEARD: '+heard+' | UNIT: '+(unit?.id||'unresolved')+' | SHARED CAD REVIEW: '+reason+'. No status change confirmed.';
@@ -934,7 +937,8 @@ async function processSharedVoiceStatus(text){
  };
  if(intent.kind==='REVIEW')return fail(intent.reason);
  if(sharedVoiceDispatchPending)return fail('Another shared radio transaction is processing');
- if(!unit?.sharedUuid)return fail('No unique roster unit identified');
+ if(!unit?.sharedUuid)return fail(report?.reason||'No unique roster unit identified');
+ if(report?.companionMentioned&&!companionNames.length)return fail('Accompanying unit not identified. No status changed; confirm the accompanying callsign.');
  const assigned=state.incidents.filter(i=>i.status==='ACTIVE'&&(i.units||[]).includes(unit.id));
  if(assigned.length!==1||!assigned[0].sharedUuid)return fail('Exactly one active unit assignment is required');
  const incident=assigned[0];
@@ -943,7 +947,7 @@ async function processSharedVoiceStatus(text){
  if(intent.kind==='CLEAR'&&unit.status==='AVAILABLE')return fail('Unit already available');
  sharedVoiceDispatchPending=true;
  el('voiceHeard').textContent=heard;
- el('voiceInterpretation').textContent='HEARD: '+heard+' | UNIT: '+unit.id+' | EVENT: '+incident.id+' | PENDING: verifying shared radio transaction…';
+ el('voiceInterpretation').textContent='HEARD: '+heard+' | UNIT: '+unit.id+' | EVENT: '+incident.id+' | PENDING: verifying shared radio transaction…'+companionContext;
  indicator('PROCESSING');
  try{
   if(intent.kind==='STATUS')await window.cadSharedCommand('status',{incidentId:incident.sharedUuid,unitId:unit.sharedUuid,status:intent.status});
@@ -956,7 +960,7 @@ async function processSharedVoiceStatus(text){
    :freshUnit?.status==='AVAILABLE'&&!(freshEvent?.units||[]).includes(unit.id);
   if(!confirmed)return fail('Database operation returned, but refreshed status and assignment do not match');
   const label=intent.kind==='CLEAR'?'CLEARED / AVAILABLE':intent.status;
-  el('voiceInterpretation').textContent='HEARD: '+heard+' | UNIT: '+unit.id+' | EVENT: '+incident.id+' | CONFIRMED IN SHARED CAD: '+label;
+  el('voiceInterpretation').textContent='HEARD: '+heard+' | UNIT: '+unit.id+' | EVENT: '+incident.id+' | CONFIRMED IN SHARED CAD: '+label+companionContext+' (accompanying unit status unchanged)';
   activity('SHARED RADIO CONFIRMED | '+unit.id+' '+label);renderActivity();indicator('PROCESSED');
  }catch(err){fail(err?.message||'Shared operation failed')}
  finally{sharedVoiceDispatchPending=false;}
