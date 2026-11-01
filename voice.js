@@ -999,49 +999,6 @@ function processSharedVoiceConfiguredStatuses(text){
  })();
  return true;
 }
-async function processSharedVoiceStatus(text){')).join('\\\\s*')+'(?:\\\\b|$)','i').test(heardTokens))candidates.push(row);
-   else if(key==='c4'&&/\\bcode\\s*(?:4|four)\\b/i.test(heard))candidates.push(row);
-  }
- }
- const distinct=[...new Map(candidates.map(r=>[r.code,r])).values()];
- if(!distinct.length)return false;
- const report=msg=>{el('voiceHeard').textContent=heard;el('voiceInterpretation').textContent='HEARD: '+heard+' | CONFIGURED STATUS REVIEW: '+msg;activity('CONFIGURED STATUS | '+msg);renderActivity();indicator('REVIEW');};
- if(distinct.length!==1){report('Multiple matching agency statuses. No changes made.');return true;}
- const target=distinct[0];
- const matched=window.CadSharedVoiceIntents?.unitList(heard,state.units,window.CadVoiceText)||[];
- if(!matched.length){report('No roster units uniquely recognized. No changes made.');return true;}
- if(matched.length>12){report('More than 12 units in one transmission requires review.');return true;}
- const targets=[];
- for(const unit of matched){
-  if(!unit.sharedUuid||!['ALL',unit.discipline].includes(target.discipline)){report(unit.id+' is not eligible for '+target.label+'. No changes made.');return true;}
-  const assigned=state.incidents.filter(i=>i.status==='ACTIVE'&&(i.units||[]).includes(unit.id));
-  if(assigned.length!==1){report(unit.id+' does not have exactly one active incident assignment. No changes made.');return true;}
-  targets.push({unit,incident:assigned[0]});
- }
- if(sharedVoiceDispatchPending){report('Another shared radio transaction is processing.');return true;}
- if(typeof window.cadSharedApplyCustomStatus!=='function'){report('Agency status command unavailable.');return true;}
- sharedVoiceDispatchPending=true;
- el('voiceHeard').textContent=heard;
- el('voiceInterpretation').textContent='CONFIGURED STATUS PENDING: '+targets.map(x=>x.unit.id+' on '+x.incident.id).join(', ')+' → '+target.label;
- indicator('PROCESSING');
- const outcomes=[];
- try{
-  for(const {unit,incident} of targets){
-   try{
-    await window.cadSharedApplyCustomStatus(unit.sharedUuid,target.code);
-    const fresh=window.cadSharedLastSnapshot;
-    const unitNow=fresh?.roster?.find(u=>u.id===unit.sharedUuid);
-    const customNow=fresh?.customStatuses?.find(x=>x.unit_id===unit.sharedUuid);
-    if(unitNow?.status!==target.canonical_status||customNow?.code!==target.code)throw Error('Database result not verified');
-    outcomes.push(unit.id+' '+incident.id+' CONFIRMED '+target.label);
-   }catch(error){outcomes.push(unit.id+' '+incident.id+' NOT CONFIRMED: '+error.message);}
-  }
-  const incomplete=outcomes.some(x=>x.includes('NOT CONFIRMED'));
-  el('voiceInterpretation').textContent='HEARD: '+heard+' | '+outcomes.join(' | ');
-  activity('MULTI-UNIT STATUS | '+outcomes.join(' | '));renderActivity();indicator(incomplete?'REVIEW':'PROCESSED');
- }finally{sharedVoiceDispatchPending=false;}
- return true;
-}
 async function processSharedVoiceStatus(text){
  const heard=String(text||'').trim();
  const intents=window.CadSharedVoiceIntents;
