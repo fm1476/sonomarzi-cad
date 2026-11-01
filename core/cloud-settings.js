@@ -46,6 +46,21 @@
  const shadowKey=()=>syncKey()+':last-local-snapshot';
  function shadow(){try{return new Map(JSON.parse(localStorage.getItem(shadowKey())||'[]'));}catch{return new Map();}}
  const report=msg=>{const out=el('cadCloudStatus');if(out)out.textContent=msg;};
+ // Shared operational UI reads the validated cloud master directly.
+ // This is READ ONLY: local user-created records are never overwritten here.
+ let sharedMaster=null;
+ function publishSharedMaster(rows){
+  const raw=rows.get('AGENCY:smcad-agency-master-v1')?.raw;
+  if(typeof raw!=='string'){sharedMaster=null;root.dispatchEvent(new Event('cad-cloud-master-available'));return;}
+  try{
+   const parsed=root.CadAgencyMaster.parse(raw);
+   sharedMaster=parsed;
+   root.dispatchEvent(new Event('cad-cloud-master-available'));
+  }catch(error){
+   sharedMaster=null;
+   report('Cloud Agency Master is invalid: '+error.message+'. Local definitions preserved.');
+  }
+ }
  const notifyApplied=keys=>{if(keys.includes('smcad-agency-master-v1'))root.dispatchEvent(new CustomEvent('cad-cloud-master-applied'));if(keys.length)root.dispatchEvent(new CustomEvent('cad-cloud-settings-applied',{detail:{keys}}));};
  async function remote(client,agency){
   const [agencyRows,userRows]=await Promise.all([client.listAgencySettings(agency),client.listMyPreferences(agency)]);
@@ -78,13 +93,14 @@
   baseline=scan(localStorage);
   try{localStorage.setItem(shadowKey(),JSON.stringify([...baseline].map(([id,item])=>[id,item.raw])));}catch(error){report('Sync snapshot could not be stored: '+error.message);}
  }
- function stop(){if(timer)clearInterval(timer);timer=null;enabled=false;session=null;versions=new Map();baseline=new Map();report('Connect to shared CAD to synchronize settings.');}
+ function stop(){if(timer)clearInterval(timer);timer=null;enabled=false;session=null;sharedMaster=null;versions=new Map();baseline=new Map();root.dispatchEvent(new Event('cad-cloud-master-available'));report('Connect to shared CAD to synchronize settings.');}
  async function upload(){
   if(!session||busy)throw Error('Sign in first.');
   busy=true;
   try{
    const client=root.CadDemoLogin.client(),agency=session.agencyId;
    const existing=await remote(client,agency),local=scan(localStorage);
+   publishSharedMaster(existing);
    const changed=[...local].filter(([id,item])=>existing.get(id)?.raw!==item.raw);
    if(!changed.length){remember(existing);return {uploaded:0};}
    // Upload is first-write only unless an explicit follow-up workflow resolves conflicts.
@@ -96,6 +112,7 @@
     existing.set(id,{...item,version:Number(result.version)});uploaded++;
    }
    remember(existing);
+   publishSharedMaster(existing);
    localStorage.setItem(syncKey(),'1');enabled=true;startTimer();
    return {uploaded};
   }finally{busy=false;}
@@ -105,6 +122,7 @@
   busy=true;
   try{
    const client=root.CadDemoLogin.client(),existing=await remote(client,session.agencyId);
+   publishSharedMaster(existing);
    if(!existing.size)throw Error('There are no cloud settings to download yet. Upload from the computer where you configured CAD first.');
    // The caller requires a saved-backup acknowledgment before replacing local values.
    let changed=0;const changedKeys=[];
@@ -122,6 +140,7 @@
   busy=true;
   try{
    const client=root.CadDemoLogin.client(),fresh=await remote(client,session.agencyId),now=scan(localStorage);
+   publishSharedMaster(fresh);
    // Never overwrite unsaved local changes with a remote update.
    for(const [id,row] of fresh){
     const last=versions.get(id),local=now.get(id);
@@ -164,6 +183,7 @@
   session={username:current.username,agencyId:current.agencyId};
   try{
    const existing=await remote(root.CadDemoLogin.client(),current.agencyId);
+   publishSharedMaster(existing);
    if(localStorage.getItem(syncKey())==='1'){
     const prior=shadow();let applied=0,appliedKeys=[],conflicts=[],offline=new Map();
     for(const [id,row] of existing){
@@ -249,5 +269,5 @@
  }
 
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install);else install();
- return Object.freeze({keyScope,scan,rowsToMap,connect,stop,tick,AGENCY_KEYS,USER_KEYS});
+ return Object.freeze({keyScope,scan,rowsToMap,connect,stop,tick,sharedMaster:()=>sharedMaster,AGENCY_KEYS,USER_KEYS});
 });
