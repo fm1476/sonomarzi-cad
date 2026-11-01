@@ -174,7 +174,7 @@
  <label>Display label<input id="cadStatusLabel" maxlength="60" placeholder="Report Writing"/></label>
  <label>CAD operational status<select id="cadStatusCanonical"><option>AVAILABLE</option><option>DISPATCHED</option><option>ENROUTE</option><option>ONSCENE</option><option>TRANSPORTING</option><option>AT_HOSPITAL</option><option>OUT_OF_SERVICE</option></select></label>
  <label>Discipline<select id="cadStatusDiscipline"><option>ALL</option><option>LAW</option><option>FIRE</option><option>EMS</option></select></label>
- <label>Radio phrase aliases, comma separated<input id="cadStatusAliases" placeholder="report writing, writing a report"/></label>
+ <label>Status color<input id="cadStatusColor" type="color" value="#4388C7"/></label><label>Radio phrase aliases, comma separated<input id="cadStatusAliases" placeholder="report writing, writing a report"/></label>
  <label><input id="cadStatusEnabled" type="checkbox" checked/> Enabled</label>
  <div><button type="button" id="cadStatusCancel">Cancel</button><button type="button" id="cadStatusSave" class="primary">Save Status</button></div></section>
  <p id="cadStatusConfigStatus" role="status"></p></div>
@@ -270,7 +270,7 @@
 <div id="toast"></div>
 <script src="core/discipline.js?v=1"></script>
 <script src="core/persistence.js?v=1"></script>
-<script src="core/supabase-client.js?v=10"></script>
+<script src="core/supabase-client.js?v=11"></script>
 <script src="core/demo-login.js?v=2"></script>
 <script src="core/cloud-settings.js?v=4"></script>
 <script src="core/shared-demo-panel.js?v=27"></script>
@@ -289,10 +289,10 @@
 <script src="resource-types.js?v=4"></script>
 <script src="core/unit-duty-intents.js?v=1"></script>
 <script src="agency-master-settings.js?v=12"></script>
-<script src="unit-status-settings.js?v=1"></script>\n<link rel="stylesheet" href="agency-master-polish.css?v=1">
+<script src="unit-status-settings.js?v=2"></script>\n<link rel="stylesheet" href="agency-master-polish.css?v=1">
 <script src="legacy-demo-cleanup.js?v=1"></script>
 
-<script src="board-layout.js?v=29"></script>
+<script src="board-layout.js?v=30"></script>
 <script src="sample-calls.js?v=1"></script>
 <script src="incident-intelligence.js?v=18.3"></script>
 <script src="core/voice-text.js?v=2"></script>
