@@ -14,6 +14,7 @@
   if(/\b(?:do not|don't|not|never|cancel|disregard|negative|hold off|preempt)\b/.test(t))return {kind:'REVIEW',reason:'Negated or sensitive command requires operator review'};
   if(/\b(?:traffic stop|out with (?:a |the )?(?:subject|person|party)|follow[ -]?up)\b/.test(t))
    return {kind:'REVIEW',reason:'Self-initiated or follow-up incident creation is not yet a verified atomic shared transaction'};
+  if(/\bout with\b/.test(t))return {kind:'UNIT_ASSIST'};
   if(/\b(?:code\s*(?:4|four|for)|c\s*4)\b/.test(t))return {kind:'STATUS',status:'CODE4'};
   if(/\b(?:on\s*(?:the\s*)?scene|at\s*(?:the\s*)?scene|on\s*scene|10\s*97|ten\s*ninety\s*seven)\b/.test(t))return {kind:'STATUS',status:'ONSCENE'};
   if(/\b(?:en\s*route|in\s*route|on\s*route|in\s*root|enroute|responding|10\s*76)\b/.test(t))return {kind:'STATUS',status:'ENROUTE'};
