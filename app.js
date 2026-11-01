@@ -28,6 +28,7 @@ let state=window.CadPersistence.read(KEY)||(cadLegacyCleaned()?{seq:4525,selecte
 let cadLocalWorkspace=null;
 let cadSharedWorkspaceMode=false;
 window.cadSharedApplySnapshot=function(snapshot){
+ window.cadSharedLastSnapshot=snapshot;
  if(!cadSharedWorkspaceMode){cadLocalWorkspace=state;cadSharedWorkspaceMode=true;}
  const previous=state.selected;
  const detailScroll=document.getElementById('detail')?.scrollTop||0;
@@ -45,8 +46,11 @@ window.cadSharedApplySnapshot=function(snapshot){
   events:(snapshot.incidentEvents||[]).filter(e=>e.incident_id===i.id).slice().reverse().map(e=>new Date(e.occurred_at).toLocaleTimeString()+' · '+e.event_type+' '+JSON.stringify(e.payload||{})),
   caller:'',phone:'',locations:(snapshot.incidentLocations||[]).filter(l=>l.incident_id===i.id).slice().reverse().map(l=>({role:l.classification||'PRIMARY',address:l.address,source:l.source||'SHARED_DATABASE',recordedAt:l.recorded_at}))
  }));
- const units=(snapshot.roster||[]).filter(u=>u.status!=='OFF_DUTY').map(u=>({id:u.call_sign,sharedUuid:u.id,sharedVersion:u.version,
-  agency:u.home_agency_name||'SonoMarzi CAD Demo Agency',discipline:u.discipline,
+ const cloudMaster=window.CadCloudSettings?.sharedMaster?.();
+ const cloudUnitBySign=cloudMaster?new Map(cloudMaster.units.map(def=>[String(def.designator).trim().toUpperCase(),def])):null;
+ const cloudAgencyById=cloudMaster?new Map(cloudMaster.agencies.map(a=>[a.id,a.name])):null;
+ const units=(snapshot.roster||[]).filter(u=>u.status!=='OFF_DUTY'&&(!cloudUnitBySign||cloudUnitBySign.has(String(u.call_sign).trim().toUpperCase()))).map(u=>({id:u.call_sign,sharedUuid:u.id,sharedVersion:u.version,
+  agency:(cloudUnitBySign&&cloudAgencyById?.get(cloudUnitBySign.get(String(u.call_sign).trim().toUpperCase())?.agencyId))||u.home_agency_name||'Unconfigured shared unit',discipline:u.discipline,
   resourceType:u.resource_type,status:u.status,location:'Shared CAD',x:50,y:50}));
  state={...cadLocalWorkspace,incidents,units,selected:incidents.some(i=>i.id===previous&&i.status!=='CLOSED')?previous:(incidents.find(i=>i.status==='ACTIVE')||incidents.find(i=>i.status==='PENDING'))?.id||null};
  render();
@@ -59,6 +63,7 @@ window.cadSharedRestoreLocal=function(){
  state=cadLocalWorkspace;cadLocalWorkspace=null;cadSharedWorkspaceMode=false;render();
 };
 window.cadSharedIsActive=()=>cadSharedWorkspaceMode;
+window.addEventListener('cad-cloud-master-available',()=>{if(cadSharedWorkspaceMode&&window.cadSharedLastSnapshot)window.cadSharedApplySnapshot(window.cadSharedLastSnapshot)});
 window.cadSafetyState=()=>state;
 window.cadCallTakeSave=()=>save();
 window.CadPlanDispatch={preview(incident){const result=window.CadResponsePlans?.recommendIncident(incident);if(incident.responseZoneSource==='MANUAL_UNVERIFIED'&&!incident.responseZoneReviewed)return {ok:false,message:'Operator-entered response zone requires explicit review before plan dispatch.'};if(result?.status!=='ready')return {ok:false,message:result?.message||'No verified response plan.'};if(incident.status==='CLOSED')return {ok:false,message:'Incident closed.'};const assigned=new Set(incident.units||[]);const units=[...new Set(result.rows.flatMap(r=>r.selected))].filter(id=>!assigned.has(id));if(!units.length)return {ok:false,message:'No additional eligible resources in the plan. The published plan may already be satisfied; supplemental requests need an explicitly configured increment.'};const sharedGroups=(()=>{try{return JSON.parse(localStorage.getItem('smcad-shared-crews-v1')||'[]')}catch{return []}})();const busy=new Set(state.incidents.filter(x=>x.status!=='CLOSED').flatMap(x=>x.units||[]));for(const id of units){const group=sharedGroups.find(g=>(!g.agency||g.agency===incident.agency)&&(g.units||[]).includes(id));if(group){const occupied=(group.units||[]).find(other=>other!==id&&busy.has(other));if(occupied)return {ok:false,message:'Shared crew conflict: '+id+' shares a crew with committed '+occupied+'.'};}}for(const id of units){const u=state.units.find(x=>x.id===id);if(!u||u.status!=='AVAILABLE'||state.incidents.some(x=>x.status!=='CLOSED'&&x.id!==incident.id&&x.units.includes(id)))return {ok:false,message:'Unit '+id+' is no longer available. Refresh recommendations.'};}return {ok:true,units,incidentId:incident.id,message:'Plan '+result.plan.type+' / '+result.plan.zone+'. Manual confirmation required.'}},commit(incident,preview){const fresh=this.preview(incident);if(!fresh.ok)return fresh;if(fresh.incidentId!==preview.incidentId||fresh.units.join('|')!==preview.units.join('|'))return {ok:false,message:'Recommendations changed. Review and confirm again.'};const result=window.CadUnitCommands.assignPlan({state,incident,unitIds:fresh.units,event,sharedGroups:cadSharedCrewGroups()});if(!result.ok)return result;const updated=window.CadResponsePlans?.recommendIncident(incident);if(updated?.status==='ready'){incident.responseShortfalls=updated.rows.filter(row=>Number(row.short)>0).map(row=>({type:row.type,missing:Number(row.short)}));if(incident.responseShortfalls.length)event(incident,'RESPONSE_INCOMPLETE '+incident.responseShortfalls.map(row=>row.type+': '+row.missing+' still needed').join('; '));else event(incident,'RESPONSE_REQUIREMENTS_FILLED');}state.selected=incident.id;save();return result}};
