@@ -1,0 +1,15 @@
+const assert=require('node:assert/strict'),fs=require('node:fs');
+const js=fs.readFileSync('core/cloud-settings.js','utf8');
+const html=fs.readFileSync('index.html','utf8');
+assert(js.includes('const count=backup(); // Must run directly in the original click handler.'),'backup must occur inside user activation');
+assert(js.includes('link.click();'),'direct native anchor click');
+assert(js.includes('id="cadCloudBackupLink"'),'persistent fallback download link');
+assert(js.includes('I saved the JSON backup file somewhere safe.'),'require acknowledgment');
+assert(js.includes('verifiedSnapshot!==JSON.stringify([...scan(localStorage)])'),'reject stale backup after local change');
+assert(js.includes('proceed.disabled=true'),'disable upload by default');
+assert(js.includes("pending=null;proceed.disabled=true"),'prevent repeated uploads');
+assert(js.includes("link.download='cad-cloud-migration-backup-"),'dated backup filename');
+assert(html.includes('core/cloud-settings.js?v=2'),'cache bust');
+const begin=js.indexOf('async function upload()'),end=js.indexOf('async function download()',begin);
+assert(!js.slice(begin,end).includes('backup()'),'cloud writes cannot make browser-download initiation asynchronous');
+console.log('PASS: backup download is a first-click action and upload requires backup acknowledgment');
