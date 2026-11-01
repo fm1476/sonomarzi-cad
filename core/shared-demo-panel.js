@@ -357,6 +357,19 @@
       const versions=Object.fromEntries(matched.map(u=>[u.id,u.version]));
       result=await client.assignResponsePlan({agency,incident:incident.id,unitIds:matched.map(u=>u.id),incidentVersion:incident.version,unitVersions:versions});
      }
+     else if(action==='join-onscene'){
+      const joining=snapshot.roster.find(u=>u.id===args.joiningUnitId);
+      const reference=snapshot.roster.find(u=>u.id===args.referenceUnitId);
+      if(!joining||!reference||joining.id===reference.id)throw Error('Joining and reference units must be different known units.');
+      const referenceAssignments=snapshot.assignments.filter(a=>a.unit_id===reference.id&&a.cleared_at==null);
+      if(referenceAssignments.length!==1||referenceAssignments[0].incident_id!==incident.id)
+       throw Error('Reference unit must have exactly one assignment to this incident.');
+      if(joining.status!=='AVAILABLE'||snapshot.assignments.some(a=>a.unit_id===joining.id&&a.cleared_at==null))
+       throw Error('Joining unit must be available and unassigned.');
+      if(joining.discipline!==incident.discipline)throw Error('Cross-discipline join requires manual review.');
+      result=await client.joinUnitOnScene({agency,joiningUnit:joining.id,referenceUnit:reference.id,
+       incidentVersion:incident.version,joiningVersion:joining.version,referenceVersion:reference.version});
+     }
      else if(action==='activate')result=await client.activateIncident({agency,incident:incident.id,incidentVersion:incident.version});
      else if(action==='edit')result=await client.editIncident({agency,incident:incident.id,incidentVersion:incident.version,type:args.type,priority:args.priority,location:args.location,caseNumber:args.caseNumber,source:args.source||'DISPATCH'});
      else if(action==='preempt'){
