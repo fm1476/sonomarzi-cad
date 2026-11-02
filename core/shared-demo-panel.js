@@ -249,16 +249,16 @@
    const agency=window.CadDemoLogin.current().agencyId;
    if(!quiet)say('Refreshing shared CAD data…');
    try{
-    const [incidents,roster,missing,assignments,dispatchAreas,areaAgencies,incidentEvents,incidentLocations,holds,statusCatalog,customStatuses]=await Promise.all([
-     client.listIncidents(agency),client.listUnits(agency),client.listOutstanding(agency),client.listAssignments(agency),client.listDispatchAreas(agency),client.listDispatchAreaAgencies(agency),client.listIncidentEvents(agency),client.listIncidentLocations(agency),client.listIncidentHolds(agency),client.listUnitStatusCatalog(agency),client.listUnitCustomStatuses(agency)
+    const [incidents,roster,missing,assignments,dispatchAreas,areaAgencies,incidentEvents,incidentLocations,holds,statusCatalog,customStatuses,combinedLinks,cfsTypes]=await Promise.all([
+     client.listIncidents(agency),client.listUnits(agency),client.listOutstanding(agency),client.listAssignments(agency),client.listDispatchAreas(agency),client.listDispatchAreaAgencies(agency),client.listIncidentEvents(agency),client.listIncidentLocations(agency),client.listIncidentHolds(agency),client.listUnitStatusCatalog(agency),client.listUnitCustomStatuses(agency),client.listCombinedLinks(agency),client.listCfsTypes(agency)
     ]);
     if(refreshEpoch!==confirmedMutationEpoch){refreshAgain=true;return;}
     refreshFailures=0;
-    const signature=JSON.stringify({incidents,roster,missing,assignments,incidentEvents,incidentLocations,holds,statusCatalog,customStatuses});
+    const signature=JSON.stringify({incidents,roster,missing,assignments,incidentEvents,incidentLocations,holds,statusCatalog,customStatuses,combinedLinks,cfsTypes});
     const needsRender=lastSignature!==signature;
     const changed=lastSignature!==''&&needsRender;
     lastSignature=signature;
-    snapshot={incidents,roster,assignments,dispatchAreas,areaAgencies,incidentEvents,incidentLocations,holds,statusCatalog,customStatuses};syncChoices();renderWorkspace();renderSharedBoard();if(needsRender)window.cadSharedApplySnapshot?.(snapshot);window.dispatchEvent(new CustomEvent('cad:unit-status-catalog-updated',{detail:{catalog:statusCatalog}}));
+    snapshot={incidents,roster,assignments,dispatchAreas,areaAgencies,incidentEvents,incidentLocations,holds,statusCatalog,customStatuses,combinedLinks,cfsTypes};syncChoices();renderWorkspace();renderSharedBoard();if(needsRender)window.cadSharedApplySnapshot?.(snapshot);window.dispatchEvent(new CustomEvent('cad:unit-status-catalog-updated',{detail:{catalog:statusCatalog}}));
     displayRows(tbody,incidents,['incident_number','status','discipline','created_at']);
     displayRows(units,roster.filter(u=>u.status!=='OFF_DUTY'),['call_sign','status','resource_type']);
     displayRows(shortages,missing,['incident_id','resource_type','missing_count']);
@@ -377,7 +377,19 @@
    try{
     let result;
     if(action==='create'){
-     result=await client.createIncidentAuto({agency,discipline:args.discipline,type:args.type,priority:args.priority,location:args.location});
+     // Resolve configured CFS types before creating calls. The mapping is directional.
+     // Never silently create a single call when a configured combined event cannot be resolved.
+     // A missing catalog schema is a configuration error, not permission to bypass mappings.
+     const configured=await client.listCfsTypes(agency);
+     const matches=configured.filter(x=>x.publication==='ACTIVE'&&x.discipline===args.discipline&&(x.name||'').trim().toLowerCase()===String(args.type||'').trim().toLowerCase());
+     if(matches.length>1)throw Error('Ambiguous agency CFS type. Resolve duplicate configuration.');
+     if(matches.length===1){
+      const created=await client.createCombinedIncident({agency,cfsTypeId:matches[0].id,priority:args.priority,location:args.location});
+      result={...created,combined:true,primary_id:created.incidents?.[0]?.id,incident_number:created.incidents?.[0]?.incident_number};
+     }else{
+      if(configured.length)throw Error('CFS type is not active in agency catalog. Select a configured type.');
+      result=await client.createIncidentAuto({agency,discipline:args.discipline,type:args.type,priority:args.priority,location:args.location});
+     }
     }else{
      if(!incident)throw Error('Incident not found. Refresh and retry.');
      if(action==='join-onscene'){
