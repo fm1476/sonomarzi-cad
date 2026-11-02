@@ -45,6 +45,14 @@ function recommend({plans=[],plan:explicitPlan,incident,roster=[],assignments=[]
  }
  const occupiedCrews=new Set();
  for(const u of roster)if(assignedHere.has(u.id)||assignedElsewhere.has(u.id)){const c=crewForUnit.get(norm(u.call_sign))||crewForUnit.get(norm(u.id));if(c)occupiedCrews.add(c)}
+ const assignedCrewOwners=new Map();
+ for(const u of roster){
+  if(!assignedHere.has(u.id))continue;
+  const crew=crewForUnit.get(norm(u.call_sign))||crewForUnit.get(norm(u.id));
+  if(!crew)continue;
+  if(assignedCrewOwners.has(crew)&&assignedCrewOwners.get(crew)!==u.id)warnings.push('Conflicting shared crew assignments already exist on this incident. Dispatcher review required.');
+  else assignedCrewOwners.set(crew,u.id);
+ }
  const selected=new Set(),usedCrews=new Set(occupiedCrews),usedPeople=new Set();
  for(const u of roster)if(assignedHere.has(u.id)||assignedElsewhere.has(u.id))for(const person of u.staffing?.personIds||[])usedPeople.add(person);
  const stationById=new Map(stations.map(s=>[s.id,s]));
