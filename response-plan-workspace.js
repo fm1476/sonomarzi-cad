@@ -158,7 +158,7 @@ function editor(p){
   });
   if(mode==='OR'){const addAlternative=document.createElement('button');addAlternative.type='button';addAlternative.textContent='+ Alternative Choice';addAlternative.onclick=()=>{blocks.push([]);renderLogic()};holder.append(addAlternative)}
  }
- logicSelect.onchange=renderLogic;renderLogic();
+ logicSelect.onchange=renderLogic;
  const add=document.getElementById('rpNewAdd');
  const picker=document.createElement('select');picker.id='rpResourcePicker';picker.setAttribute('aria-label','Choose configured resource type');
  add.before(picker);
@@ -265,6 +265,7 @@ function editor(p){
   }
  }
 
+ renderLogic();
  drawRequirements();
 }
 async function savePlan(p){
