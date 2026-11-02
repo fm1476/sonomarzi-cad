@@ -2,7 +2,7 @@
 (function(root,factory){const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;if(root)root.CadResponsePatternRules=api;})(typeof globalThis!=='undefined'?globalThis:this,function(){
 'use strict';
 const n=x=>String(x??'').trim().toUpperCase();
-const validClock=x=>typeof x==='string'&&/^([01]\\d|2[0-3]):[0-5]\\d$/.test(x);
+const validClock=x=>typeof x==='string'&&/^([01]\d|2[0-3]):[0-5]\d$/.test(x);
 function clock(x){const [h,m]=x.split(':').map(Number);return h*60+m}
 function localParts(timestamp,timeZone){
  const date=new Date(timestamp);
