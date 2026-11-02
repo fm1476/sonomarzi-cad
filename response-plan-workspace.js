@@ -90,6 +90,9 @@ function editor(p){
 async function savePlan(p){
  if(!session())return status('Connect to shared CAD before saving.');
  if(!p.cfsTypeId)return status('Select a saved discipline-specific call type.');
+ if(p.priority!==null&&p.priority!==undefined&&(!Number.isInteger(p.priority)||p.priority<1||p.priority>9))return status('Priority must be between 1 and 9, or left blank for any priority.');
+ const duplicates=plans.filter(x=>x.id!==p.id&&x.status==='ACTIVE'&&p.status==='ACTIVE'&&x.discipline===p.discipline&&x.cfsTypeId===p.cfsTypeId&&String(x.area||'').toUpperCase()===String(p.area||'').toUpperCase()&&x.priority===p.priority);
+ if(duplicates.length)return status('An active plan already covers this call type, priority and response area. Deactivate or edit that plan first.');
  if(!p.resources?.length)return status('Add at least one response requirement.');
  const selectedType=types.find(t=>t.id===p.cfsTypeId);
  if(p.status==='ACTIVE'&&selectedType?.publication!=='ACTIVE')return status('The selected CFS type must be Active before this plan can be activated.');
