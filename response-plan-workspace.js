@@ -118,6 +118,7 @@ async function savePlan(p){
  const duplicates=plans.filter(x=>x.id!==p.id&&x.status==='ACTIVE'&&p.status==='ACTIVE'&&x.discipline===p.discipline&&x.cfsTypeId===p.cfsTypeId&&String(x.area||'').toUpperCase()===String(p.area||'').toUpperCase()&&x.priority===p.priority);
  if(duplicates.length)return status('An active plan already covers this call type, priority and response area. Deactivate or edit that plan first.');
  if(!p.resources?.length)return status('Add at least one response requirement.');
+ if(new Set(p.resources.map(r=>String(r.type||'').trim().toUpperCase())).size!==p.resources.length)return status('Combine duplicate resource types into one requirement before saving.');
  if(p.status==='ACTIVE'&&p.alarmLevels?.length){const ranks=new Set();for(const tier of p.alarmLevels){if(!tier.name||!Number.isInteger(Number(tier.rank))||Number(tier.rank)<1||ranks.has(Number(tier.rank)))return status('Alarm levels require unique positive sequence numbers and names.');ranks.add(Number(tier.rank));if(!['TOTAL','ADDITIVE'].includes(String(tier.mode||'TOTAL').toUpperCase()))return status('Unsupported alarm method.');if(!tier.resources?.length||tier.resources.some(r=>!r.type||!Number.isInteger(Number(r.count))||Number(r.count)<1||Number(r.count)>99))return status('Alarm levels require valid resource quantities.');}}
  const selectedType=types.find(t=>t.id===p.cfsTypeId);
  if(p.status==='ACTIVE'&&selectedType?.publication!=='ACTIVE')return status('The selected CFS type must be Active before this plan can be activated.');
