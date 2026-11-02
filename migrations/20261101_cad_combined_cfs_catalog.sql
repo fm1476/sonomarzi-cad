@@ -78,7 +78,7 @@ grant execute on function public.cad_save_cfs_type(uuid,jsonb) to authenticated;
 -- Combined creation is one transaction: any failed child creation rolls back all calls.
 -- This RPC delegates numbering and event audit to the existing cad_create_incident_auto RPC.
 create or replace function public.cad_create_combined_incident(p_agency uuid,p_cfs_type uuid,p_priority text,p_location text)
-returns jsonb language plpgsql security definer set search_path='' as $
+returns jsonb language plpgsql security definer set search_path='' as $$
 declare v_primary public.cad_cfs_types;v_child public.cad_cfs_types;v_created public.cad_incidents;v_root uuid;v_incident uuid;v_ids jsonb:='[]'::jsonb;v_row record;
 begin
  if auth.uid() is null or not public.cad_has_access(p_agency,true) then raise exception 'CAD access denied' using errcode='42501';end if;
