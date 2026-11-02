@@ -1,0 +1,19 @@
+name: CAD validation
+on:
+  pull_request:
+  push:
+    branches:
+      - feature/visual-response-plan-engine-20261101
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate syntax and run all CAD regression scripts
+        run: npm check
