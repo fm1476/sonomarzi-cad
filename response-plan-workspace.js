@@ -222,7 +222,7 @@ function editor(p){
   const controls=v.querySelector('#rpSimControls'),output=v.querySelector('#rpSimResults');
   const resourceUnits=new Map();
   const logicRequirements=working.resourceLogic?.mode==='GROUP'?(working.resourceLogic.resources||[]):working.resourceLogic?.mode==='OR'?(working.resourceLogic.options||[]).flat():[];
-  for(const req of [...working.resources,...logicRequirements,...(working.alarmLevels||[]).flatMap(l=>l.resources||[])])for(const callSign of req.preferredUnits||[])if(!resourceUnits.has(callSign))resourceUnits.set(callSign,req.type);
+  for(const req of [...working.resources,...logicRequirements,...(working.alarmLevels||[]).flatMap(l=>[...(l.resources||[]),...(l.resourceLogic?.mode==='GROUP'?(l.resourceLogic.resources||[]):l.resourceLogic?.mode==='OR'?(l.resourceLogic.options||[]).flat():[])])])for(const callSign of req.preferredUnits||[])if(!resourceUnits.has(callSign))resourceUnits.set(callSign,req.type);
   const names=[...resourceUnits.keys()];
   if(!names.length){output.textContent='Choose preferred apparatus in the requirements to test the response.';return}
   simulatedCommitted=simulatedCommitted.filter(x=>resourceUnits.has(x));
