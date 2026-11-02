@@ -22,3 +22,6 @@ Investigation date: 2026-11-01 Pacific (2026-11-02 UTC).
 
 ## Constraints
 PR #33 remains draft. No merge/deploy. No recreated billable branch without appropriate cost authorization.
+
+## Follow-up dependency inspection
+Read-only parent schema inspection confirmed that `staff_notice_per_user_clear` references `public.suite_notice_recipients`, `public.suite_notices`, `public.suite_memberships`, and `suite_private.context_allowed`. These objects exist on production. Migration `20260905191122 public_safety_suite_multitenant_v3` contains the prerequisite suite table definitions. Therefore, no missing prerequisite can yet be established from the parent database. The branch's last recorded migration does not prove the next statement caused failure; capture the actual branch replay error before attempting a history repair.
