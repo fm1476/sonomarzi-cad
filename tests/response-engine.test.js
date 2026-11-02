@@ -110,4 +110,9 @@ test('assigned shared crew partner excludes other apparatus even when UUID refer
 test('station-specific response requires active station record',()=>{const p={...plan,resources:[{type:'ENGINE',count:1,preferredUnits:['E1'],stationId:'s1'}]};const r=engine.recommend({plan:p,incident,roster:[{...roster[0],station_id:'s1'}],stations:[{id:'s1',active:false,name:'Station 1'}]});assert.equal(r.status,'shortage');assert.ok(r.rows[0].excluded.some(x=>x.reason.includes('inactive')));});
 test('station-specific response accepts configured active home station',()=>{const p={...plan,resources:[{type:'ENGINE',count:1,preferredUnits:['E1'],stationId:'s1'}]};const r=engine.recommend({plan:p,incident,roster:[{...roster[0],station_id:'s1'}],stations:[{id:'s1',active:true,name:'Station 1'}]});assert.deepEqual(r.unitIds,['u1']);});
 test('duplicate personnel do not satisfy a two-person staffing requirement',()=>{const p={...plan,resources:[{type:'ENGINE',count:1,preferredUnits:['E1'],requiredStaffing:2}]};const r=engine.recommend({plan:p,incident,roster:[{...roster[0],staffing:{active:true,personIds:['p1','p1']}}]});assert.equal(r.status,'shortage');assert.ok(r.rows[0].excluded.some(x=>x.reason.includes('Insufficient staffing')));});
+test('conflicting already-assigned shared apparatus block escalation recommendations',()=>{
+ const p={...plan,resources:[{type:'ENGINE',count:3,preferredUnits:['E1','E2','E3']}]};
+ const result=engine.recommend({plan:p,incident,roster:roster.map(u=>({...u,staffing:undefined})),crews:[{id:'shared',unitIds:['u1','u2']}],assignments:[{incident_id:'i1',unit_id:'u1'},{incident_id:'i1',unit_id:'u2'}]});
+ assert.equal(result.status,'blocked');assert.deepEqual(result.unitIds,[]);assert.ok(result.warnings.some(x=>x.includes('Conflicting shared crew')));
+});
 console.log('Response engine regression checks passed.');
