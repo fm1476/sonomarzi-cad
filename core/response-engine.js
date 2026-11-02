@@ -2,9 +2,11 @@
 (function(root,factory){const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;if(root)root.CadResponseEngine=api;})(typeof globalThis!=='undefined'?globalThis:this,function(){
 'use strict';
 const norm=v=>String(v??'').trim().toUpperCase();
+const patternRules=typeof module==='object'&&module.exports?require('./response-pattern-rules'):globalThis.CadResponsePatternRules;
 const num=v=>Number.isInteger(Number(v))&&Number(v)>=0?Number(v):0;
 const unique=xs=>[...new Set(xs)];
 function match(plan,incident){
+ if(plan.pattern&&!patternRules?.matches(plan.pattern,incident))return false;
  if(norm(plan.status)!=='ACTIVE'&&norm(plan.status)!=='PUBLISHED')return false;
  if(plan.agencyId&&plan.agencyId!==incident.agency_id)return false;
  if(plan.discipline!==incident.discipline)return false;
@@ -20,7 +22,7 @@ function match(plan,incident){
 function selectPlan(plans,incident){
  const found=(plans||[]).filter(p=>match(p,incident));
  if(!found.length)return {plan:null,reason:'No active response plan matches this agency, discipline, call type, priority and response area.'};
- const rank=p=>[p.cfsTypeId?1:0,p.priority!=null?1:0,!!norm(p.area||p.zone)&&!['*','DEFAULT'].includes(norm(p.area||p.zone))?1:0].join('');
+ const rank=p=>[p.cfsTypeId?1:0,p.priority!=null?1:0,!!norm(p.area||p.zone)&&!['*','DEFAULT'].includes(norm(p.area||p.zone))?1:0,...(patternRules?.specificity(p.pattern)||[0,0,0,0,0])].map(x=>String(x).padStart(2,'0')).join('');
  const top=found.sort((a,b)=>rank(b).localeCompare(rank(a)));
  if(top.length>1&&rank(top[0])===rank(top[1]))return {plan:null,reason:'More than one active plan matches at the same specificity. Resolve the conflicting plans.'};
  return {plan:top[0],reason:null};
