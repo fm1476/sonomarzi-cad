@@ -84,13 +84,14 @@ begin
  limit 1;
  if v_level is null then raise exception 'Requested alarm level is not configured in the active plan';end if;
  if jsonb_typeof(coalesce(v_level->'resources','null'::jsonb)) <> 'array'
-    or jsonb_array_length(coalesce(v_level->'resources','[]'::jsonb)) < 1
+ then raise exception 'Selected alarm level requires a resource array';end if;
+ if jsonb_array_length(v_level->'resources') < 1
  then raise exception 'Selected alarm level contains no valid resource array';end if;
  -- Note: geographic plan restrictions require a trusted, persisted response area
  -- on the incident. Until authoritative area matching is available, restricted
  -- plans MUST NOT be accepted for alarm transitions.
  if nullif(btrim(coalesce(nullif(btrim(v_plan->>'area'),''),nullif(btrim(v_plan->>'zone'),''),'')),'') is not null
-    and upper(btrim(coalesce(v_plan->>'area',v_plan->>'zone',''))) not in ('DEFAULT','*')
+    and upper(btrim(coalesce(nullif(btrim(v_plan->>'area'),''),nullif(btrim(v_plan->>'zone'),''),''))) not in ('DEFAULT','*')
  then raise exception 'Geographic alarm plan requires verified incident response area';end if;
  insert into public.cad_incident_alarm_state(agency_id,incident_id,alarm_name,alarm_rank,plan_id,recorded_by)
  values(p_agency,p_incident,btrim(p_level_name),p_level_rank,btrim(p_plan_id),auth.uid())
