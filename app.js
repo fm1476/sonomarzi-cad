@@ -560,7 +560,7 @@ function populate(){
  updateTypes();
  $('#cfgAgencies').value=(config.agencies||[]).join('\n');$('#cfgLaw').value=(config.types?.LAW||[]).join('\n');$('#cfgFire').value=(config.types?.FIRE||[]).join('\n');$('#cfgEms').value=(config.types?.EMS||[]).join('\n');
 }
-function updateTypes(){const previous=$('#type').value;const types=window.cadConfiguredTypes($('#discipline').value);$('#type').innerHTML=types.map(t=>`<option value="${escapeCad(t)}">${escapeCad(t)}</option>`).join('');if(types.includes(previous))$('#type').value=previous}
+function updateTypes(){if($('#type').tagName==='INPUT'){window.cadRefreshNewCallOptions?.();return}const previous=$('#type').value;const types=window.cadConfiguredTypes($('#discipline').value);$('#type').innerHTML=types.map(t=>`<option value="${escapeCad(t)}">${escapeCad(t)}</option>`).join('');if(types.includes(previous))$('#type').value=previous}
 
 /* Live CAD address suggestions, independent of response-area polygon datasets. */
 window.cadAddressPicker=(input,disciplineFor,onVerified)=>{

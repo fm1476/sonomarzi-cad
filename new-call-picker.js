@@ -14,6 +14,9 @@ function agencies(){
  return unique(names);
 }
 function cfs(){
+ if(window.cadSharedIsActive?.()&&window.cadSharedLastSnapshot?.cfsTypes?.length){
+  return unique(window.cadConfiguredTypes(D.value)).sort((a,b)=>a.localeCompare(b));
+ }
  const cfg=read('smcad-config-v1')||{};
  const arr=[...(defaults.types[D.value]||[]),...(Array.isArray(cfg.types?.[D.value])?cfg.types[D.value]:[])];
  const state=window.cadSafetyState?.()||read('smcad-poc-v1')||{};
@@ -46,7 +49,7 @@ function draw(){
  return matches;
 }
 function refreshCfs(){values=cfs();if(selected&&!values.includes(selected)){selected='';input.value=''};if(!menu.hidden)draw()}
-input.addEventListener('focus',()=>{active=0;draw()});
+input.addEventListener('focus',()=>{values=cfs();active=0;draw()});
 input.addEventListener('input',()=>{selected='';active=0;draw()});
 input.addEventListener('keydown',e=>{
  if(e.key==='Escape'){close();return}
@@ -54,7 +57,7 @@ input.addEventListener('keydown',e=>{
  if(e.key==='Enter'&&!menu.hidden){const matches=values.filter(v=>v.toLocaleLowerCase().includes(input.value.trim().toLocaleLowerCase()));if(matches.length){e.preventDefault();choose(matches[active]||matches[0])}else close()}
 });
 input.addEventListener('blur',()=>setTimeout(close,100));
-toggle.onclick=()=>{if(menu.hidden){input.focus();active=0;draw()}else close()};
+toggle.onclick=()=>{if(menu.hidden){values=cfs();input.focus();active=0;draw()}else close()};
 clear.onclick=()=>{selected='';input.value='';input.focus();active=0;draw()};
 D.addEventListener('change',()=>{selected='';input.value='';refreshCfs()});
 A.addEventListener('change',()=>{selected='';input.value='';refreshCfs()});

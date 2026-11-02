@@ -22,3 +22,17 @@ ctx.updateTypes();assert.equal(select.value,'Traumatic Injury','An inactive or r
 ctx.cadSharedWorkspaceMode=false;
 assert.deepEqual(Array.from(ctx.window.cadConfiguredTypes('LAW')),['Old Law'],'Local workspace retains its own configuration');
 console.log('PASS: shared call-taking picker uses active agency CFS catalog and preserves valid choices');
+const picker=fs.readFileSync(require.resolve('../new-call-picker.js'),'utf8');
+ctx.window.cadSharedIsActive=()=>true;
+ctx.cadSharedWorkspaceMode=true;
+ctx.D={value:'LAW'};
+ctx.unique=values=>[...new Set(values)];
+ctx.read=()=>({});
+ctx.defaults={types:{LAW:['Old Law']}};
+ctx.window.cadSafetyState=()=>({incidents:[{discipline:'LAW',type:'Legacy Incident'}]});
+vm.runInContext(picker.slice(picker.indexOf('function cfs(){'),picker.indexOf('function refreshAgencies(){')),ctx);
+assert.deepEqual(Array.from(ctx.cfs()),['Accident with Injuries'],'Visible searchable picker must use the agency catalog, not legacy incidents');
+ctx.D.value='FIRE';
+assert.deepEqual(Array.from(ctx.cfs()),[],'Visible picker must not fall back for an unconfigured discipline');
+let refreshed=0;ctx.window.cadRefreshNewCallOptions=()=>refreshed++;select.tagName='INPUT';
+ctx.updateTypes();assert.equal(refreshed,1,'Snapshot refresh must update the searchable input widget');
