@@ -60,7 +60,7 @@ function editor(p){
  document.getElementById('rpNewArea').value=p.area||p.zone||'';
  function drawRequirements(){
  const target=document.getElementById('rpNewRequirements');
- target.innerHTML=working.resources.map((r,i)=>'<div class="cad-rp-requirement"><strong>'+escape(r.type)+'</strong><label>Quantity <input data-count="'+i+'" type="number" min="1" max="99" value="'+Number(r.count||1)+'"></label><label>Preferred unit order <input data-preferred="'+i+'" value="'+escape((r.preferredUnits||[]).join(', '))+'" placeholder="Choose units below"></label><div data-unit-picker="'+i+'"></div><button data-up="'+i+'" type="button" aria-label="Move up">↑</button><button data-down="'+i+'" type="button" aria-label="Move down">↓</button><button data-remove="'+i+'" type="button" aria-label="Remove requirement">Remove</button></div>').join('')||'<p>No resource requirements. Add at least one before activating.</p>';
+ target.innerHTML=working.resources.map((r,i)=>'<div class="cad-rp-requirement"><strong>'+escape(r.type)+'</strong><label>Quantity <input data-count="'+i+'" type="number" min="1" max="99" value="'+Number(r.count||1)+'"></label><label>Minimum crew <input data-staffing="'+i+'" type="number" min="1" max="30" placeholder="Not required" value="'+(r.requiredStaffing??'')+'"></label><label>Preferred unit order <input data-preferred="'+i+'" value="'+escape((r.preferredUnits||[]).join(', '))+'" placeholder="Choose units below"></label><div data-unit-picker="'+i+'"></div><button data-up="'+i+'" type="button" aria-label="Move up">↑</button><button data-down="'+i+'" type="button" aria-label="Move down">↓</button><button data-remove="'+i+'" type="button" aria-label="Remove requirement">Remove</button></div>').join('')||'<p>No resource requirements. Add at least one before activating.</p>';
  const master=window.CadAgencyMaster?.read(localStorage)||{agencies:[],units:[]};
  const agency=master.agencies.find(a=>a.name===activeAgencyName)||master.agencies[0];
  target.querySelectorAll('[data-unit-picker]').forEach(node=>{
@@ -79,6 +79,7 @@ function editor(p){
   }
  });
  target.querySelectorAll('[data-count]').forEach(n=>n.onchange=()=>{working.resources[Number(n.dataset.count)].count=Number(n.value);preview()});
+ target.querySelectorAll('[data-staffing]').forEach(n=>n.onchange=()=>{const raw=n.value.trim();working.resources[Number(n.dataset.staffing)].requiredStaffing=raw===''?null:Number(raw);preview()});
  target.querySelectorAll('[data-preferred]').forEach(n=>n.onchange=()=>{working.resources[Number(n.dataset.preferred)].preferredUnits=n.value.split(',').map(x=>x.trim()).filter(Boolean);preview()});
  target.querySelectorAll('[data-remove]').forEach(n=>n.onclick=()=>{working.resources.splice(Number(n.dataset.remove),1);drawRequirements()});
  for(const [attr,shift] of [['up',-1],['down',1]])target.querySelectorAll('[data-'+attr+']').forEach(n=>n.onclick=()=>{const i=Number(n.dataset[attr]),j=i+shift;if(j<0||j>=working.resources.length)return;[working.resources[i],working.resources[j]]=[working.resources[j],working.resources[i]];drawRequirements()});
@@ -139,6 +140,7 @@ async function savePlan(p){
  if(p.status==='ACTIVE'&&p.alarmLevels?.length){const ranks=new Set();for(const tier of p.alarmLevels){if(!tier.name||!Number.isInteger(Number(tier.rank))||Number(tier.rank)<1||ranks.has(Number(tier.rank)))return status('Alarm levels require unique positive sequence numbers and names.');ranks.add(Number(tier.rank));if(!['TOTAL','ADDITIVE'].includes(String(tier.mode||'TOTAL').toUpperCase()))return status('Unsupported alarm method.');if(!tier.resources?.length||tier.resources.some(r=>!r.type||!Number.isInteger(Number(r.count))||Number(r.count)<1||Number(r.count)>99))return status('Alarm levels require valid resource quantities.');}}
  const selectedType=types.find(t=>t.id===p.cfsTypeId);
  if(p.status==='ACTIVE'&&selectedType?.publication!=='ACTIVE')return status('The selected CFS type must be Active before this plan can be activated.');
+ if(p.resources.some(r=>r.requiredStaffing!=null&&(!Number.isInteger(Number(r.requiredStaffing))||Number(r.requiredStaffing)<1||Number(r.requiredStaffing)>30)))return status('Minimum crew must be 1 to 30, or blank if not required.');
  if(p.resources.some(r=>!r.type||!Number.isInteger(Number(r.count))||Number(r.count)<1||Number(r.count)>99))return status('Each requirement needs a resource type and a quantity between 1 and 99.');
  if(p.status==='ACTIVE'&&p.resources.some(r=>!(r.preferredUnits||[]).length&&!r.specificUnit&&!r.allowUnrankedFallback))return status('Configure the response order for every requirement before activation. No automatic nearest-unit selection is available.');
  const next=[...plans.filter(x=>x.id!==p.id),p];
