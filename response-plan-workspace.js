@@ -276,6 +276,7 @@ async function savePlan(p){
  if(!session())return status('Connect to shared CAD before saving.');
   if(!p.cfsTypeId)return status('Select a saved discipline-specific call type.');
  const logic=p.resourceLogic;
+ if(p.status==='ACTIVE'&&logic&&(p.alarmLevels||[]).length)return status('Activation blocked: OR/GROUP rules with alarm levels require explicit tier-level decision logic. Save as draft until supported.');
  if(p.status==='ACTIVE'&&logic){
   const blocks=logic.mode==='GROUP'?[logic.resources]:logic.mode==='OR'?logic.options:null;
   if(!blocks||!blocks.length||blocks.some(b=>!Array.isArray(b)||!b.length))return status('Every grouped or alternative response must contain at least one resource.');
