@@ -60,7 +60,21 @@ function editor(p){
  document.getElementById('rpNewArea').value=p.area||p.zone||'';
  function drawRequirements(){
  const target=document.getElementById('rpNewRequirements');
- target.innerHTML=working.resources.map((r,i)=>'<div class="cad-rp-requirement"><strong>'+escape(r.type)+'</strong><label>Quantity <input data-count="'+i+'" type="number" min="1" max="99" value="'+Number(r.count||1)+'"></label><label>Preferred unit order <input data-preferred="'+i+'" value="'+escape((r.preferredUnits||[]).join(', '))+'" placeholder="E1, E2, E3"></label><button data-up="'+i+'" type="button" aria-label="Move up">↑</button><button data-down="'+i+'" type="button" aria-label="Move down">↓</button><button data-remove="'+i+'" type="button" aria-label="Remove requirement">Remove</button></div>').join('')||'<p>No resource requirements. Add at least one before activating.</p>';
+ target.innerHTML=working.resources.map((r,i)=>'<div class="cad-rp-requirement"><strong>'+escape(r.type)+'</strong><label>Quantity <input data-count="'+i+'" type="number" min="1" max="99" value="'+Number(r.count||1)+'"></label><label>Preferred unit order <input data-preferred="'+i+'" value="'+escape((r.preferredUnits||[]).join(', '))+'" placeholder="Choose units below"></label><div data-unit-picker="'+i+'"></div><button data-up="'+i+'" type="button" aria-label="Move up">↑</button><button data-down="'+i+'" type="button" aria-label="Move down">↓</button><button data-remove="'+i+'" type="button" aria-label="Remove requirement">Remove</button></div>').join('')||'<p>No resource requirements. Add at least one before activating.</p>';
+ const master=window.CadAgencyMaster?.read(localStorage)||{agencies:[],units:[]};
+ const agency=master.agencies.find(a=>a.name===activeAgencyName)||master.agencies[0];
+ target.querySelectorAll('[data-unit-picker]').forEach(node=>{
+  const i=Number(node.dataset.unitPicker),r=working.resources[i];
+  const units=master.units.filter(u=>u.discipline===discipline.value&&u.resourceType===r.type&&(!agency||u.agencyId===agency.id));
+  if(!units.length){node.textContent='No configured units of this type.';return}
+  const hint=document.createElement('small');hint.textContent='Select units in dispatch order. Select again to remove.';node.append(hint);
+  for(const u of units){
+   const sign=u.designator||u.callSign||u.name||u.id;
+   const index=(r.preferredUnits||[]).findIndex(x=>String(x).toUpperCase()===String(sign).toUpperCase());
+   const b=document.createElement('button');b.type='button';b.textContent=(index<0?'+ ':(index+1)+'. ')+sign;b.setAttribute('aria-pressed',String(index>=0));
+   b.onclick=()=>{const next=(r.preferredUnits||[]).filter(x=>String(x).toUpperCase()!==String(sign).toUpperCase());if(index<0)next.push(sign);r.preferredUnits=next;drawRequirements()};node.append(b);
+  }
+ });
  target.querySelectorAll('[data-count]').forEach(n=>n.onchange=()=>{working.resources[Number(n.dataset.count)].count=Number(n.value);preview()});
  target.querySelectorAll('[data-preferred]').forEach(n=>n.onchange=()=>{working.resources[Number(n.dataset.preferred)].preferredUnits=n.value.split(',').map(x=>x.trim()).filter(Boolean);preview()});
  target.querySelectorAll('[data-remove]').forEach(n=>n.onclick=()=>{working.resources.splice(Number(n.dataset.remove),1);drawRequirements()});
