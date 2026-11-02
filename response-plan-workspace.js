@@ -271,6 +271,15 @@ function editor(p){
 async function savePlan(p){
  if(!session())return status('Connect to shared CAD before saving.');
   if(!p.cfsTypeId)return status('Select a saved discipline-specific call type.');
+ const logic=p.resourceLogic;
+ if(p.status==='ACTIVE'&&logic){
+  const blocks=logic.mode==='GROUP'?[logic.resources]:logic.mode==='OR'?logic.options:null;
+  if(!blocks||!blocks.length||blocks.some(b=>!Array.isArray(b)||!b.length))return status('Every grouped or alternative response must contain at least one resource.');
+  if(blocks.some(b=>b.some(r=>!r.type||!Number.isInteger(Number(r.count))||Number(r.count)<1||Number(r.count)>99)))return status('Resource decision blocks require a valid type and quantity of 1–99.');
+  if(blocks.some(b=>new Set(b.map(r=>String(r.type).toUpperCase())).size!==b.length))return status('Combine duplicate resource types within each group or alternative.');
+  if(blocks.some(b=>b.some(r=>!(r.preferredUnits||[]).length&&!r.specificUnit&&!r.allowUnrankedFallback)))return status('Set apparatus preference order for each decision resource before activation.');
+ }
+
  const geo=p.pattern?.geography||{},schedule=p.pattern?.schedule||{};
  if((geo.subdivisions||[]).length>5)return status('Configure no more than five geographic subdivisions.');
  if((geo.subdivisions||[]).length&&!geo.dispatchArea)return status('Dispatch area is required when subdivisions are configured.');
