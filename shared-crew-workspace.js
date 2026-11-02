@@ -7,7 +7,7 @@ const panel=document.createElement('section');panel.hidden=true;panel.className=
 root.before(button);root.after(panel);
 button.onclick=()=>{panel.hidden=!panel.hidden;if(!panel.hidden)load()};
 const esc=s=>String(s??'').replace(/[&<>"']/g,x=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[x]));
-let groups=[],units=[],agency='';
+let groups=[],units=[],agency='',original=[];
 async function load(){
  const session=window.CadDemoLogin.current();
  if(!session){panel.textContent='Sign in to shared CAD first.';return}
@@ -18,6 +18,7 @@ async function load(){
   if(window.CadDemoLogin.current()?.agencyId!==agency)return;
   units=roster;
   groups=crewRows.map(g=>({id:g.id,name:g.name,agencyId:agency,unitIds:links.filter(l=>l.crew_id===g.id).map(l=>l.unit_id)}));
+  original=structuredClone(groups);
   draw();
  }catch(e){panel.textContent='Unable to load shared crews: '+e.message}
 }
@@ -29,7 +30,7 @@ function draw(){
  for(let i=0;i<groups.length;i++){
   const group=groups[i],card=document.createElement('section');card.className='cad-rp-requirement';card.style.display='block';
   const title=document.createElement('input');title.setAttribute('aria-label','Crew group name');title.value=group.name;title.oninput=()=>{group.name=title.value;validate()};card.append(title);
-  const remove=document.createElement('button');remove.type='button';remove.textContent='Remove group';remove.onclick=()=>{groups.splice(i,1);draw()};card.append(remove);
+  const remove=document.createElement('button');remove.type='button';remove.textContent='Remove group from draft';remove.onclick=()=>{groups.splice(i,1);draw()};card.append(remove);
   const members=document.createElement('div');members.style.marginTop='10px';
   for(const u of units){
    const key=u.id,chosen=group.unitIds.includes(key),b=document.createElement('button');b.type='button';
@@ -38,6 +39,7 @@ function draw(){
   }card.append(members);panel.append(card);
  }
  const warning=document.createElement('p');warning.id='cadSharedCrewErrors';warning.setAttribute('role','status');panel.append(warning);
+ const reset=document.createElement('button');reset.type='button';reset.textContent='Discard draft changes';reset.onclick=()=>{groups=structuredClone(original);draw()};panel.append(reset);
  const status=document.createElement('p');status.textContent='Read-only shared CAD. Draft changes are not saved or enforced.';panel.append(status);
  validate();
 }
