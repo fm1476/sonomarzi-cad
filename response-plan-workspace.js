@@ -150,6 +150,23 @@ function editor(p){
   const result=window.CadResponseEngine.recommend({plan:simulatedPlan,incident,roster,assignments,crews,stations:[]});
   const heading=document.createElement('strong');heading.textContent='Simulation: '+result.status.toUpperCase();output.append(heading);
   const message=document.createElement('p');message.textContent=result.message;output.append(message);
+  const recommended=new Set(result.unitIds||[]);
+  const exclusions=new Map(result.rows.flatMap(row=>row.excluded.map(entry=>[entry.unit,entry.reason])));
+  const cards=document.createElement('div');cards.className='cad-rp-simulation-cards';cards.style.display='grid';cards.style.gridTemplateColumns='repeat(auto-fit,minmax(130px,1fr))';cards.style.gap='8px';cards.style.margin='12px 0';
+  const selectedCrew=simulatedCrew?new Set(names.slice(0,2)) : new Set();
+  for(const name of names){
+   const card=document.createElement('div');card.className='cad-rp-simulation-card';card.style.padding='10px';card.style.border='1px solid var(--border-color,#778)';card.style.borderRadius='12px';
+   const title=document.createElement('strong');title.textContent=name;card.append(title);
+   const type=document.createElement('small');type.style.display='block';type.textContent=resourceUnits.get(name);card.append(type);
+   const committed=simulatedCommitted.includes(name);
+   const partner=simulatedCommitted.find(other=>other!==name&&selectedCrew.has(other)&&selectedCrew.has(name));
+   const state=document.createElement('p');
+   state.textContent=committed?'● Assigned elsewhere':partner?'● Crew committed by '+partner:recommended.has(roster.find(u=>u.call_sign===name)?.id)?'✓ Recommended':'○ Not selected';
+   state.style.fontWeight='600';card.append(state);
+   const reason=document.createElement('small');reason.textContent=partner?'Shared apparatus uses the same crew':exclusions.get(name)||'';card.append(reason);
+   cards.append(card);
+  }
+  output.append(cards);
   for(const row of result.rows){
    const line=document.createElement('div');line.className='cad-rp-preview-line';
    const title=document.createElement('strong');title.textContent=row.type+' · '+row.recommended.length+' recommended / '+row.requested+' requested';line.append(title);
