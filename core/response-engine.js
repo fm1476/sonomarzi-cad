@@ -8,7 +8,9 @@ function match(plan,incident){
  if(norm(plan.status)!=='ACTIVE'&&norm(plan.status)!=='PUBLISHED')return false;
  if(plan.agencyId&&plan.agencyId!==incident.agency_id)return false;
  if(plan.discipline!==incident.discipline)return false;
- if(plan.cfsTypeId&&plan.cfsTypeId!==incident.cfs_type_id)return false;
+ if(plan.cfsTypeId&&incident.cfs_type_id&&plan.cfsTypeId!==incident.cfs_type_id)return false;
+ // Shared incidents may predate canonical CFS IDs. Do not bypass a contradictory name.
+ if(plan.cfsTypeId&&!incident.cfs_type_id&&norm(plan.type)!==norm(incident.type))return false;
  if(!plan.cfsTypeId&&norm(plan.type)!==norm(incident.type))return false;
  if(plan.priority!=null&&Number(plan.priority)!==Number(incident.priority))return false;
  const zone=norm(incident.response_zone||incident.zone||incident.esz||incident.beat);
