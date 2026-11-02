@@ -1,0 +1,21 @@
+const assert=require('assert');
+const cad=require('../core/combined-events');
+const law={id:'L1',discipline:'LAW',type:'Accident',location:'123 Main',narrative:['Restricted law detail']};
+const fire={id:'F1',linkedRoot:'L1',linkedFrom:'L1',discipline:'FIRE',type:'MVA Injuries'};
+const all=[law,fire];
+assert.equal(cad.planAdditionalDiscipline(all,law,'FIRE','MVA Injuries').action,'reuse');
+const ems=cad.planAdditionalDiscipline(all,fire,'EMS','Traumatic Injury');
+assert.equal(ems.action,'create');
+assert.equal(ems.rootId,'L1');
+assert.equal(ems.type,'Traumatic Injury');
+assert.deepEqual(ems.narrative,[]);
+assert.equal(cad.planAdditionalDiscipline(all,law,'LAW','Accident').action,'reuse');
+const shared=cad.newComment('Road closed','LAW',true,'2026-11-01T00:00:00Z');
+const restricted=cad.newComment('Sensitive information','LAW',false,'2026-11-01T00:01:00Z');
+assert(cad.canReadComment(shared,'EMS'));
+assert(!cad.canReadComment(restricted,'FIRE'));
+assert(cad.canReadComment(restricted,'LAW'));
+assert.equal(cad.visibleComments([shared,restricted],'EMS').length,1);
+assert.equal(restricted.visibility,'LAW_ONLY'); // toggling sharing back on does not change old records
+assert.throws(()=>cad.planAdditionalDiscipline(all,law,'FIRE',''));
+console.log('PASS: combined event discipline types, reuse, family, immutable comment visibility');
