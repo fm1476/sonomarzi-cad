@@ -146,9 +146,20 @@ function escalate({plan,incident,roster=[],assignments=[],crews=[],stations=[],q
  const levels=Array.isArray(plan.alarmLevels)?plan.alarmLevels:[];
  const target=levels.find(l=>l.id===level||l.name===level);
  if(!target)return {status:'blocked',message:'Selected alarm level is not configured.',rows:[],unitIds:[]};
- // Complex response decision blocks cannot be safely flattened into alarm totals.
- // Refuse to recommend instead of silently bypassing the configured GROUP/OR rule.
- if(plan.resourceLogic||levels.some(l=>l.resourceLogic))return {status:'blocked',message:'Alarm escalation with OR/GROUP decision blocks requires explicit tier-level rules. No units recommended.',rows:[],unitIds:[],warnings:['Complex response logic is not yet supported during alarm escalation.']};
+ // A TOTAL tier can define its own complete OR/GROUP decision. Earlier tiers
+ // are replaced, never combined. ADDITIVE with decision blocks remains blocked:
+ // composing alternative sets across multiple tiers would change their meaning.
+ const complex=Boolean(plan.resourceLogic||levels.some(l=>l.resourceLogic));
+ const tierLogic=target.resourceLogic;
+ if(complex){
+  const crossed=levels.filter(l=>Number(l.rank)<=Number(target.rank));
+  if(norm(target.mode||'TOTAL')!=='TOTAL'||!tierLogic||crossed.some(l=>norm(l.mode||'TOTAL')==='ADDITIVE'&&l.resourceLogic)){
+   return {status:'blocked',message:'Complex alarm escalation requires an explicit TOTAL tier with its own OR/GROUP decision. No units recommended.',rows:[],unitIds:[],warnings:['Unsupported complex alarm composition.']};
+  }
+  if(!['OR','GROUP'].includes(norm(tierLogic.mode)))return {status:'blocked',message:'Unsupported tier decision mode.',rows:[],unitIds:[]};
+  const proposed=recommend({plan:{...plan,resourceLogic:tierLogic,resources:target.resources||[]},incident,roster,assignments,crews,stations,qualifications});
+  return {...proposed,alarmLevel:target.name,escalationMode:'TOTAL',message:proposed.message+' Tier-level decision only. Alarm change requires separate dispatcher confirmation.'};
+ }
  const ordered=levels.slice().sort((a,b)=>Number(a.rank)-Number(b.rank));
  if(!Number.isFinite(Number(target.rank)))return {status:'blocked',message:'Alarm level sequence is invalid.',rows:[],unitIds:[]};
  const current=ordered.find(l=>l.id===incident.alarm_level||l.name===incident.alarm_level);
