@@ -162,12 +162,12 @@
        output.append(line);
        for(const excluded of row.excluded){const reason=document.createElement('small');reason.style.display='block';reason.textContent=excluded.unit+': '+excluded.reason;output.append(reason)}
       }
-      if(!planResult.unitIds.length)return;
+      if(planResult.status==='blocked'||!planResult.unitIds.length)return;
       const dispatch=document.createElement('button');dispatch.type='button';dispatch.className='cad-shared-btn';
-      dispatch.textContent='Dispatch '+planResult.unitIds.length+' Reviewed Unit(s)';
+      dispatch.textContent=(planResult.status==='shortage'?'Dispatch Partial Response: ':'Dispatch ')+planResult.unitIds.length+' Reviewed Unit(s)';
       output.append(dispatch);
       dispatch.onclick=async()=>{
-       if(!window.confirm('Dispatch '+planResult.unitIds.length+' selected units to '+i.incident_number+'? This will update shared CAD.'))return;
+       if(!window.confirm((planResult.status==='shortage'?'WARNING: Required resources are still unfilled. Dispatch this partial response of ':'Dispatch ')+planResult.unitIds.length+' selected units to '+i.incident_number+'? This will update shared CAD.'))return;
        dispatch.disabled=true;
        try{
         const client=window.CadDemoLogin.client();
