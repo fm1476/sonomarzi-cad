@@ -29,6 +29,8 @@ function recommend({plans=[],plan:explicitPlan,incident,roster=[],assignments=[]
  const plan=selection.plan;
  if(!plan)return {status:'blocked',message:selection.reason,rows:[]};
  const active=assignments.filter(a=>!a.cleared_at&&a.active!==false);
+ const warnings=[];
+ if(!Array.isArray(plan.resources)||!plan.resources.length)return {status:'blocked',message:'Plan has no resource requirements.',rows:[],unitIds:[]};
  const assignedHere=new Set(active.filter(a=>a.incident_id===incident.id).map(a=>a.unit_id));
  const assignedElsewhere=new Set(active.filter(a=>a.incident_id!==incident.id).map(a=>a.unit_id));
  const crewMembers=new Map(),crewForUnit=new Map();
@@ -57,7 +59,11 @@ function recommend({plans=[],plan:explicitPlan,incident,roster=[],assignments=[]
   const crew=crewForUnit.get(norm(u.call_sign||u.id));
   if(crew&&usedCrews.has(crew))return 'Shared crew already committed';
   if((u.staffing?.personIds||[]).some(p=>usedPeople.has(p)))return 'Personnel already committed';
-  if(req.stationId&&u.station_id!==req.stationId&&u.home_station_id!==req.stationId)return 'Not assigned to required station';
+  if(req.stationId){
+   const home=norm(u.station_id||u.home_station_id||'');
+   if(!home)return 'Station assignment not verified';
+   if(home!==norm(req.stationId))return 'Not assigned to required station';
+  }
   if(req.area&&norm(req.area)!==norm(u.response_area))return 'Outside configured response area';
   if(req.requiredStaffing!=null){
    if(!u.staffing?.active)return 'Staffing not verified';
@@ -70,6 +76,7 @@ function recommend({plans=[],plan:explicitPlan,incident,roster=[],assignments=[]
  }
  for(const req of plan.resources||[]){
   const count=num(req.count),type=norm(req.type);
+  if(!type||count<1){warnings.push('Invalid resource requirement: '+(type||'missing type'));continue}
   const already=roster.filter(u=>assignedHere.has(u.id)&&norm(u.resource_type)===type).length;
   const remaining=Math.max(0,count-already);
   const qualified=[],excluded=[];
@@ -93,7 +100,7 @@ function recommend({plans=[],plan:explicitPlan,incident,roster=[],assignments=[]
   if(shortage)missing.push({type,count:shortage});
   rows.push({type,requested:count,alreadyAssigned:already,recommended:qualified,excluded,shortage,station:stationById.get(req.stationId)?.name||null});
  }
- return {status:missing.length?'shortage':'ready',message:missing.length?'Response requirements remain unfilled. Dispatcher review required.':'Recommendations ready for dispatcher review. No units dispatched.',planId:plan.id,rows,missing,unitIds:rows.flatMap(r=>r.recommended.map(u=>u.id))};
+ return {status:warnings.length?'blocked':missing.length?'shortage':'ready',message:warnings.length?warnings.join('; '):missing.length?'Response requirements remain unfilled. Dispatcher review required.':'Recommendations ready for dispatcher review. No units dispatched.',planId:plan.id,rows,missing,warnings,unitIds:warnings.length?[]:rows.flatMap(r=>r.recommended.map(u=>u.id))};
 }
 return Object.freeze({match,selectPlan,recommend});
 });
