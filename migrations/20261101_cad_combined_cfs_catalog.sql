@@ -97,7 +97,7 @@ begin
   if v_incident is null then raise exception 'CAD incident creation returned no incident ID';end if;
   if v_root is null then v_root:=v_incident;end if;
   insert into public.cad_combined_incident_links(agency_id,root_incident_id,incident_id,discipline) values(p_agency,v_root,v_incident,v_row.discipline);
-  v_ids:=v_ids||jsonb_build_array(jsonb_build_object('id',v_incident,'discipline',v_row.discipline,'cfs_type_id',v_row.id));
+  v_ids:=v_ids||jsonb_build_array(jsonb_build_object('id',v_incident,'incident_number',v_created.incident_number,'discipline',v_row.discipline,'cfs_type_id',v_row.id));
  end loop;
  return jsonb_build_object('root_incident_id',v_root,'incidents',v_ids);
 end $$;
