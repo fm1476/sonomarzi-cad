@@ -1,0 +1,13 @@
+const assert=require('node:assert/strict');
+const config=require('../core/shared-crew-config');
+const groups=[{id:'crew1',name:'Station 1',unitIds:['E1','T1','R1','BR1','WT1']}];
+const base={unitId:'T1',groups,committedUnitIds:['E1'],reason:'Independent crew confirmed by dispatch'};
+assert.equal(config.overrideReview({...base,authorized:false}).code,'NOT_AUTHORIZED');
+assert.equal(config.overrideReview({...base,authorized:true,reason:'short'}).code,'REASON_REQUIRED');
+const review=config.overrideReview({...base,authorized:true});
+assert.equal(review.allowed,true);
+assert.equal(review.code,'REQUIRES_SERVER_CONFIRMATION');
+assert.equal(review.conflict.committedBy[0],'E1');
+assert.equal(config.overrideReview({...base,unitId:'UNRELATED',authorized:true}).allowed,false);
+assert.equal(config.blockedUnits(groups,['E1']).size,4);
+console.log('Shared-crew override preflight checks passed.');
