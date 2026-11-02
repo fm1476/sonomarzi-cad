@@ -146,6 +146,9 @@ function escalate({plan,incident,roster=[],assignments=[],crews=[],stations=[],q
  const levels=Array.isArray(plan.alarmLevels)?plan.alarmLevels:[];
  const target=levels.find(l=>l.id===level||l.name===level);
  if(!target)return {status:'blocked',message:'Selected alarm level is not configured.',rows:[],unitIds:[]};
+ // Complex response decision blocks cannot be safely flattened into alarm totals.
+ // Refuse to recommend instead of silently bypassing the configured GROUP/OR rule.
+ if(plan.resourceLogic||levels.some(l=>l.resourceLogic))return {status:'blocked',message:'Alarm escalation with OR/GROUP decision blocks requires explicit tier-level rules. No units recommended.',rows:[],unitIds:[],warnings:['Complex response logic is not yet supported during alarm escalation.']};
  const ordered=levels.slice().sort((a,b)=>Number(a.rank)-Number(b.rank));
  if(!Number.isFinite(Number(target.rank)))return {status:'blocked',message:'Alarm level sequence is invalid.',rows:[],unitIds:[]};
  const current=ordered.find(l=>l.id===incident.alarm_level||l.name===incident.alarm_level);
