@@ -132,11 +132,15 @@ function escalate({plan,incident,roster=[],assignments=[],crews=[],stations=[],q
  // Total-target levels include already assigned resources. Additive levels add
  // requirements from each crossed tier, then subtract current assignments.
  const tiers=mode==='ADDITIVE'?ordered.filter(l=>Number(l.rank)<=Number(target.rank)): [target];
- for(const tier of tiers)for(const r of tier.resources||[]){
+ for(const tier of tiers){
+ // A total target replaces earlier targets, rather than being added to them.
+ if(norm(tier.mode||'TOTAL')==='TOTAL')accumulated.clear();
+ for(const r of tier.resources||[]){
   const type=norm(r.type);if(!type||!Number.isInteger(Number(r.count))||Number(r.count)<1)return {status:'blocked',message:'Invalid alarm-level requirement.',rows:[],unitIds:[]};
   const previous=accumulated.get(type);
   if(previous){previous.count+=Number(r.count);previous.preferredUnits=[...new Set([...(previous.preferredUnits||[]),...(r.preferredUnits||[])])];}
   else accumulated.set(type,{...r,type,count:Number(r.count)});
+ }
  }
  if(!accumulated.size)return {status:'blocked',message:'Alarm level contains no resource requirements.',rows:[],unitIds:[]};
  const proposal=recommend({plan:{...plan,resources:[...accumulated.values()]},incident,roster,assignments,crews,stations,qualifications});

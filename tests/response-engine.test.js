@@ -84,6 +84,13 @@ test('additive escalation includes crossed tiers, without duplicate assigned uni
  assert.deepEqual(r.unitIds,['u3']);
 });
 test('canonical plan works with legacy incident lacking CFS ID only when name matches',()=>{const p={...plan,cfsTypeId:'type-123'};assert.equal(engine.match(p,incident),true);assert.equal(engine.match(p,{...incident,type:'Medical Aid'}),false);assert.equal(engine.match(p,{...incident,cfs_type_id:'different'}),false);});
+test('additive escalation starts from the latest total target without summing earlier totals',()=>{
+ const req=count=>({type:'ENGINE',count,preferredUnits:['E1','E2','E3']});
+ const p={...plan,alarmLevels:[{id:'first',rank:1,mode:'TOTAL',resources:[req(1)]},{id:'second',rank:2,mode:'TOTAL',resources:[req(2)]},{id:'third',rank:3,mode:'ADDITIVE',resources:[req(1)]}]};
+ const r=engine.escalate({plan:p,incident,level:'third',roster});
+ assert.equal(r.rows[0].requested,3);
+ assert.equal(r.rows[0].shortage,1);
+});
 test('explicit draft or mismatched response plan cannot recommend units',()=>{
  assert.equal(engine.recommend({plan:{...plan,status:'DRAFT'},incident,roster}).status,'blocked');
  assert.equal(engine.recommend({plan:{...plan,discipline:'EMS'},incident,roster}).status,'blocked');
