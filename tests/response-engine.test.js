@@ -83,4 +83,5 @@ test('additive escalation includes crossed tiers, without duplicate assigned uni
  const r=engine.escalate({plan:p,incident:{...incident,alarm_level:'First Alarm'},level:'second',roster,assignments:[{incident_id:'i1',unit_id:'u1'}]});
  assert.deepEqual(r.unitIds,['u3']);
 });
+test('canonical plan works with legacy incident lacking CFS ID only when name matches',()=>{const p={...plan,cfsTypeId:'type-123'};assert.equal(engine.match(p,incident),true);assert.equal(engine.match(p,{...incident,type:'Medical Aid'}),false);assert.equal(engine.match(p,{...incident,cfs_type_id:'different'}),false);});
 console.log('Response engine regression checks passed.');
