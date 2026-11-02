@@ -353,6 +353,7 @@
    try{
     result=await client.setUnitDuty({agency:session.agencyId,unit:unit.id,unitVersion:unit.version,onDuty});
     await refresh({quiet:true});
+    if(action==='create'&&result?.combined){const primary=snapshot.incidents.find(x=>x.id===result.primary_id);return {...result,incident_number:primary?.incident_number||result.primary_id}}
     return result;
    }catch(error){
     await refresh({quiet:true});
@@ -377,7 +378,19 @@
    try{
     let result;
     if(action==='create'){
-     result=await client.createIncidentAuto({agency,discipline:args.discipline,type:args.type,priority:args.priority,location:args.location});
+     // Resolve configured CFS types before creating calls. The mapping is directional.
+     // If the catalog is not deployed yet, preserve legacy single-call behavior.
+     let configured=[];
+     try{configured=await client.listCfsTypes(agency)}
+     catch(error){if(!/404|42P01|not found|does not exist/i.test(error.message))throw error}
+     const matches=configured.filter(x=>x.publication==='ACTIVE'&&x.discipline===args.discipline&&(x.name||'').trim().toLowerCase()===String(args.type||'').trim().toLowerCase());
+     if(matches.length>1)throw Error('Ambiguous agency CFS type. Resolve duplicate configuration.');
+     if(matches.length===1){
+      const created=await client.createCombinedIncident({agency,cfsTypeId:matches[0].id,priority:args.priority,location:args.location});
+      result={...created,combined:true,primary_id:created.incidents?.[0]?.id};
+     }else{
+      result=await client.createIncidentAuto({agency,discipline:args.discipline,type:args.type,priority:args.priority,location:args.location});
+     }
     }else{
      if(!incident)throw Error('Incident not found. Refresh and retry.');
      if(action==='join-onscene'){
