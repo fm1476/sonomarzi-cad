@@ -31,7 +31,7 @@ create or replace function public.cad_set_incident_alarm_level(
  p_level_rank integer
 ) returns jsonb language plpgsql security definer set search_path = ''
 as $fn$
-declare v public.cad_incidents; previous_rank integer; v_raw text; v_plan jsonb; v_level jsonb; v_settings jsonb;
+declare v public.cad_incidents; previous_rank integer; v_raw text; v_plan jsonb; v_level jsonb; v_settings jsonb; v_matches integer;
 begin
  if auth.uid() is null or not public.cad_has_access(p_agency,true)
  then raise exception 'CAD access denied' using errcode='42501';end if;
@@ -52,8 +52,12 @@ begin
  select payload into v_settings from public.cad_agency_config_documents
  where agency_id=p_agency and document_key='smcad-response-plans-v1';
  v_raw:=v_settings->>'raw';
- if v_raw is null or not pg_catalog.jsonb_typeof(v_raw::jsonb)='array'
+ if v_raw is null then raise exception 'Response plans are not configured';end if;
+ if pg_catalog.jsonb_typeof(v_raw::jsonb) <> 'array'
  then raise exception 'Response plans are not configured';end if;
+ select count(*) into v_matches from pg_catalog.jsonb_array_elements(v_raw::jsonb) p(value)
+ where p.value->>'id'=p_plan_id and upper(coalesce(p.value->>'status','')) in ('ACTIVE','PUBLISHED');
+ if v_matches<>1 then raise exception 'Plan identifier is not unique and active';end if;
  select p.value into v_plan from pg_catalog.jsonb_array_elements(v_raw::jsonb) p(value)
  where p.value->>'id'=p_plan_id
    and upper(coalesce(p.value->>'status','')) in ('ACTIVE','PUBLISHED')
