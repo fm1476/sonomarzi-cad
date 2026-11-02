@@ -30,8 +30,8 @@ begin
  if cardinality(v_new) < 2 or cardinality(v_new) <> cardinality(p_unit_ids) then
   raise exception 'Provide at least two different apparatus with no duplicates';
  end if;
- -- Serialize all edits for one agency, including creation and competing crew updates.
- perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(p_agency::text,68237));
+ -- Use the SAME agency lock key as all live CAD assignment RPCs, preventing races between crew membership edits and dispatch.
+ perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(p_agency::text,72361));
  select coalesce(array_agg(unit_id order by unit_id),array[]::uuid[]) into v_old
  from public.cad_shared_crew_units
  where agency_id=p_agency and crew_id=p_crew;
