@@ -7,7 +7,7 @@ const old=host;
 const shell=document.createElement('section');shell.id='cadResponseWorkspace';shell.className='cad-rp-workspace';
 old.before(shell);
 old.hidden=true;
-let plans=[],types=[],selected=null,version=null,sessionId=null,working=null;
+let plans=[],types=[],selected=null,version=null,sessionId=null,working=null,activeAgencyName='';
 const escape=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const parse=s=>{try{const p=JSON.parse(s||'[]');return Array.isArray(p)?p:[]}catch{return []}};
 const status=msg=>{const e=document.getElementById('rpWorkspaceMessage');if(e)e.textContent=msg};
@@ -22,6 +22,7 @@ async function reload(){
  const [catalog,documents]=await Promise.all([client.loadCfsCatalog(s.agencyId),client.listAgencySettings(s.agencyId)]);
  if(session()?.agencyId!==sessionId)return;
  types=catalog;
+ activeAgencyName=window.CadCloudSettings?.sharedMaster?.()?.agencies?.find(a=>a.id===s.agencyId)?.name||'';
  const doc=documents.find(x=>x.document_key===KEY);
  version=doc?.version??null;
  plans=parse(doc?.payload?.raw).map(normalize);
@@ -66,7 +67,21 @@ function editor(p){
  for(const [attr,shift] of [['up',-1],['down',1]])target.querySelectorAll('[data-'+attr+']').forEach(n=>n.onclick=()=>{const i=Number(n.dataset[attr]),j=i+shift;if(j<0||j>=working.resources.length)return;[working.resources[i],working.resources[j]]=[working.resources[j],working.resources[i]];drawRequirements()});
  preview();
  }
- document.getElementById('rpNewAdd').onclick=()=>{const resource=prompt('Configured resource type, such as ENGINE or PATROL')?.trim().toUpperCase();if(!resource)return;working.resources.push({type:resource,count:1,preferredUnits:[]});drawRequirements()};
+ const add=document.getElementById('rpNewAdd');
+ const picker=document.createElement('select');picker.id='rpResourcePicker';picker.setAttribute('aria-label','Choose configured resource type');
+ add.before(picker);
+ function resourceOptions(){
+  const agency=activeAgencyName||window.CadAgencyMaster?.read(localStorage)?.agencies?.[0]?.name||'';
+  const available=window.CadResourceTypes?.forAgency(agency,discipline.value)||[];
+  picker.replaceChildren();
+  for(const entry of available){const option=document.createElement('option');option.value=entry.name;option.textContent=entry.name;picker.append(option)}
+  if(!available.length){const option=document.createElement('option');option.value='';option.textContent='No configured resource types';picker.append(option);add.disabled=true}
+  else add.disabled=false;
+ }
+ const oldChange=discipline.onchange;
+ discipline.onchange=()=>{oldChange();resourceOptions()};
+ resourceOptions();
+ add.onclick=()=>{const resource=picker.value;if(!resource)return status('Configure resource types under Agencies & Units first.');working.resources.push({type:resource,count:1,preferredUnits:[]});drawRequirements()};
  const snapshot=()=>{const chosen=types.find(t=>t.id===type.value);return {...working,discipline:discipline.value,cfsTypeId:chosen?.id||null,type:chosen?.name||'',priority:document.getElementById('rpNewPriority').value===''?null:Number(document.getElementById('rpNewPriority').value),area:document.getElementById('rpNewArea').value.trim()}};
  for(const [id,state] of [['rpNewSave','DRAFT'],['rpNewActivate','ACTIVE'],['rpNewDeactivate','INACTIVE']])document.getElementById(id).onclick=()=>savePlan({...snapshot(),status:state});
  function preview(){v.innerHTML='<h4>Plan Preview</h4><p>Requirements are reviewed here. Actual unit recommendations need a current shared incident and roster.</p>'+working.resources.map(r=>'<div class="cad-rp-preview-line"><strong>'+escape(r.count)+' × '+escape(r.type)+'</strong><small>'+escape((r.preferredUnits||[]).join(' → ')||'No preferred unit order configured')+'</small></div>').join('')+'<p>No units dispatched. Availability and staffing must be verified against the shared CAD before assignment.</p>'}
@@ -76,6 +91,8 @@ async function savePlan(p){
  if(!session())return status('Connect to shared CAD before saving.');
  if(!p.cfsTypeId)return status('Select a saved discipline-specific call type.');
  if(!p.resources?.length)return status('Add at least one response requirement.');
+ const selectedType=types.find(t=>t.id===p.cfsTypeId);
+ if(p.status==='ACTIVE'&&selectedType?.publication!=='ACTIVE')return status('The selected CFS type must be Active before this plan can be activated.');
  if(p.resources.some(r=>!r.type||!Number.isInteger(Number(r.count))||Number(r.count)<1||Number(r.count)>99))return status('Each requirement needs a resource type and a quantity between 1 and 99.');
  if(p.status==='ACTIVE'&&p.resources.some(r=>!(r.preferredUnits||[]).length&&!r.specificUnit&&!r.allowUnrankedFallback))return status('Configure the response order for every requirement before activation. No automatic nearest-unit selection is available.');
  const next=[...plans.filter(x=>x.id!==p.id),p];
