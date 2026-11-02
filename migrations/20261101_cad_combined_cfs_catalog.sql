@@ -59,6 +59,7 @@ begin
  v_name:=btrim(coalesce(p_type->>'name',''));
  v_code:=upper(btrim(coalesce(p_type->>'code','')));
  v_pub:=upper(coalesce(p_type->>'publication','DRAFT'));
+ if p_type->'autoCreate' is not null and jsonb_typeof(p_type->'autoCreate')<>'array' then raise exception 'CFS autoCreate must be an array';end if;
  if v_d not in ('LAW','FIRE','EMS') or length(v_name) not between 1 and 160 or length(v_code) not between 1 and 32 or v_pub not in ('DRAFT','ACTIVE','INACTIVE') then raise exception 'Invalid CFS type';end if;
  insert into public.cad_cfs_types(id,agency_id,discipline,name,code,category,priority,description,icon,color,publication)
  values(v_id,p_agency,v_d,v_name,v_code,left(coalesce(p_type->>'category',''),100),left(coalesce(p_type->>'priority','P2'),16),left(coalesce(p_type->>'description',''),2000),left(coalesce(p_type->>'icon',''),100),left(coalesce(p_type->>'color',''),32),v_pub)
