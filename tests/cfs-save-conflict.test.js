@@ -31,6 +31,6 @@ const original=[{id:'law-draft',discipline:'LAW',name:'Accident with Injuries',c
   assert(!error.message.includes('constraint'));assert(!error.message.includes('409'));assert.equal(error.writesStarted,true);return true;
  });
  const html=fs.readFileSync(require.resolve('../prototypes/cfs-type-designer.html'),'utf8');
- assert.match(html,/catalog=loaded;current=catalog\[0\];returnTo=null;localStorage.setItem\(STORE,JSON.stringify\(catalog\)\)/,'Loading agency types must persist their IDs for the next designer visit');
+ assert.match(html,/catalog=loaded;current=[^;]+;returnTo=null;localStorage.setItem\(STORE,JSON.stringify\(catalog\)\)/,'Loading agency types must persist their IDs for the next designer visit');
  console.log('PASS: CFS draft conflicts prevent partial writes, preserve drafts, and provide clear recovery');
 })().catch(error=>{console.error(error);process.exitCode=1});

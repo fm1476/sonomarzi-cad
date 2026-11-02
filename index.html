@@ -11,7 +11,7 @@
 <style>
 .cad-alarm-chip{display:inline-flex;align-items:center;margin:3px 0 3px 8px;padding:3px 9px;border-radius:999px;background:#7b341d;color:#fff1db;border:1px solid #df874b;font-size:11px;font-weight:800;letter-spacing:.3px;white-space:nowrap;vertical-align:middle}
 .cad-alarm-chip-header{font-size:12px;padding:5px 11px;background:#923c22}
-</style></head>
+</style><link rel="stylesheet" href="cfs-type-settings.css?v=1"></head>
 <body>
 <header>
   <div class="cad-brand-and-tabs"><div class="cad-brand"><b>SONOMARZI CAD</b><span class="badge">POC</span></div><nav class="cad-header-tabs" aria-label="Main navigation"><button data-view="dispatch" class="active">Dispatch</button><button data-view="calltake">Call Taking</button><button data-view="config">Configuration</button></nav></div>
@@ -164,7 +164,7 @@
 <main id="config" class="view">
   <section class="panel config">
     <h2>Agency Configuration</h2>
-    <p>Changes below affect this browser immediately and persist locally.</p>
+    <p>Select a section to manage agency configuration.</p>
     <label>Configuration section<select id="cadConfigSection" aria-label="Choose configuration section"><option value="master">Agencies &amp; Units</option><option value="response">Response Plan Designer</option><option value="stations">Stations &amp; Facilities</option><option value="cfs">Calls for Service</option><option value="self">Self-Initiated CFS</option><option value="unit-status">Unit Statuses</option><option value="places">Common Places</option><option value="phrases">Voice Phrases</option><option value="general">General &amp; Other Settings</option><option value="designer">Workspace &amp; Form Designer</option></select></label>
     <div data-config-panel="unit-status" hidden>
  <h3>Unit Status Configuration</h3><p>Agency-wide display statuses and radio aliases. Canonical status controls dispatch availability, assignments and safety. Changing a label does not change the underlying CAD status.</p>
@@ -220,9 +220,7 @@
       <div style="max-width:650px"><div style="font-size:12px;letter-spacing:.08em;color:#80caff;font-weight:800">NEW CONFIGURATION EXPERIENCE · PREVIEW</div><h3 style="font-size:22px;margin:8px 0">◇ Visual CFS Type Designer</h3><p style="margin:0;color:#c3d8ed">Create call types, connect Law, Fire and EMS, and preview automatically linked events in a modern visual workspace.</p><p style="margin:9px 0 0;font-size:12px;color:#a8c2d8">Save drafts privately in this browser. Save &amp; Activate Changes saves agency call types to shared CAD; only types marked Active are available for new calls.</p></div>
       <a href="prototypes/cfs-type-designer.html" target="_blank" rel="opener" style="display:inline-flex;align-items:center;gap:8px;padding:13px 19px;background:#1468e8;color:white;text-decoration:none;border:1px solid #4b9aff;border-radius:11px;font-weight:800;white-space:nowrap">Open Visual Designer ↗</a>
     </section>
-    <label>LAW Incident Types<textarea id="cfgLaw"></textarea></label>
-    <label>FIRE Incident Types<textarea id="cfgFire"></textarea></label>
-    <label>EMS Incident Types<textarea id="cfgEms"></textarea></label>
+    <section aria-label="Agency call types"><div class="actions"><h3>Agency Call Types</h3><button id="cadCfsRefresh" type="button">Refresh Call Types</button></div><p id="cadCfsListStatus" role="status">Sign in to view your agency’s saved call types.</p><div id="cadAgencyCfsList"></div></section>
     </div>
     <div data-config-panel="self" hidden>
     <h3>Self-Initiated Calls for Service</h3>
@@ -502,5 +500,5 @@ window.CadIncidentZones={async lookup(location,discipline){
  };
 })();
 </script>
-</body>
+<script src="cfs-type-settings.js?v=1"></script></body>
 </html>

@@ -1,0 +1,17 @@
+const assert=require('node:assert/strict'),fs=require('node:fs');
+const bridge=require('../core/cfs-catalog-bridge');
+const existing=[{id:'saved',discipline:'LAW',name:'Traffic Stop',code:'TS',publication:'Active',fire:'saved-fire',fireEnabled:true},{id:'reserved',discipline:'EMS',name:'Other',code:'MEDICAL_AID',publication:'Active'}];
+const original=JSON.stringify(existing);let next=0;
+const legacy={LAW:[' Traffic  Stop ','Disturbance','Disturbance'],FIRE:['Traffic Stop'],EMS:['Medical Aid']};
+const result=bridge.importLegacyTypes(legacy,existing,()=>String(++next));
+assert.equal(result.added.length,3);assert.equal(result.skipped.length,2);
+assert.equal(result.added.find(x=>x.name==='Medical Aid').code,'MEDICAL_AID_2');
+assert(result.added.every(x=>x.publication==='Draft'&&!x.fireEnabled&&!x.emsEnabled));
+assert.equal(JSON.stringify(existing),original,'Existing saved states and mappings must not be modified');
+assert.equal(bridge.importLegacyTypes(legacy,result.catalog,()=>String(++next)).added.length,0,'Repeating import must not duplicate records');
+const html=fs.readFileSync(require.resolve('../index.html'),'utf8');
+for(const id of ['cfgLaw','cfgFire','cfgEms'])assert(!html.includes('id="'+id+'"'),'Old editable type boxes must be removed');
+assert(html.includes('id="cadAgencyCfsList"'));
+const app=fs.readFileSync(require.resolve('../app.js'),'utf8');
+assert(!app.includes("$('#cfgLaw')"),'Removing old type boxes must not break startup or saving other settings');
+console.log('PASS: repeatable legacy CFS draft import preserves agency settings and removes old editors');

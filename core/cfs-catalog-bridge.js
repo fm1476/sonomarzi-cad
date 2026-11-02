@@ -63,5 +63,20 @@ async function saveCatalog({api,agency,catalog,makeId}){
   result.writesStarted=writesStarted;throw result;
  }
 }
-return Object.freeze({toCloud,fromCloud,saveCatalog});
+function importLegacyTypes(legacy,existing,makeId){
+ const catalog=structuredClone(existing),added=[],skipped=[];
+ const normalized=value=>String(value||'').trim().replace(/\s+/g,' ').toUpperCase();
+ const codes=new Set(catalog.map(item=>item.discipline+':'+normalized(item.code)));
+ for(const discipline of ['LAW','FIRE','EMS'])for(const value of legacy[discipline]||[]){
+  const name=String(value||'').trim();if(!name)continue;
+  if(catalog.some(item=>item.discipline===discipline&&normalized(item.name)===normalized(name))){skipped.push({discipline,name});continue}
+  const stem=(normalized(name).replace(/[^A-Z0-9]+/g,'_').replace(/^_|_$/g,'')||'CFS').slice(0,26);
+  let code=stem,suffix=2;while(codes.has(discipline+':'+code))code=stem+'_'+suffix++;
+  codes.add(discipline+':'+code);
+  const item={id:makeId(),name,code,discipline,category:'Imported',priority:'Priority 2',description:'Imported from the previous CFS list. Review the code, priority and response settings before activation.',publication:'Draft',fire:'',ems:'',fireEnabled:false,emsEnabled:false};
+  catalog.push(item);added.push(item);
+ }
+ return {catalog,added,skipped};
+}
+return Object.freeze({toCloud,fromCloud,saveCatalog,importLegacyTypes});
 });
