@@ -99,10 +99,18 @@ function editor(p){
  function drawAlarms(){
   const holder=document.getElementById('rpNewAlarms');
   const levels=working.alarmLevels||[];
-  holder.innerHTML=levels.map((level,i)=>'<div class="cad-rp-requirement"><label>Level name <input data-alarm-name="'+i+'" value="'+escape(level.name||'')+'"></label><label>Sequence <input type="number" min="1" data-alarm-rank="'+i+'" value="'+Number(level.rank||i+1)+'"></label><label>Calculation <select data-alarm-mode="'+i+'"><option value="TOTAL">Total resources needed</option><option value="ADDITIVE">Add these resources</option></select></label><button type="button" data-alarm-remove="'+i+'">Remove level</button><div style="width:100%"><strong>Level resources</strong><div data-alarm-rows="'+i+'"></div><button type="button" data-alarm-add="'+i+'">+ Resource</button></div></div>').join('')||'<p>No additional alarm levels defined.</p>';
+  holder.innerHTML=levels.map((level,i)=>'<div class="cad-rp-requirement"><label>Level name <input data-alarm-name="'+i+'" value="'+escape(level.name||'')+'"></label><label>Sequence <input type="number" min="1" data-alarm-rank="'+i+'" value="'+Number(level.rank||i+1)+'"></label><label>Calculation <select data-alarm-mode="'+i+'"><option value="TOTAL">Total resources needed</option><option value="ADDITIVE">Add these resources</option></select></label><label>Tier decision<select data-alarm-logic="'+i+'"><option value="STANDARD">Standard totals</option><option value="GROUP">All resources together</option><option value="OR">Alternative choices from plan</option></select></label><button type="button" data-alarm-remove="'+i+'">Remove level</button><div style="width:100%"><strong>Level resources</strong><div data-alarm-rows="'+i+'"></div><button type="button" data-alarm-add="'+i+'">+ Resource</button></div></div>').join('')||'<p>No additional alarm levels defined.</p>';
   levels.forEach((level,i)=>{
    const name=holder.querySelector('[data-alarm-name="'+i+'"]'),rank=holder.querySelector('[data-alarm-rank="'+i+'"]'),mode=holder.querySelector('[data-alarm-mode="'+i+'"]');
    name.onchange=()=>{level.name=name.value.trim();preview()};rank.onchange=()=>{level.rank=Number(rank.value);preview()};mode.value=level.mode||'TOTAL';mode.onchange=()=>{level.mode=mode.value;preview()};
+   const tierDecision=holder.querySelector('[data-alarm-logic="'+i+'"]');
+   tierDecision.value=level.resourceLogic?.mode||'STANDARD';
+   tierDecision.onchange=()=>{
+    if(tierDecision.value==='STANDARD')level.resourceLogic=null;
+    else if(tierDecision.value==='GROUP')level.resourceLogic={mode:'GROUP',resources:structuredClone(level.resources||[])};
+    else level.resourceLogic={mode:'OR',options:(working.resourceLogic?.mode==='OR'?structuredClone(working.resourceLogic.options):[structuredClone(level.resources||[])])};
+    preview();
+   };
    holder.querySelector('[data-alarm-remove="'+i+'"]').onclick=()=>{levels.splice(i,1);drawAlarms();preview()};
    const rows=holder.querySelector('[data-alarm-rows="'+i+'"]');
    function redrawRows(){
@@ -276,7 +284,7 @@ async function savePlan(p){
  if(!session())return status('Connect to shared CAD before saving.');
   if(!p.cfsTypeId)return status('Select a saved discipline-specific call type.');
  const logic=p.resourceLogic;
- if(p.status==='ACTIVE'&&logic&&(p.alarmLevels||[]).length)return status('Activation blocked: OR/GROUP rules with alarm levels require explicit tier-level decision logic. Save as draft until supported.');
+ if(p.status==='ACTIVE'&&(logic||(p.alarmLevels||[]).some(l=>l.resourceLogic))&&(p.alarmLevels||[]).some(l=>l.mode==='ADDITIVE'||!l.resourceLogic))return status('Activation blocked: complex alarm plans require explicit TOTAL tier decisions at every alarm level.');
  if(p.status==='ACTIVE'&&logic){
   const blocks=logic.mode==='GROUP'?[logic.resources]:logic.mode==='OR'?logic.options:null;
   if(!blocks||!blocks.length||blocks.some(b=>!Array.isArray(b)||!b.length))return status('Every grouped or alternative response must contain at least one resource.');
