@@ -44,6 +44,8 @@
    saveCloudSetting:({agency,scope,key,payload,expectedVersion})=>rpc('cad_save_cloud_setting',{p_agency:id(agency),p_scope:scope,p_key:key,p_payload:payload,p_expected_version:expectedVersion}),
 
    listCfsTypes:agency=>read('cad_cfs_types',agency,'select=*&order=discipline,name'),
+   listCfsAutoLinks:agency=>read('cad_cfs_auto_links',agency,'select=source_type_id,target_discipline,target_type_id&order=source_type_id,target_discipline'),
+   async loadCfsCatalog(agency){const [types,links]=await Promise.all([read('cad_cfs_types',agency,'select=*&order=discipline,name'),read('cad_cfs_auto_links',agency,'select=source_type_id,target_discipline,target_type_id')]);return types.map(t=>({...t,autoCreate:links.filter(l=>l.source_type_id===t.id).map(l=>l.target_type_id)}))},
    saveCfsType:({agency,cfsType})=>rpc('cad_save_cfs_type',{p_agency:id(agency),p_type:cfsType}),
    createCombinedIncident:({agency,cfsTypeId,priority,location})=>rpc('cad_create_combined_incident',{p_agency:id(agency),p_cfs_type:id(cfsTypeId),p_priority:priority,p_location:location}),
    listCombinedLinks:agency=>read('cad_combined_incident_links',agency,'select=*&order=created_at.desc'),
