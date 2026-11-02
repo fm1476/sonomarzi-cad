@@ -379,10 +379,9 @@
     let result;
     if(action==='create'){
      // Resolve configured CFS types before creating calls. The mapping is directional.
-     // If the catalog is not deployed yet, preserve legacy single-call behavior.
-     let configured=[];
-     try{configured=await client.listCfsTypes(agency)}
-     catch(error){if(!/404|42P01|not found|does not exist/i.test(error.message))throw error}
+     // Never silently create a single call when a configured combined event cannot be resolved.
+     // A missing catalog schema is a configuration error, not permission to bypass mappings.
+     const configured=await client.listCfsTypes(agency);
      const matches=configured.filter(x=>x.publication==='ACTIVE'&&x.discipline===args.discipline&&(x.name||'').trim().toLowerCase()===String(args.type||'').trim().toLowerCase());
      if(matches.length>1)throw Error('Ambiguous agency CFS type. Resolve duplicate configuration.');
      if(matches.length===1){
