@@ -20,3 +20,8 @@
 
 ## Prototype preflight
 `CadSharedCrewConfig.overrideReview` checks locally for a shared-crew conflict, explicit authorization input, and reason length. It returns `REQUIRES_SERVER_CONFIRMATION` rather than assigning a unit. It is advisory UI validation only, never proof of authorization or an override.
+
+## Authorization discovery blocker (read-only inspection)
+The live CAD schema exposes `cad_has_access(p_agency,p_write)` but no dedicated shared-crew override permission helper. **Write access alone is insufficient to authorize this exceptional action.** Until an authoritative role/permission mechanism is designed and independently tested, the override RPC must not be granted to dispatch users. Do not repurpose broad agency write rights as override authority.
+
+The current database already checks shared crew exclusion in assignment, joining, and preemption pathways. An override RPC must explicitly enforce all other ordinary unit and incident rules. No bypass using client-provided `authorized=true` is permitted.
