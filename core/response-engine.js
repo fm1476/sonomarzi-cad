@@ -27,12 +27,14 @@ function selectPlan(plans,incident){
 }
 function recommend({plans=[],plan:explicitPlan,incident,roster=[],assignments=[],crews=[],stations=[],qualifications=[]}={}){
  if(!incident)return {status:'blocked',message:'Select an incident.',rows:[]};
- const selection=explicitPlan?{plan:explicitPlan,reason:null}:selectPlan(plans,incident);
+ const selection=explicitPlan?(match(explicitPlan,incident)?{plan:explicitPlan,reason:null}:{plan:null,reason:'Explicit plan does not match this incident or is not active.'}):selectPlan(plans,incident);
  const plan=selection.plan;
  if(!plan)return {status:'blocked',message:selection.reason,rows:[]};
  const active=assignments.filter(a=>!a.cleared_at&&a.active!==false);
  const warnings=[];
  if(!Array.isArray(plan.resources)||!plan.resources.length)return {status:'blocked',message:'Plan has no resource requirements.',rows:[],unitIds:[]};
+ const requirementTypes=plan.resources.map(r=>norm(r.type));
+ if(new Set(requirementTypes).size!==requirementTypes.length)return {status:'blocked',message:'Duplicate resource types must be consolidated into one requirement to prevent double counting.',rows:[],unitIds:[]};
  const assignedHere=new Set(active.filter(a=>a.incident_id===incident.id).map(a=>a.unit_id));
  const assignedElsewhere=new Set(active.filter(a=>a.incident_id!==incident.id).map(a=>a.unit_id));
  const crewMembers=new Map(),crewForUnit=new Map();
@@ -78,7 +80,7 @@ function recommend({plans=[],plan:explicitPlan,incident,roster=[],assignments=[]
  }
  for(const req of plan.resources||[]){
   const count=num(req.count),type=norm(req.type);
-  if(!type||count<1){warnings.push('Invalid resource requirement: '+(type||'missing type'));continue}
+  if(!type||count<1||count>99){warnings.push('Invalid resource requirement: '+(type||'missing type'));continue}
   const already=roster.filter(u=>assignedHere.has(u.id)&&norm(u.resource_type)===type).length;
   const remaining=Math.max(0,count-already);
   const qualified=[],excluded=[];
