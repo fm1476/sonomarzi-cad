@@ -47,6 +47,7 @@ function recommend({plans=[],plan:explicitPlan,incident,roster=[],assignments=[]
  const rows=[],missing=[];
  function eligible(u,req){
   if(norm(u.discipline)!==norm(plan.discipline))return 'Different discipline';
+  if(u.agency_id&&incident.agency_id&&u.agency_id!==incident.agency_id&&!req.allowMutualAid)return 'Outside incident agency; mutual aid not authorized';
   if(req.specificUnit&&norm(req.specificUnit)!==norm(u.call_sign))return 'Not the specified unit';
   if(assignedElsewhere.has(u.id))return 'Assigned to another incident';
   if(assignedHere.has(u.id))return 'Already assigned to this incident';
