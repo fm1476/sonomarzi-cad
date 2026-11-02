@@ -558,7 +558,7 @@ function populate(){
  agency.innerHTML=availableAgencies().map(a=>`<option value="${escapeCad(a)}">${escapeCad(a)}</option>`).join('');
  agency.value=availableAgencies().includes(previous)?previous:(availableAgencies()[0]||'');
  updateTypes();
- $('#cfgAgencies').value=(config.agencies||[]).join('\n');$('#cfgLaw').value=(config.types?.LAW||[]).join('\n');$('#cfgFire').value=(config.types?.FIRE||[]).join('\n');$('#cfgEms').value=(config.types?.EMS||[]).join('\n');
+ $('#cfgAgencies').value=(config.agencies||[]).join('\n');
 }
 function updateTypes(){if($('#type').tagName==='INPUT'){window.cadRefreshNewCallOptions?.();return}const previous=$('#type').value;const types=window.cadConfiguredTypes($('#discipline').value);$('#type').innerHTML=types.map(t=>`<option value="${escapeCad(t)}">${escapeCad(t)}</option>`).join('');if(types.includes(previous))$('#type').value=previous}
 
@@ -672,7 +672,7 @@ document.querySelector('[data-panel="units"] .filters')?.addEventListener('click
  render();
 });
 // The enhanced command desk installs its own keyboard handling from command-intelligence.js.
-$('#saveConfig').onclick=()=>{config={...config,agencies:$('#cfgAgencies').value.split('\n').filter(Boolean),types:{LAW:$('#cfgLaw').value.split('\n').filter(Boolean),FIRE:$('#cfgFire').value.split('\n').filter(Boolean),EMS:$('#cfgEms').value.split('\n').filter(Boolean)}};localStorage.setItem(CFG,JSON.stringify(config));populate();toast('Configuration saved')}
+$('#saveConfig').onclick=()=>{config={...config,agencies:$('#cfgAgencies').value.split('\n').filter(Boolean),types:config.types||defaultConfig.types};localStorage.setItem(CFG,JSON.stringify(config));populate();toast('Configuration saved')}
 window.cadLinkExistingMasterUnits=function(){
  try{
   const result=window.CadUnitActivation.linkExisting(window.CadAgencyMaster.read(localStorage),state);

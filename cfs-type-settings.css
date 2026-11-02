@@ -1,0 +1,7 @@
+.cad-cfs-type-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(245px,1fr));gap:12px;margin-bottom:22px}
+.cad-cfs-type-card{display:flex;flex-direction:column;gap:10px;padding:18px;border:1px solid #45617a;border-left:4px solid #4b9aff;border-radius:12px;background:var(--panel,#12263a);color:var(--text,#eaf3ff);text-decoration:none;min-width:0}
+.cad-cfs-type-card.fire{border-left-color:#f0ae45}.cad-cfs-type-card.ems{border-left-color:#40c9a5}
+.cad-cfs-type-card:hover,.cad-cfs-type-card:focus-visible{outline:2px solid #68b4ff;outline-offset:2px}
+.cad-cfs-type-card strong{font-size:16px}.cad-cfs-type-card small{line-height:1.5;overflow-wrap:anywhere}
+.cad-cfs-type-state{font-size:12px;font-weight:700}.cad-cfs-type-card small{opacity:.85}
+html[data-cad-theme="day"] .cad-cfs-type-card{background:#fff;color:#15324a}
