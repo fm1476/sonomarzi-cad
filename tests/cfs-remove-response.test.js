@@ -1,0 +1,15 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
+const html=fs.readFileSync(require.resolve('../prototypes/cfs-type-designer.html'),'utf8');
+const status={dataset:{}};
+const child={id:'ems-child',name:'Medical Aid'};
+const ctx={current:{fire:'fire-child',fireEnabled:true,ems:child.id,emsEnabled:true},catalog:[child],capture(){},render(){},$:()=>status};
+vm.createContext(ctx);
+vm.runInContext(html.slice(html.indexOf('function removeResponse('),html.indexOf('function render(){')),ctx);
+ctx.removeResponse('ems');
+assert.equal(ctx.current.ems,'');assert.equal(ctx.current.emsEnabled,false);
+assert.equal(ctx.current.fire,'fire-child');assert.equal(ctx.current.fireEnabled,true);
+assert.equal(ctx.catalog[0],child,'Removing a response must not delete the standalone CFS');
+assert.match(status.textContent,/Save your changes/);
+ctx.addResponse('ems');assert.equal(ctx.current.emsEnabled,true);assert.equal(ctx.current.ems,'','Re-adding requires an explicit linked-type choice');
+assert(html.includes("current.discipline===discipline||!current[key+'Enabled']"),'Removed response card must disappear');
+console.log('PASS: remove/re-add combined responses without deleting call types or other mappings');
