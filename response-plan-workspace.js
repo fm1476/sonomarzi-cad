@@ -169,7 +169,7 @@ function editor(p){
   for(const l of levels)alarmSelect.append(new Option(l.name||'Unnamed level',l.id));
   alarmSelect.value=simulatedAlarm;alarmSelect.onchange=()=>{simulatedAlarm=alarmSelect.value;preview()};
   controls.append(alarmSelect);
-  const incident={id:'fictional-incident',agency_id:'fictional-agency',discipline:discipline.value,type:snapshot().type,priority:snapshot().priority,response_zone:snapshot().area||'DEFAULT'};
+  const incident={id:'fictional-incident',agency_id:'fictional-agency',discipline:discipline.value,type:snapshot().type,priority:snapshot().priority,response_zone:snapshot().area||'DEFAULT',dispatch_area:snapshot().pattern?.geography?.dispatchArea||'',subdivisions:snapshot().pattern?.geography?.subdivisions||[],occurred_at:new Date().toISOString()};
   const roster=names.map((name,i)=>({id:'fictional-'+i,call_sign:name,agency_id:'fictional-agency',discipline:discipline.value,resource_type:resourceUnits.get(name),status:'AVAILABLE',staffing:{active:true,personIds:Array.from({length:30},(_,j)=>'fictional-person-'+i+'-'+j)}}));
   const assignments=[...simulatedCommitted.map(name=>({incident_id:'fictional-other-call',unit_id:roster.find(u=>u.call_sign===name)?.id})),...simulatedOnIncident.map(name=>({incident_id:incident.id,unit_id:roster.find(u=>u.call_sign===name)?.id}))].filter(x=>x.unit_id);
   const crews=simulatedCrew?[{id:'fictional-crew',units:simulatedCrewMembers}]:[];
@@ -229,7 +229,15 @@ function editor(p){
 }
 async function savePlan(p){
  if(!session())return status('Connect to shared CAD before saving.');
- if(!p.cfsTypeId)return status('Select a saved discipline-specific call type.');
+  if(!p.cfsTypeId)return status('Select a saved discipline-specific call type.');
+ const geo=p.pattern?.geography||{},schedule=p.pattern?.schedule||{};
+ if((geo.subdivisions||[]).length>5)return status('Configure no more than five geographic subdivisions.');
+ if((geo.subdivisions||[]).length&&!geo.dispatchArea)return status('Dispatch area is required when subdivisions are configured.');
+ const scheduled=Boolean(schedule.days?.length||schedule.startTime||schedule.endTime);
+ if(scheduled&&(!schedule.startTime||!schedule.endTime||!schedule.timeZone||schedule.startTime===schedule.endTime))return status('Scheduled patterns require a time zone and different start/end times.');
+ if(schedule.days?.some(d=>!['SUN','MON','TUE','WED','THU','FRI','SAT'].includes(d)))return status('Use valid weekday abbreviations: SUN, MON, TUE, WED, THU, FRI, SAT.');
+ if(schedule.activeFrom&&schedule.expiresAt&&Date.parse(schedule.activeFrom)>=Date.parse(schedule.expiresAt))return status('Expiration must be after the effective date.');
+ if(scheduled&&p.status==='ACTIVE'&&!window.CadResponsePatternRules?.matches(p.pattern,{dispatch_area:geo.dispatchArea,subdivisions:geo.subdivisions,occurred_at:new Date().toISOString()}))status('Note: this plan is not active at the current agency-local time; schedule configuration will still be saved.');
  if(p.priority!==null&&p.priority!==undefined&&(!Number.isInteger(p.priority)||p.priority<1||p.priority>9))return status('Priority must be between 1 and 9, or left blank for any priority.');
  const duplicates=plans.filter(x=>x.id!==p.id&&x.status==='ACTIVE'&&p.status==='ACTIVE'&&x.discipline===p.discipline&&x.cfsTypeId===p.cfsTypeId&&String(x.area||'').toUpperCase()===String(p.area||'').toUpperCase()&&x.priority===p.priority);
  if(duplicates.length)return status('An active plan already covers this call type, priority and response area. Deactivate or edit that plan first.');
