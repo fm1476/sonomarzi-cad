@@ -1,0 +1,11 @@
+const assert=require('node:assert/strict');const engine=require('../core/response-engine');
+const incident={id:'i',agency_id:'a',discipline:'FIRE',type:'Fire',alarm_level:'FIRST'};
+const req={type:'ENGINE',count:1,preferredUnits:['E1']};
+const plan={id:'p',agencyId:'a',status:'ACTIVE',discipline:'FIRE',type:'Fire',resources:[req],resourceLogic:{mode:'GROUP',resources:[req]},alarmLevels:[{id:'first',name:'FIRST',rank:1,mode:'TOTAL',resources:[req]},{id:'second',name:'SECOND',rank:2,mode:'TOTAL',resources:[req]}]};
+const roster=[{id:'u1',call_sign:'E1',agency_id:'a',discipline:'FIRE',resource_type:'ENGINE',status:'AVAILABLE'}];
+const result=engine.escalate({plan,incident,roster,level:'second'});
+assert.equal(result.status,'blocked');assert.deepEqual(result.unitIds,[]);
+assert.match(result.message,/OR\/GROUP/);
+const conventional=engine.escalate({plan:{...plan,resourceLogic:null},incident,roster,level:'second'});
+assert.equal(conventional.status,'ready');assert.deepEqual(conventional.unitIds,['u1']);
+console.log('Alarm decision-logic safety regression checks passed.');
