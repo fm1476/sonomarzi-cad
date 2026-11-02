@@ -74,6 +74,8 @@ begin
    and (nullif(p.value->>'priority','') is null or p.value->>'priority'=v.priority)
    and upper(coalesce(nullif(btrim(coalesce(p.value->>'area',p.value->>'zone','')),''),'DEFAULT')) in ('DEFAULT','*');
  if v_matches>1 then raise exception 'Conflicting active response plans require review';end if;
+ -- The plan configuration is scoped by the agency document and the incident row
+ -- is locked. All alarm changes remain separate from dispatch transactions.
  select count(*) into v_matches from pg_catalog.jsonb_array_elements(coalesce(v_plan->'alarmLevels','[]'::jsonb)) l(value)
  where l.value->>'name'=p_level_name and l.value->>'rank'=p_level_rank::text;
  if v_matches<>1 then raise exception 'Alarm level is missing or ambiguous';end if;
@@ -81,6 +83,9 @@ begin
  where l.value->>'name'=p_level_name and l.value->>'rank'=p_level_rank::text
  limit 1;
  if v_level is null then raise exception 'Requested alarm level is not configured in the active plan';end if;
+ if jsonb_typeof(coalesce(v_level->'resources','null'::jsonb)) <> 'array'
+    or jsonb_array_length(coalesce(v_level->'resources','[]'::jsonb)) < 1
+ then raise exception 'Selected alarm level contains no valid resource array';end if;
  -- Note: geographic plan restrictions require a trusted, persisted response area
  -- on the incident. Until authoritative area matching is available, restricted
  -- plans MUST NOT be accepted for alarm transitions.
