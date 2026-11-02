@@ -1,0 +1,13 @@
+const assert=require('node:assert/strict');const engine=require('../core/response-engine');
+const incident={id:'i1',agency_id:'a',discipline:'FIRE',type:'Structure Fire'};
+const roster=[{id:'e1',call_sign:'E1',agency_id:'a',discipline:'FIRE',resource_type:'ENGINE',status:'AVAILABLE'},{id:'t1',call_sign:'T1',agency_id:'a',discipline:'FIRE',resource_type:'TRUCK',status:'AVAILABLE'}];
+const base={id:'p',agencyId:'a',status:'ACTIVE',discipline:'FIRE',type:'Structure Fire',resources:[{type:'ENGINE',count:1,preferredUnits:['E1']}]};
+const req=(type,sign)=>({type,count:1,preferredUnits:[sign]});
+const options={...base,resourceLogic:{mode:'OR',options:[[req('TRUCK','T1')],[req('ENGINE','E1')]]}};
+const first=engine.recommend({plan:options,incident,roster});assert.equal(first.status,'ready');assert.deepEqual(first.unitIds,['t1']);assert.equal(first.selectedAlternative,1);
+const second=engine.recommend({plan:options,incident,roster,assignments:[{incident_id:'elsewhere',unit_id:'t1'}]});assert.equal(second.status,'ready');assert.deepEqual(second.unitIds,['e1']);assert.equal(second.selectedAlternative,2);
+const none=engine.recommend({plan:options,incident,roster,assignments:[{incident_id:'elsewhere',unit_id:'t1'},{incident_id:'elsewhere',unit_id:'e1'}]});assert.equal(none.status,'blocked');assert.deepEqual(none.unitIds,[]);
+const group={...base,resourceLogic:{mode:'GROUP',resources:[req('TRUCK','T1'),req('ENGINE','E1')]}};
+assert.deepEqual(engine.recommend({plan:group,incident,roster}).unitIds,['t1','e1']);
+const incomplete=engine.recommend({plan:group,incident,roster,assignments:[{incident_id:'elsewhere',unit_id:'t1'}]});assert.equal(incomplete.status,'blocked');assert.deepEqual(incomplete.unitIds,[]);
+console.log('Response OR and atomic group recommendation tests passed.');

@@ -11,7 +11,9 @@
 <style>
 .cad-alarm-chip{display:inline-flex;align-items:center;margin:3px 0 3px 8px;padding:3px 9px;border-radius:999px;background:#7b341d;color:#fff1db;border:1px solid #df874b;font-size:11px;font-weight:800;letter-spacing:.3px;white-space:nowrap;vertical-align:middle}
 .cad-alarm-chip-header{font-size:12px;padding:5px 11px;background:#923c22}
-</style><link rel="stylesheet" href="cfs-type-settings.css?v=1"></head>
+</style><link rel="stylesheet" href="cfs-type-settings.css?v=1"><style>
+.cad-rp-workspace{padding:8px;color:var(--text,#e6edf7)}.cad-rp-heading,.cad-rp-header-actions,.cad-rp-actions{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}.cad-rp-columns{display:grid;grid-template-columns:minmax(210px,1fr) minmax(340px,2fr) minmax(245px,1.15fr);gap:14px;margin-top:15px}.cad-rp-list,.cad-rp-editor,.cad-rp-preview{padding:16px;border:1px solid #52647f;border-radius:14px;background:rgba(24,46,72,.25);min-width:0}.cad-rp-list input{width:100%;box-sizing:border-box}.cad-rp-plan-card{display:block;text-align:left;width:100%;margin:9px 0;padding:12px;border:1px solid #607792;border-radius:10px;background:rgba(40,76,114,.22);color:inherit;cursor:pointer}.cad-rp-plan-card.selected{outline:2px solid #4a97ff}.cad-rp-plan-card small,.cad-rp-preview-line small{display:block;margin-top:4px}.cad-rp-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.cad-rp-fields label{display:block}.cad-rp-fields input,.cad-rp-fields select{width:100%;box-sizing:border-box}.cad-rp-requirement{display:flex;gap:8px;align-items:center;flex-wrap:wrap;border:1px solid #4c6480;padding:10px;border-radius:12px;margin:9px 0}.cad-rp-requirement input{max-width:180px}.cad-rp-preview-line{padding:10px;margin:8px 0;border:1px solid #52647f;border-radius:10px}@media(max-width:950px){.cad-rp-columns{grid-template-columns:1fr}.cad-rp-fields{grid-template-columns:1fr}}
+</style></head>
 <body>
 <header>
   <div class="cad-brand-and-tabs"><div class="cad-brand"><b>SONOMARZI CAD</b><span class="badge">POC</span></div><nav class="cad-header-tabs" aria-label="Main navigation"><button data-view="dispatch" class="active">Dispatch</button><button data-view="calltake">Call Taking</button><button data-view="config">Configuration</button></nav></div>
@@ -417,6 +419,11 @@ window.CadIncidentZones={async lookup(location,discipline){
 }};
 </script>
 <script src="station-manager.js?v=6"></script><script src="response-plan-designer.js?v=29"></script>
+<script src="core/response-pattern-rules.js?v=1"></script>
+<script src="core/response-engine.js?v=1"></script>
+<link rel="stylesheet" href="response-plan-workspace.css?v=1">
+<script src="response-plan-workspace.js?v=2"></script>
+<script src="core/shared-crew-config.js?v=1"></script><script src="shared-crew-workspace.js?v=1"></script>
 <script src="alarm-levels.js?v=6"></script>
 
 <script src="extended-ops.js?v=18"></script>

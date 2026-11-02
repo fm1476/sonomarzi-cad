@@ -1,0 +1,18 @@
+const assert=require('node:assert/strict');const engine=require('../core/response-engine');
+const incident={id:'i',agency_id:'a',discipline:'FIRE',type:'Fire',alarm_level:'FIRST'};
+const req={type:'ENGINE',count:1,preferredUnits:['E1']};
+const plan={id:'p',agencyId:'a',status:'ACTIVE',discipline:'FIRE',type:'Fire',resources:[req],resourceLogic:{mode:'GROUP',resources:[req]},alarmLevels:[{id:'first',name:'FIRST',rank:1,mode:'TOTAL',resources:[req]},{id:'second',name:'SECOND',rank:2,mode:'TOTAL',resources:[req]}]};
+const roster=[{id:'u1',call_sign:'E1',agency_id:'a',discipline:'FIRE',resource_type:'ENGINE',status:'AVAILABLE'}];
+const result=engine.escalate({plan,incident,roster,level:'second'});
+assert.equal(result.status,'blocked');assert.deepEqual(result.unitIds,[]);
+assert.match(result.message,/OR\/GROUP/);
+const conventional=engine.escalate({plan:{...plan,resourceLogic:null},incident,roster,level:'second'});
+assert.equal(conventional.status,'ready');assert.deepEqual(conventional.unitIds,['u1']);
+const tier={...plan,alarmLevels:[...plan.alarmLevels.slice(0,1),{...plan.alarmLevels[1],resourceLogic:{mode:'GROUP',resources:[req]}}]};
+const complete=engine.escalate({plan:tier,incident,roster,level:'second'});
+assert.equal(complete.status,'ready');assert.deepEqual(complete.unitIds,['u1']);assert.equal(complete.logicMode,'GROUP');
+const unavailable=engine.escalate({plan:tier,incident,roster,level:'second',assignments:[{incident_id:'other',unit_id:'u1'}]});
+assert.equal(unavailable.status,'blocked');assert.deepEqual(unavailable.unitIds,[]);
+const additive={...tier,alarmLevels:[tier.alarmLevels[0],{...tier.alarmLevels[1],mode:'ADDITIVE'}]};
+assert.equal(engine.escalate({plan:additive,incident,roster,level:'second'}).status,'blocked');
+console.log('Alarm decision-logic safety regression checks passed.');

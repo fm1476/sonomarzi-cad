@@ -133,6 +133,78 @@
    const heading=document.createElement('div');heading.className='cad-shared-board-heading';
    heading.textContent=i.incident_number+' · '+i.type+' · '+i.current_location+' · '+i.status;
    detail.appendChild(heading);
+   // Read-only recommendation review uses the SAME shared snapshot as dispatch.
+   // No automatic assignment and no preemption: the dispatcher confirms a version-checked transaction.
+   if(i.status!=='CLOSED'&&window.CadResponseEngine){
+    const block=document.createElement('section');block.className='cad-rp-dispatch-review';
+    const review=document.createElement('button');review.type='button';review.className='cad-shared-btn';
+    review.textContent='Review Response Plan';
+    const output=document.createElement('div');output.setAttribute('role','status');
+    block.append(review,output);detail.append(block);
+    review.onclick=async()=>{
+     review.disabled=true;output.textContent='Checking active plans and shared resource availability…';
+     try{
+      const agency=window.CadDemoLogin.current()?.agencyId;
+      if(!agency)throw Error('Sign in required.');
+      const client=window.CadDemoLogin.client();
+      const [docs,sharedStations,sharedCrews,sharedCrewUnits]=await Promise.all([client.listAgencySettings(agency),client.listStations(agency),client.listSharedCrews(agency),client.listSharedCrewUnits(agency)]);
+      const raw=k=>{const item=docs.find(d=>d.document_key===k);try{return JSON.parse(item?.payload?.raw||'[]')}catch{return []}};
+      const plans=raw('smcad-response-plans-v1').map(p=>({...p,status:p.status==='Published'?'ACTIVE':p.status,agencyId:p.agencyId||agency,cfsTypeId:p.cfsTypeId||null,area:p.area||p.zone||''}));
+      const master=raw('smcad-agency-master-v1');
+      const facilities=raw('smcad-facilities-v1');
+      const configuredUnits=Array.isArray(master?.units)?master.units:[];
+      const enrichedRoster=snapshot.roster.map(u=>{const def=configuredUnits.find(d=>d.designator===u.call_sign||d.id===u.master_unit_id);return {...u,resource_type:u.resource_type||def?.resourceType,home_station_id:u.home_station_id||def?.homeStationId,staffing:u.staffing||null}});
+      const crews=sharedCrews.map(crew=>({...crew,unitIds:sharedCrewUnits.filter(link=>link.crew_id===crew.id).map(link=>snapshot.roster.find(unit=>unit.id===link.unit_id)?.call_sign).filter(Boolean)}));
+      const selectedPlan=window.CadResponseEngine.selectPlan(plans,{...i,response_zone:i.response_zone||i.zone||i.esz||i.beat}).plan;
+      if(!selectedPlan){output.textContent='No unique active plan matches. Verify call type and response area in Configuration.';return}
+      const chosenLevel=document.createElement('select');chosenLevel.setAttribute('aria-label','Response alarm level');
+      const baseOption=document.createElement('option');baseOption.value='';baseOption.textContent='Initial response';chosenLevel.append(baseOption);
+      for(const level of selectedPlan.alarmLevels||[]){const option=document.createElement('option');option.value=level.id;option.textContent=level.name;chosenLevel.append(option)}
+      output.replaceChildren();
+      if((selectedPlan.alarmLevels||[]).length){const levelLabel=document.createElement('label');levelLabel.textContent='Review response level ';levelLabel.append(chosenLevel);output.append(levelLabel)}
+      const calculate=()=>chosenLevel.value?window.CadResponseEngine.escalate({plan:selectedPlan,incident:i,roster:enrichedRoster,assignments:snapshot.assignments,crews,stations:sharedStations,level:chosenLevel.value}):window.CadResponseEngine.recommend({plan:selectedPlan,incident:i,roster:enrichedRoster,assignments:snapshot.assignments,crews,stations:Array.isArray(facilities)?facilities:[]});
+      let planResult=calculate();
+      const results=document.createElement('div');output.append(results);
+      function present(){results.replaceChildren();planResult=calculate();
+      const summary=document.createElement('p');summary.textContent=planResult.message;results.append(summary);
+      for(const row of planResult.rows){
+       const line=document.createElement('p');
+       const eligible=row.recommended.map(x=>x.callSign).join(', ')||'none';
+       line.textContent=row.type+': '+row.alreadyAssigned+' already assigned, '+row.recommended.length+' recommended ('+eligible+'), '+row.shortage+' unfilled';
+       results.append(line);
+       for(const excluded of row.excluded){const reason=document.createElement('small');reason.style.display='block';reason.textContent=excluded.unit+': '+excluded.reason;results.append(reason)}
+      }
+      if(chosenLevel.value){const notice=document.createElement('p');notice.textContent='Escalation preview only. Alarm-level state is not yet stored in shared CAD, so dispatch from this preview is disabled.';results.append(notice);return}
+      if(planResult.status==='blocked'||!planResult.unitIds.length)return;
+      const dispatch=document.createElement('button');dispatch.type='button';dispatch.className='cad-shared-btn';
+      dispatch.textContent=(planResult.status==='shortage'?'Dispatch Partial Response: ':'Dispatch ')+planResult.unitIds.length+' Reviewed Unit(s)';
+      results.append(dispatch);
+      dispatch.onclick=async()=>{
+       if(!window.confirm((planResult.status==='shortage'?'WARNING: Required resources are still unfilled. Dispatch this partial response of ':'Dispatch ')+planResult.unitIds.length+' selected units to '+i.incident_number+'? This will update shared CAD.'))return;
+       dispatch.disabled=true;
+       try{
+        const client=window.CadDemoLogin.client();
+        const latestIncident=snapshot.incidents.find(x=>x.id===i.id);
+        if(!latestIncident||latestIncident.version!==i.version)throw Error('Incident changed since review. Refresh and reconsider recommendations.');
+        const versions={};
+        for(const id of planResult.unitIds){
+         const unit=snapshot.roster.find(x=>x.id===id);
+         if(!unit||unit.status!=='AVAILABLE')throw Error('Resource availability changed. Refresh before dispatch.');
+         versions[id]=unit.version;
+        }
+        await client.assignResponsePlan({agency,incident:i.id,unitIds:planResult.unitIds,incidentVersion:i.version,unitVersions:versions});
+        output.textContent='Dispatch submitted. Refreshing the shared CAD…';
+        await refresh({quiet:true});
+       }catch(error){output.textContent='Dispatch not confirmed: '+error.message+'. Refresh before retrying.'}
+       finally{dispatch.disabled=false}
+      };
+      }
+      chosenLevel.onchange=present;
+      present();
+     }catch(error){output.textContent='Unable to review response plan: '+error.message}
+     finally{review.disabled=false}
+    };
+   }
    if(i.status!=='CLOSED'){
     const hold=snapshot.holds.find(h=>h.incident_id===i.id&&h.active);
     const line=document.createElement('div');line.className='cad-shared-board-assignment';

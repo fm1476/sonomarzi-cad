@@ -1,0 +1,20 @@
+.cad-rp-heading,.cad-rp-header-actions,.cad-rp-actions{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.cad-rp-heading{position:static;height:auto;min-height:80px;padding:12px;z-index:auto}
+.cad-rp-columns{display:grid;grid-template-columns:minmax(180px,1fr) minmax(320px,2fr) minmax(260px,1.3fr);gap:16px;margin-top:16px;align-items:start}
+.cad-rp-list,.cad-rp-editor,.cad-rp-preview{min-width:0;padding:16px;border:1px solid var(--border-color,#536079);border-radius:14px;background:var(--panel-bg,rgba(110,130,160,.08))}
+.cad-rp-list input,.cad-rp-fields input,.cad-rp-fields select{width:100%;box-sizing:border-box}
+.cad-rp-plan-card{display:block;width:100%;margin-top:10px;padding:12px;text-align:left;border-radius:10px}
+.cad-rp-plan-card small,.cad-rp-preview-line small{display:block;margin-top:6px}
+.cad-rp-plan-card.selected{outline:2px solid #488dce}
+.cad-rp-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.cad-rp-fields label{display:grid;gap:6px}
+.cad-rp-requirement{display:flex;align-items:flex-start;gap:8px;flex-wrap:wrap;margin:12px 0;padding:12px;border:1px solid var(--border-color,#536079);border-radius:12px;min-width:0}
+.cad-rp-requirement [data-unit-picker]{flex-basis:100%}
+.cad-rp-requirement label{display:grid;gap:4px;max-width:100%}
+.cad-rp-requirement input,.cad-rp-requirement textarea{max-width:100%;box-sizing:border-box}
+.cad-rp-preview-line{padding:10px 0;border-bottom:1px solid var(--border-color,#536079);overflow-wrap:anywhere}
+.cad-rp-workspace button,.cad-rp-editor button{padding:8px 12px;border-radius:9px;cursor:pointer}
+.cad-rp-workspace button:disabled{cursor:default;opacity:.6}
+#rpSimControls{display:flex;gap:8px;flex-wrap:wrap}
+@media(max-width:1100px){.cad-rp-columns{grid-template-columns:minmax(170px,1fr) minmax(300px,2fr)}.cad-rp-preview{grid-column:1/-1}}
+@media(max-width:650px){.cad-rp-columns,.cad-rp-fields{grid-template-columns:1fr}.cad-rp-preview{grid-column:auto}}

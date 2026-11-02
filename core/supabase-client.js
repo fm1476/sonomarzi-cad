@@ -52,6 +52,12 @@
    listIncidents:agency=>read('cad_incidents',agency,'select=*&order=created_at.desc&limit=250'),
    listUnits:agency=>read('cad_units',agency,'select=*&order=call_sign&limit=500'),
    listAssignments:agency=>read('cad_assignments',agency,'select=*&cleared_at=is.null&limit=500'),
+   listStations:agency=>read('cad_stations',agency,'select=*&order=name'),
+   listSharedCrews:agency=>read('cad_shared_crews',agency,'select=*'),
+   listSharedCrewUnits:agency=>read('cad_shared_crew_units',agency,'select=*'),
+   // Read-only until reviewed migration is explicitly applied and EXECUTE granted.
+   listAlarmState:agency=>read('cad_incident_alarm_state',agency,'select=incident_id,alarm_name,alarm_rank,plan_id,recorded_at'),
+   setIncidentAlarmLevel:({agency,incident,incidentVersion,planId,levelName,levelRank})=>rpc('cad_set_incident_alarm_level',{p_agency:id(agency),p_incident:id(incident),p_expected_version:incidentVersion,p_plan_id:planId,p_level_name:levelName,p_level_rank:levelRank}),
    listDispatchAreas:agency=>read('cad_dispatch_areas',agency,'select=id,name,description,active&active=eq.true&order=name'),
    listDispatchAreaAgencies:agency=>read('cad_dispatch_area_agencies',agency,'select=dispatch_area_id,served_agency_name'),
    createIncidentAuto:({agency,discipline,type,priority,location})=>rpc('cad_create_incident_auto',{p_agency:id(agency),p_discipline:discipline,p_type:type,p_priority:priority,p_location:location}),
