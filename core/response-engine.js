@@ -102,5 +102,30 @@ function recommend({plans=[],plan:explicitPlan,incident,roster=[],assignments=[]
  }
  return {status:warnings.length?'blocked':missing.length?'shortage':'ready',message:warnings.length?warnings.join('; '):missing.length?'Response requirements remain unfilled. Dispatcher review required.':'Recommendations ready for dispatcher review. No units dispatched.',planId:plan.id,rows,missing,warnings,unitIds:warnings.length?[]:rows.flatMap(r=>r.recommended.map(u=>u.id))};
 }
-return Object.freeze({match,selectPlan,recommend});
+function escalate({plan,incident,roster=[],assignments=[],crews=[],stations=[],qualifications=[],level}={}){
+ if(!plan||!incident)return {status:'blocked',message:'Select a plan and incident.',rows:[],unitIds:[]};
+ const levels=Array.isArray(plan.alarmLevels)?plan.alarmLevels:[];
+ const target=levels.find(l=>l.id===level||l.name===level);
+ if(!target)return {status:'blocked',message:'Selected alarm level is not configured.',rows:[],unitIds:[]};
+ const ordered=levels.slice().sort((a,b)=>Number(a.rank)-Number(b.rank));
+ if(!Number.isFinite(Number(target.rank)))return {status:'blocked',message:'Alarm level sequence is invalid.',rows:[],unitIds:[]};
+ const current=ordered.find(l=>l.id===incident.alarm_level||l.name===incident.alarm_level);
+ if(current&&Number(current.rank)>=Number(target.rank))return {status:'blocked',message:'Only higher alarm levels can be proposed here.',rows:[],unitIds:[]};
+ const mode=norm(target.mode||'TOTAL');
+ if(!['TOTAL','ADDITIVE'].includes(mode))return {status:'blocked',message:'Unsupported escalation mode.',rows:[],unitIds:[]};
+ const accumulated=new Map();
+ // Total-target levels include already assigned resources. Additive levels add
+ // requirements from each crossed tier, then subtract current assignments.
+ const tiers=mode==='ADDITIVE'?ordered.filter(l=>Number(l.rank)<=Number(target.rank)): [target];
+ for(const tier of tiers)for(const r of tier.resources||[]){
+  const type=norm(r.type);if(!type||!Number.isInteger(Number(r.count))||Number(r.count)<1)return {status:'blocked',message:'Invalid alarm-level requirement.',rows:[],unitIds:[]};
+  const previous=accumulated.get(type);
+  if(previous){previous.count+=Number(r.count);previous.preferredUnits=[...new Set([...(previous.preferredUnits||[]),...(r.preferredUnits||[])])];}
+  else accumulated.set(type,{...r,type,count:Number(r.count)});
+ }
+ if(!accumulated.size)return {status:'blocked',message:'Alarm level contains no resource requirements.',rows:[],unitIds:[]};
+ const proposal=recommend({plan:{...plan,resources:[...accumulated.values()]},incident,roster,assignments,crews,stations,qualifications});
+ return {...proposal,alarmLevel:target.name,escalationMode:mode,message:proposal.message+' Alarm change itself requires separate dispatcher confirmation.'};
+}
+return Object.freeze({match,selectPlan,recommend,escalate});
 });
