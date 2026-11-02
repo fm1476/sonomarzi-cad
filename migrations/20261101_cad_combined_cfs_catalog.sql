@@ -39,7 +39,6 @@ create table if not exists public.cad_combined_incident_links(
  primary key(agency_id,incident_id),
  unique(agency_id,root_incident_id,discipline)
 );
-create unique index if not exists cad_combined_one_root_per_agency on public.cad_combined_incident_links(agency_id,root_incident_id,incident_id);
 create index if not exists cad_combined_root_idx on public.cad_combined_incident_links(agency_id,root_incident_id);
 alter table public.cad_cfs_types enable row level security;
 alter table public.cad_cfs_auto_links enable row level security;
