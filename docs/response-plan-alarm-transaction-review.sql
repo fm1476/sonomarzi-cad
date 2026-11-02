@@ -66,6 +66,17 @@ begin
    and (nullif(p.value->>'priority','') is null or p.value->>'priority'=v.priority)
  limit 1;
  if v_plan is null then raise exception 'Active response plan does not match incident';end if;
+ -- Reject ambiguous active plans that resolve to this same incident.
+ select count(*) into v_matches from pg_catalog.jsonb_array_elements(v_raw::jsonb) p(value)
+ where upper(coalesce(p.value->>'status','')) in ('ACTIVE','PUBLISHED')
+   and upper(coalesce(p.value->>'discipline',''))=upper(v.discipline)
+   and upper(coalesce(p.value->>'type',''))=upper(v.type)
+   and (nullif(p.value->>'priority','') is null or p.value->>'priority'=v.priority)
+   and upper(coalesce(nullif(btrim(coalesce(p.value->>'area',p.value->>'zone','')),''),'DEFAULT')) in ('DEFAULT','*');
+ if v_matches>1 then raise exception 'Conflicting active response plans require review';end if;
+ select count(*) into v_matches from pg_catalog.jsonb_array_elements(coalesce(v_plan->'alarmLevels','[]'::jsonb)) l(value)
+ where l.value->>'name'=p_level_name and l.value->>'rank'=p_level_rank::text;
+ if v_matches<>1 then raise exception 'Alarm level is missing or ambiguous';end if;
  select l.value into v_level from pg_catalog.jsonb_array_elements(coalesce(v_plan->'alarmLevels','[]'::jsonb)) l(value)
  where l.value->>'name'=p_level_name and l.value->>'rank'=p_level_rank::text
  limit 1;
