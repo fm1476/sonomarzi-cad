@@ -2,10 +2,10 @@
 (()=>{'use strict';
 const root=document.getElementById('cadResponseWorkspace');
 if(!root||!window.CadSharedCrewConfig||!window.CadDemoLogin)return;
-const button=document.createElement('button');button.type='button';button.textContent='Shared Crews';
+const button=document.createElement('button');button.type='button';button.textContent='Shared Crews';button.setAttribute('aria-expanded','false');
 const panel=document.createElement('section');panel.hidden=true;panel.className='cad-rp-editor';panel.style.marginTop='12px';
 root.before(button);root.after(panel);
-button.onclick=()=>{panel.hidden=!panel.hidden;if(!panel.hidden)load()};
+button.onclick=()=>{const opening=panel.hidden;panel.hidden=!opening;root.hidden=opening;button.setAttribute('aria-expanded',String(opening));if(opening)load()};
 const esc=s=>String(s??'').replace(/[&<>"']/g,x=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[x]));
 let groups=[],units=[],agency='',original=[];
 async function load(){
@@ -25,6 +25,7 @@ async function load(){
 function draw(){
  panel.replaceChildren();
  const heading=document.createElement('h4');heading.textContent='Shared Apparatus Crews';panel.append(heading);
+ const close=document.createElement('button');close.type='button';close.textContent='Back to Response Plans';close.onclick=()=>{panel.hidden=true;root.hidden=false;button.setAttribute('aria-expanded','false')};panel.append(close);
  const note=document.createElement('p');note.textContent='Select any number of apparatus per group, even across stations. Changes are staged only. Saving requires a verified atomic database operation that is not yet deployed.';panel.append(note);
  const add=document.createElement('button');add.type='button';add.textContent='+ New Crew Group';add.onclick=()=>{groups.push({id:'draft-'+crypto.randomUUID(),name:'New Shared Crew',agencyId:agency,unitIds:[]});draw()};panel.append(add);
  for(let i=0;i<groups.length;i++){
