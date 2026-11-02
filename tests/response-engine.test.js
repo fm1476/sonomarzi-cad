@@ -51,4 +51,22 @@ const r=engine.recommend({plan:p,incident,roster});
 assert.equal(r.unitIds.length,0);
 assert.equal(r.status,'shortage');
 });
+test('missing station assignment blocks a station-specific candidate',()=>{
+ const p={...plan,resources:[{type:'ENGINE',count:1,preferredUnits:['E1'],stationId:'station1'}]};
+ const r=engine.recommend({plan:p,incident,roster});
+ assert.equal(r.status,'shortage');
+ assert.ok(r.rows[0].excluded.some(x=>x.unit==='E1'&&x.reason.includes('Station assignment not verified')));
+});
+test('invalid or empty requirements fail closed',()=>{
+ const r=engine.recommend({plan:{...plan,resources:[{type:'ENGINE',count:0}]},incident,roster});
+ assert.equal(r.status,'blocked');
+ assert.deepEqual(r.unitIds,[]);
+ assert.equal(engine.recommend({plan:{...plan,resources:[]},incident,roster}).status,'blocked');
+});
+test('mutual aid cannot be inferred from external agency units',()=>{
+ const p={...plan,resources:[{type:'ENGINE',count:1,preferredUnits:['E1']}]};
+ const r=engine.recommend({plan:p,incident,roster:[{...roster[0],agency_id:'another-agency'}]});
+ assert.equal(r.status,'shortage');
+ assert.ok(r.rows[0].excluded.some(x=>x.reason.includes('mutual aid')));
+});
 console.log('Response engine regression checks passed.');
