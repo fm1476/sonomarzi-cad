@@ -72,7 +72,7 @@ begin
    and upper(coalesce(p.value->>'discipline',''))=upper(v.discipline)
    and upper(coalesce(p.value->>'type',''))=upper(v.type)
    and (nullif(p.value->>'priority','') is null or p.value->>'priority'=v.priority)
-   and upper(coalesce(nullif(btrim(coalesce(p.value->>'area',p.value->>'zone','')),''),'DEFAULT')) in ('DEFAULT','*');
+   and upper(coalesce(nullif(btrim(coalesce(nullif(btrim(p.value->>'area'),''),nullif(btrim(p.value->>'zone'),''),'')),''),'DEFAULT')) in ('DEFAULT','*');
  if v_matches>1 then raise exception 'Conflicting active response plans require review';end if;
  -- The plan configuration is scoped by the agency document and the incident row
  -- is locked. All alarm changes remain separate from dispatch transactions.
@@ -89,7 +89,7 @@ begin
  -- Note: geographic plan restrictions require a trusted, persisted response area
  -- on the incident. Until authoritative area matching is available, restricted
  -- plans MUST NOT be accepted for alarm transitions.
- if nullif(btrim(coalesce(v_plan->>'area',v_plan->>'zone','')),'') is not null
+ if nullif(btrim(coalesce(nullif(btrim(v_plan->>'area'),''),nullif(btrim(v_plan->>'zone'),''),'')),'') is not null
     and upper(btrim(coalesce(v_plan->>'area',v_plan->>'zone',''))) not in ('DEFAULT','*')
  then raise exception 'Geographic alarm plan requires verified incident response area';end if;
  insert into public.cad_incident_alarm_state(agency_id,incident_id,alarm_name,alarm_rank,plan_id,recorded_by)
