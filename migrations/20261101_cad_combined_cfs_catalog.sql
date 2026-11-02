@@ -78,8 +78,8 @@ grant execute on function public.cad_save_cfs_type(uuid,jsonb) to authenticated;
 -- Combined creation is one transaction: any failed child creation rolls back all calls.
 -- This RPC delegates numbering and event audit to the existing cad_create_incident_auto RPC.
 create or replace function public.cad_create_combined_incident(p_agency uuid,p_cfs_type uuid,p_priority text,p_location text)
-returns jsonb language plpgsql security invoker set search_path='' as $$
-declare v_primary public.cad_cfs_types;v_child public.cad_cfs_types;v_created jsonb;v_root uuid;v_incident uuid;v_ids jsonb:='[]'::jsonb;v_row record;
+returns jsonb language plpgsql security definer set search_path='' as $
+declare v_primary public.cad_cfs_types;v_child public.cad_cfs_types;v_created public.cad_incidents;v_root uuid;v_incident uuid;v_ids jsonb:='[]'::jsonb;v_row record;
 begin
  if auth.uid() is null or not public.cad_has_access(p_agency,true) then raise exception 'CAD access denied' using errcode='42501';end if;
  select * into v_primary from public.cad_cfs_types where id=p_cfs_type and agency_id=p_agency and publication='ACTIVE';
@@ -92,7 +92,7 @@ begin
   order by sort_order,discipline
  loop
   v_created:=public.cad_create_incident_auto(p_agency,v_row.discipline,v_row.name,p_priority,p_location);
-  v_incident:=nullif(coalesce(v_created->>'incident_id',v_created->>'id'),'')::uuid;
+  v_incident:=v_created.id;
   if v_incident is null then raise exception 'CAD incident creation returned no incident ID';end if;
   if v_root is null then v_root:=v_incident;end if;
   insert into public.cad_combined_incident_links(agency_id,root_incident_id,incident_id,discipline) values(p_agency,v_root,v_incident,v_row.discipline);
