@@ -65,13 +65,16 @@ function editor(p){
  const agency=master.agencies.find(a=>a.name===activeAgencyName)||master.agencies[0];
  target.querySelectorAll('[data-unit-picker]').forEach(node=>{
   const i=Number(node.dataset.unitPicker),r=working.resources[i];
-  const units=master.units.filter(u=>u.discipline===discipline.value&&u.resourceType===r.type&&(!agency||u.agencyId===agency.id));
+  const units=master.units.filter(u=>u.discipline===discipline.value&&u.resourceType===r.type&&(!agency||u.agencyId===agency.id)).sort((a,b)=>String(a.stationName||a.stationId||a.homeStationId||'Unassigned').localeCompare(String(b.stationName||b.stationId||b.homeStationId||'Unassigned'))||String(a.designator||'').localeCompare(String(b.designator||'')));
   if(!units.length){node.textContent='No configured units of this type.';return}
   const hint=document.createElement('small');hint.textContent='Select units in dispatch order. Select again to remove.';node.append(hint);
+  let lastStation='';
   for(const u of units){
+   const station=String(u.stationName||u.stationId||u.homeStationId||'Station not assigned');
+   if(station!==lastStation){const heading=document.createElement('strong');heading.textContent=station;heading.style.display='block';node.append(heading);lastStation=station}
    const sign=u.designator||u.callSign||u.name||u.id;
    const index=(r.preferredUnits||[]).findIndex(x=>String(x).toUpperCase()===String(sign).toUpperCase());
-   const b=document.createElement('button');b.type='button';b.textContent=(index<0?'+ ':(index+1)+'. ')+sign;b.setAttribute('aria-pressed',String(index>=0));
+   const b=document.createElement('button');b.type='button';b.textContent=(index<0?'+ ':(index+1)+'. ')+sign;b.style.margin='4px';b.style.borderRadius='10px';b.setAttribute('aria-pressed',String(index>=0));
    b.onclick=()=>{const next=(r.preferredUnits||[]).filter(x=>String(x).toUpperCase()!==String(sign).toUpperCase());if(index<0)next.push(sign);r.preferredUnits=next;drawRequirements()};node.append(b);
   }
  });
