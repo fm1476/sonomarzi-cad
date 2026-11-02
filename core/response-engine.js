@@ -64,10 +64,10 @@ function recommend({plans=[],plan:explicitPlan,incident,roster=[],assignments=[]
   if(crew&&usedCrews.has(crew))return 'Shared crew already committed';
   if((u.staffing?.personIds||[]).some(p=>usedPeople.has(p)))return 'Personnel already committed';
   if(req.stationId){
-   const station=stations.find(s=>norm(s.id)===norm(req.stationId));
-   if(!station||station.active===false)return 'Required station is not configured or inactive';
    const home=norm(u.station_id||u.home_station_id||'');
    if(!home)return 'Station assignment not verified';
+   const station=stations.find(s=>norm(s.id)===norm(req.stationId));
+   if(!station||station.active===false)return 'Required station is not configured or inactive';
    if(home!==norm(req.stationId))return 'Not assigned to required station';
   }
   if(req.area&&norm(req.area)!==norm(u.response_area))return 'Outside configured response area';
