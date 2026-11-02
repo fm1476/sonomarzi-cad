@@ -51,7 +51,7 @@ function editor(p){
  if(!p){e.innerHTML='<h4>Select or create a response plan</h4><p>Existing plans are shown on the left.</p>';v.innerHTML='<h4>Plan Preview</h4><p>Select a plan to review its response requirements.</p>';return}
  working=structuredClone(p);
  const options=types.filter(t=>t.discipline===p.discipline);
- e.innerHTML='<h4>'+escape(p.type||'New Response Plan')+'</h4><div class="cad-rp-fields"><label>Discipline<select id="rpNewDiscipline"><option>LAW</option><option>FIRE</option><option>EMS</option></select></label><label>Call type<select id="rpNewCfs"></select></label><label>Priority<input id="rpNewPriority" type="number" min="1" max="9" placeholder="Any priority"></label><label>Response area<input id="rpNewArea" placeholder="All configured areas"></label></div><h4>Response Requirements</h4><p>Use configured resource types. Reorder requirements using the arrow controls.</p><div id="rpNewRequirements"></div><button type="button" id="rpNewAdd">+ Add Requirement</button><div class="cad-rp-actions"><button id="rpNewSave" type="button">Save Draft</button><button id="rpNewActivate" type="button">Activate Plan</button><button id="rpNewDeactivate" type="button">Deactivate</button></div>';
+ e.innerHTML='<h4>'+escape(p.type||'New Response Plan')+'</h4><div class="cad-rp-fields"><label>Discipline<select id="rpNewDiscipline"><option>LAW</option><option>FIRE</option><option>EMS</option></select></label><label>Call type<select id="rpNewCfs"></select></label><label>Priority<input id="rpNewPriority" type="number" min="1" max="9" placeholder="Any priority"></label><label>Response area<input id="rpNewArea" placeholder="All configured areas"></label></div><h4>Response Requirements</h4><p>Use configured resource types. Reorder requirements using the arrow controls.</p><div id="rpNewRequirements"></div><button type="button" id="rpNewAdd">+ Add Requirement</button><h4>Alarm Levels</h4><p>Each level defines a total target or additional resources. Escalation never dispatches automatically.</p><div id="rpNewAlarms"></div><button type="button" id="rpNewAlarmAdd">+ Add Alarm Level</button><div class="cad-rp-actions"><button id="rpNewSave" type="button">Save Draft</button><button id="rpNewActivate" type="button">Activate Plan</button><button id="rpNewDeactivate" type="button">Deactivate</button></div>';
  const discipline=document.getElementById('rpNewDiscipline'),type=document.getElementById('rpNewCfs');
  discipline.value=p.discipline;
  const typesFor=()=>{type.innerHTML=types.filter(t=>t.discipline===discipline.value).map(t=>'<option value="'+escape(t.id)+'">'+escape(t.name)+' ('+escape(t.publication)+')</option>').join('');if(working.cfsTypeId)type.value=working.cfsTypeId;};
@@ -67,6 +67,30 @@ function editor(p){
  for(const [attr,shift] of [['up',-1],['down',1]])target.querySelectorAll('[data-'+attr+']').forEach(n=>n.onclick=()=>{const i=Number(n.dataset[attr]),j=i+shift;if(j<0||j>=working.resources.length)return;[working.resources[i],working.resources[j]]=[working.resources[j],working.resources[i]];drawRequirements()});
  preview();
  }
+ function drawAlarms(){
+  const holder=document.getElementById('rpNewAlarms');
+  const levels=working.alarmLevels||[];
+  holder.innerHTML=levels.map((level,i)=>'<div class="cad-rp-requirement"><label>Level name <input data-alarm-name="'+i+'" value="'+escape(level.name||'')+'"></label><label>Sequence <input type="number" min="1" data-alarm-rank="'+i+'" value="'+Number(level.rank||i+1)+'"></label><label>Calculation <select data-alarm-mode="'+i+'"><option value="TOTAL">Total resources needed</option><option value="ADDITIVE">Add these resources</option></select></label><button type="button" data-alarm-remove="'+i+'">Remove level</button><div style="width:100%"><strong>Level resources</strong><div data-alarm-rows="'+i+'"></div><button type="button" data-alarm-add="'+i+'">+ Resource</button></div></div>').join('')||'<p>No additional alarm levels defined.</p>';
+  levels.forEach((level,i)=>{
+   const name=holder.querySelector('[data-alarm-name="'+i+'"]'),rank=holder.querySelector('[data-alarm-rank="'+i+'"]'),mode=holder.querySelector('[data-alarm-mode="'+i+'"]');
+   name.onchange=()=>{level.name=name.value.trim();preview()};rank.onchange=()=>{level.rank=Number(rank.value);preview()};mode.value=level.mode||'TOTAL';mode.onchange=()=>{level.mode=mode.value;preview()};
+   holder.querySelector('[data-alarm-remove="'+i+'"]').onclick=()=>{levels.splice(i,1);drawAlarms();preview()};
+   const rows=holder.querySelector('[data-alarm-rows="'+i+'"]');
+   function redrawRows(){
+    rows.innerHTML=(level.resources||[]).map((r,j)=>'<div class="cad-rp-requirement"><label>Resource <input data-level-type="'+j+'" value="'+escape(r.type||'')+'"></label><label>Quantity <input type="number" min="1" max="99" data-level-count="'+j+'" value="'+Number(r.count||1)+'"></label><label>Preferred units <input data-level-units="'+j+'" value="'+escape((r.preferredUnits||[]).join(', '))+'"></label><button data-level-remove="'+j+'" type="button">Remove</button></div>').join('');
+    (level.resources||[]).forEach((r,j)=>{
+     rows.querySelector('[data-level-type="'+j+'"]').onchange=e=>{r.type=e.target.value.trim().toUpperCase();preview()};
+     rows.querySelector('[data-level-count="'+j+'"]').onchange=e=>{r.count=Number(e.target.value);preview()};
+     rows.querySelector('[data-level-units="'+j+'"]').onchange=e=>{r.preferredUnits=e.target.value.split(',').map(v=>v.trim()).filter(Boolean);preview()};
+     rows.querySelector('[data-level-remove="'+j+'"]').onclick=()=>{level.resources.splice(j,1);redrawRows();preview()};
+    });
+   }
+   holder.querySelector('[data-alarm-add="'+i+'"]').onclick=()=>{level.resources??=[];level.resources.push({type:document.getElementById('rpResourcePicker')?.value||'',count:1,preferredUnits:[]});redrawRows();preview()};
+   redrawRows();
+  });
+ }
+ document.getElementById('rpNewAlarmAdd').onclick=()=>{working.alarmLevels??=[];working.alarmLevels.push({id:crypto.randomUUID(),name:'New Alarm Level',rank:working.alarmLevels.length+1,mode:'TOTAL',resources:[]});drawAlarms();preview()};
+ drawAlarms();
  const add=document.getElementById('rpNewAdd');
  const picker=document.createElement('select');picker.id='rpResourcePicker';picker.setAttribute('aria-label','Choose configured resource type');
  add.before(picker);
@@ -84,7 +108,7 @@ function editor(p){
  add.onclick=()=>{const resource=picker.value;if(!resource)return status('Configure resource types under Agencies & Units first.');working.resources.push({type:resource,count:1,preferredUnits:[]});drawRequirements()};
  const snapshot=()=>{const chosen=types.find(t=>t.id===type.value);return {...working,discipline:discipline.value,cfsTypeId:chosen?.id||null,type:chosen?.name||'',priority:document.getElementById('rpNewPriority').value===''?null:Number(document.getElementById('rpNewPriority').value),area:document.getElementById('rpNewArea').value.trim()}};
  for(const [id,state] of [['rpNewSave','DRAFT'],['rpNewActivate','ACTIVE'],['rpNewDeactivate','INACTIVE']])document.getElementById(id).onclick=()=>savePlan({...snapshot(),status:state});
- function preview(){v.innerHTML='<h4>Plan Preview</h4><p>Requirements are reviewed here. Actual unit recommendations need a current shared incident and roster.</p>'+working.resources.map(r=>'<div class="cad-rp-preview-line"><strong>'+escape(r.count)+' × '+escape(r.type)+'</strong><small>'+escape((r.preferredUnits||[]).join(' → ')||'No preferred unit order configured')+'</small></div>').join('')+'<p>No units dispatched. Availability and staffing must be verified against the shared CAD before assignment.</p>'}
+ function preview(){v.innerHTML='<h4>Plan Preview</h4><p>Requirements are reviewed here. Actual unit recommendations need a current shared incident and roster.</p>'+working.resources.map(r=>'<div class="cad-rp-preview-line"><strong>'+escape(r.count)+' × '+escape(r.type)+'</strong><small>'+escape((r.preferredUnits||[]).join(' → ')||'No preferred unit order configured')+'</small></div>').join('')+'<h4>Escalation</h4>'+((working.alarmLevels||[]).map(l=>'<p>'+escape(l.name)+' · '+escape(l.mode||'TOTAL')+' · '+(l.resources||[]).map(r=>escape(r.count+' × '+r.type)).join(', ')+'</p>').join('')||'<p>No alarm escalation configured.</p>')+'<p>No units dispatched. Availability and staffing must be verified against the shared CAD before assignment.</p>'}
  drawRequirements();
 }
 async function savePlan(p){
