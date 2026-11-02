@@ -152,20 +152,27 @@
       const crews=raw('smcad-shared-crews-v1');
       const selectedPlan=window.CadResponseEngine.selectPlan(plans,{...i,response_zone:i.response_zone||i.zone||i.esz||i.beat}).plan;
       if(!selectedPlan){output.textContent='No unique active plan matches. Verify call type and response area in Configuration.';return}
-      const planResult=window.CadResponseEngine.recommend({plan:selectedPlan,incident:i,roster:snapshot.roster,assignments:snapshot.assignments,crews});
+      const chosenLevel=document.createElement('select');chosenLevel.setAttribute('aria-label','Response alarm level');
+      const baseOption=document.createElement('option');baseOption.value='';baseOption.textContent='Initial response';chosenLevel.append(baseOption);
+      for(const level of selectedPlan.alarmLevels||[]){const option=document.createElement('option');option.value=level.id;option.textContent=level.name;chosenLevel.append(option)}
       output.replaceChildren();
-      const summary=document.createElement('p');summary.textContent=planResult.message;output.append(summary);
+      if((selectedPlan.alarmLevels||[]).length){const levelLabel=document.createElement('label');levelLabel.textContent='Review response level ';levelLabel.append(chosenLevel);output.append(levelLabel)}
+      const calculate=()=>chosenLevel.value?window.CadResponseEngine.escalate({plan:selectedPlan,incident:i,roster:snapshot.roster,assignments:snapshot.assignments,crews,level:chosenLevel.value}):window.CadResponseEngine.recommend({plan:selectedPlan,incident:i,roster:snapshot.roster,assignments:snapshot.assignments,crews});
+      let planResult=calculate();
+      const results=document.createElement('div');output.append(results);
+      function present(){results.replaceChildren();planResult=calculate();
+      const summary=document.createElement('p');summary.textContent=planResult.message;results.append(summary);
       for(const row of planResult.rows){
        const line=document.createElement('p');
        const eligible=row.recommended.map(x=>x.callSign).join(', ')||'none';
        line.textContent=row.type+': '+row.alreadyAssigned+' already assigned, '+row.recommended.length+' recommended ('+eligible+'), '+row.shortage+' unfilled';
-       output.append(line);
-       for(const excluded of row.excluded){const reason=document.createElement('small');reason.style.display='block';reason.textContent=excluded.unit+': '+excluded.reason;output.append(reason)}
+       results.append(line);
+       for(const excluded of row.excluded){const reason=document.createElement('small');reason.style.display='block';reason.textContent=excluded.unit+': '+excluded.reason;results.append(reason)}
       }
       if(planResult.status==='blocked'||!planResult.unitIds.length)return;
       const dispatch=document.createElement('button');dispatch.type='button';dispatch.className='cad-shared-btn';
       dispatch.textContent=(planResult.status==='shortage'?'Dispatch Partial Response: ':'Dispatch ')+planResult.unitIds.length+' Reviewed Unit(s)';
-      output.append(dispatch);
+      results.append(dispatch);
       dispatch.onclick=async()=>{
        if(!window.confirm((planResult.status==='shortage'?'WARNING: Required resources are still unfilled. Dispatch this partial response of ':'Dispatch ')+planResult.unitIds.length+' selected units to '+i.incident_number+'? This will update shared CAD.'))return;
        dispatch.disabled=true;
@@ -185,6 +192,9 @@
        }catch(error){output.textContent='Dispatch not confirmed: '+error.message+'. Refresh before retrying.'}
        finally{dispatch.disabled=false}
       };
+      }
+      chosenLevel.onchange=present;
+      present();
      }catch(error){output.textContent='Unable to review response plan: '+error.message}
      finally{review.disabled=false}
     };
