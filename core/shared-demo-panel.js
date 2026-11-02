@@ -149,6 +149,10 @@
       const docs=await window.CadDemoLogin.client().listAgencySettings(agency);
       const raw=k=>{const item=docs.find(d=>d.document_key===k);try{return JSON.parse(item?.payload?.raw||'[]')}catch{return []}};
       const plans=raw('smcad-response-plans-v1').map(p=>({...p,status:p.status==='Published'?'ACTIVE':p.status,agencyId:p.agencyId||agency,cfsTypeId:p.cfsTypeId||null,area:p.area||p.zone||''}));
+      const master=raw('smcad-agency-master-v1');
+      const facilities=raw('smcad-facilities-v1');
+      const configuredUnits=Array.isArray(master?.units)?master.units:[];
+      const enrichedRoster=snapshot.roster.map(u=>{const def=configuredUnits.find(d=>d.designator===u.call_sign||d.id===u.master_unit_id);return {...u,resource_type:u.resource_type||def?.resourceType,home_station_id:u.home_station_id||def?.homeStationId,staffing:u.staffing||null}});
       const crews=raw('smcad-shared-crews-v1');
       const selectedPlan=window.CadResponseEngine.selectPlan(plans,{...i,response_zone:i.response_zone||i.zone||i.esz||i.beat}).plan;
       if(!selectedPlan){output.textContent='No unique active plan matches. Verify call type and response area in Configuration.';return}
@@ -157,7 +161,7 @@
       for(const level of selectedPlan.alarmLevels||[]){const option=document.createElement('option');option.value=level.id;option.textContent=level.name;chosenLevel.append(option)}
       output.replaceChildren();
       if((selectedPlan.alarmLevels||[]).length){const levelLabel=document.createElement('label');levelLabel.textContent='Review response level ';levelLabel.append(chosenLevel);output.append(levelLabel)}
-      const calculate=()=>chosenLevel.value?window.CadResponseEngine.escalate({plan:selectedPlan,incident:i,roster:snapshot.roster,assignments:snapshot.assignments,crews,level:chosenLevel.value}):window.CadResponseEngine.recommend({plan:selectedPlan,incident:i,roster:snapshot.roster,assignments:snapshot.assignments,crews});
+      const calculate=()=>chosenLevel.value?window.CadResponseEngine.escalate({plan:selectedPlan,incident:i,roster:enrichedRoster,assignments:snapshot.assignments,crews,stations:Array.isArray(facilities)?facilities:[],level:chosenLevel.value}):window.CadResponseEngine.recommend({plan:selectedPlan,incident:i,roster:enrichedRoster,assignments:snapshot.assignments,crews,stations:Array.isArray(facilities)?facilities:[]});
       let planResult=calculate();
       const results=document.createElement('div');output.append(results);
       function present(){results.replaceChildren();planResult=calculate();
