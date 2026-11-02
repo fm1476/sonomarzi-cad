@@ -6,7 +6,7 @@ const panel=host.closest('[data-config-panel]');let sequence=0,lastSignature='';
 function render(types){
  host.replaceChildren();
  for(const [discipline,title,icon] of [['LAW','Law Enforcement','🚓'],['FIRE','Fire','🚒'],['EMS','EMS','🚑']]){
-  const entries=types.filter(item=>item.discipline===discipline);if(!entries.length)continue;
+  const entries=types.filter(item=>item.discipline===discipline).sort((a,b)=>a.name.localeCompare(b.name,undefined,{sensitivity:'base',numeric:true})||a.code.localeCompare(b.code));if(!entries.length)continue;
   const section=document.createElement('section'),heading=document.createElement('h4'),grid=document.createElement('div');
   heading.textContent=title+' · '+entries.length;grid.className='cad-cfs-type-grid';section.append(heading,grid);
   for(const item of entries){
