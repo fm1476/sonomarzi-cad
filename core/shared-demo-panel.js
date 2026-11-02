@@ -388,6 +388,7 @@
       const created=await client.createCombinedIncident({agency,cfsTypeId:matches[0].id,priority:args.priority,location:args.location});
       result={...created,combined:true,primary_id:created.incidents?.[0]?.id,incident_number:created.incidents?.[0]?.incident_number};
      }else{
+      if(configured.length)throw Error('CFS type is not active in agency catalog. Select a configured type.');
       result=await client.createIncidentAuto({agency,discipline:args.discipline,type:args.type,priority:args.priority,location:args.location});
      }
     }else{
