@@ -97,4 +97,14 @@ test('resource quantities over 99 fail closed',()=>{
  const result=engine.recommend({plan:{...plan,resources:[{type:'ENGINE',count:100,preferredUnits:['E1']}]},incident,roster});
  assert.equal(result.status,'blocked');assert.deepEqual(result.unitIds,[]);
 });
+test('shared crew links by stable unit UUID prevent duplicate response',()=>{
+ const p={...plan,resources:[{type:'ENGINE',count:2,preferredUnits:['E1','E2','E3']}]};
+ const result=engine.recommend({plan:p,incident,roster:roster.map(u=>({...u,staffing:undefined})),crews:[{id:'crew-uuid',unitIds:['u1','u2']}]});
+ assert.deepEqual(result.unitIds,['u1','u3']);
+});
+test('assigned shared crew partner excludes other apparatus even when UUID referenced',()=>{
+ const p={...plan,resources:[{type:'ENGINE',count:2,preferredUnits:['E1','E2','E3']}]};
+ const result=engine.recommend({plan:p,incident,roster:roster.map(u=>({...u,staffing:undefined})),crews:[{id:'crew-uuid',unitIds:['u1','u2']}],assignments:[{incident_id:incident.id,unit_id:'u1'}]});
+ assert.deepEqual(result.unitIds,['u3']);
+});
 console.log('Response engine regression checks passed.');
