@@ -29,7 +29,8 @@ assert.ok(r.rows[0].excluded.some(x=>x.unit==='E2'&&x.reason.includes('Shared cr
 });
 test('does not recommend busy units or silently preempt',()=>{
 const r=engine.recommend({plan,incident,roster,assignments:[{incident_id:'other',unit_id:'u1'}]});
-assert.deepEqual(r.unitIds,['u2','u3']);
+assert.deepEqual(r.unitIds,['u3']);
+assert.ok(r.rows[0].excluded.some(x=>x.unit==='E2'&&x.reason.includes('Personnel')));
 assert.ok(r.rows[0].excluded.some(x=>x.unit==='E1'&&x.reason.includes('another incident')));
 });
 test('already assigned resources reduce unmet quantities',()=>{
