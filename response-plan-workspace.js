@@ -127,6 +127,7 @@ function editor(p){
  const snapshot=()=>{const chosen=types.find(t=>t.id===type.value);return {...working,discipline:discipline.value,cfsTypeId:chosen?.id||null,type:chosen?.name||'',priority:document.getElementById('rpNewPriority').value===''?null:Number(document.getElementById('rpNewPriority').value),area:document.getElementById('rpNewArea').value.trim()}};
  for(const [id,state] of [['rpNewSave','DRAFT'],['rpNewActivate','ACTIVE'],['rpNewDeactivate','INACTIVE']])document.getElementById(id).onclick=()=>savePlan({...snapshot(),status:state});
  let simulatedCommitted=[];
+ let simulatedOnIncident=[];
  let simulatedCrew=false;
  let simulatedAlarm='';
  function preview(){
@@ -137,12 +138,14 @@ function editor(p){
   const names=[...resourceUnits.keys()];
   if(!names.length){output.textContent='Choose preferred apparatus in the requirements to test the response.';return}
   simulatedCommitted=simulatedCommitted.filter(x=>resourceUnits.has(x));
+  simulatedOnIncident=simulatedOnIncident.filter(x=>resourceUnits.has(x));
   const select=document.createElement('select');select.setAttribute('aria-label','Fictional unit assigned to another call');
   for(const name of names){const option=document.createElement('option');option.value=name;option.textContent=name;select.append(option)}
-  const busy=document.createElement('button');busy.type='button';busy.textContent='Simulate Unit Committed';busy.onclick=()=>{if(!simulatedCommitted.includes(select.value))simulatedCommitted.push(select.value);preview()};
-  const reset=document.createElement('button');reset.type='button';reset.textContent='Reset Simulation';reset.onclick=()=>{simulatedCommitted=[];simulatedCrew=false;simulatedAlarm='';preview()};
+  const busy=document.createElement('button');busy.type='button';busy.textContent='Simulate Unit Committed';busy.onclick=()=>{simulatedOnIncident=simulatedOnIncident.filter(x=>x!==select.value);if(!simulatedCommitted.includes(select.value))simulatedCommitted.push(select.value);preview()};
+  const onCall=document.createElement('button');onCall.type='button';onCall.textContent='Assign to Fictional Incident';onCall.onclick=()=>{simulatedCommitted=simulatedCommitted.filter(x=>x!==select.value);if(!simulatedOnIncident.includes(select.value))simulatedOnIncident.push(select.value);preview()};
+  const reset=document.createElement('button');reset.type='button';reset.textContent='Reset Simulation';reset.onclick=()=>{simulatedCommitted=[];simulatedOnIncident=[];simulatedCrew=false;simulatedAlarm='';preview()};
   const shared=document.createElement('label');const check=document.createElement('input');check.type='checkbox';check.checked=simulatedCrew;check.disabled=names.length<2;check.onchange=()=>{simulatedCrew=check.checked;preview()};shared.append(check,document.createTextNode(' First two listed units share one crew (simulation only)'));
-  controls.append(select,busy,reset,shared);
+  controls.append(select,busy,onCall,reset,shared);
   const levels=[...(working.alarmLevels||[])].sort((a,b)=>Number(a.rank)-Number(b.rank));
   const alarmSelect=document.createElement('select');alarmSelect.setAttribute('aria-label','Simulation alarm level');
   alarmSelect.append(new Option('Initial response',''));
@@ -151,13 +154,14 @@ function editor(p){
   controls.append(alarmSelect);
   const incident={id:'fictional-incident',agency_id:'fictional-agency',discipline:discipline.value,type:snapshot().type,priority:snapshot().priority,response_zone:snapshot().area||'DEFAULT'};
   const roster=names.map((name,i)=>({id:'fictional-'+i,call_sign:name,agency_id:'fictional-agency',discipline:discipline.value,resource_type:resourceUnits.get(name),status:'AVAILABLE',staffing:{active:true,personIds:Array.from({length:30},(_,j)=>'fictional-person-'+i+'-'+j)}}));
-  const assignments=simulatedCommitted.map(name=>({incident_id:'fictional-other-call',unit_id:roster.find(u=>u.call_sign===name)?.id})).filter(x=>x.unit_id);
+  const assignments=[...simulatedCommitted.map(name=>({incident_id:'fictional-other-call',unit_id:roster.find(u=>u.call_sign===name)?.id})),...simulatedOnIncident.map(name=>({incident_id:incident.id,unit_id:roster.find(u=>u.call_sign===name)?.id}))].filter(x=>x.unit_id);
   const crews=simulatedCrew&&names.length>=2?[{id:'fictional-crew',units:names.slice(0,2)}]:[];
   const simulatedPlan={...snapshot(),status:'ACTIVE',agencyId:'fictional-agency',resources:working.resources};
   const currentLevel=levels.find(l=>l.id===simulatedAlarm);
   const result=currentLevel?window.CadResponseEngine.escalate({plan:simulatedPlan,incident,roster,assignments,crews,stations:[],level:currentLevel.id}):window.CadResponseEngine.recommend({plan:simulatedPlan,incident,roster,assignments,crews,stations:[]});
   const heading=document.createElement('strong');heading.textContent='Simulation: '+result.status.toUpperCase();output.append(heading);
   const message=document.createElement('p');message.textContent=result.message;output.append(message);
+  const totals=document.createElement('p');totals.textContent='Already on incident: '+simulatedOnIncident.length+' · Additional recommended: '+(result.unitIds||[]).length+' · Unfilled requirements: '+(result.missing||[]).reduce((sum,r)=>sum+r.count,0);output.append(totals);
   const recommended=new Set(result.unitIds||[]);
   const exclusions=new Map(result.rows.flatMap(row=>row.excluded.map(entry=>[entry.unit,entry.reason])));
   const cards=document.createElement('div');cards.className='cad-rp-simulation-cards';cards.style.display='grid';cards.style.gridTemplateColumns='repeat(auto-fit,minmax(130px,1fr))';cards.style.gap='8px';cards.style.margin='12px 0';
@@ -166,10 +170,10 @@ function editor(p){
    const card=document.createElement('div');card.className='cad-rp-simulation-card';card.style.padding='10px';card.style.border='1px solid var(--border-color,#778)';card.style.borderRadius='12px';
    const title=document.createElement('strong');title.textContent=name;card.append(title);
    const type=document.createElement('small');type.style.display='block';type.textContent=resourceUnits.get(name);card.append(type);
-   const committed=simulatedCommitted.includes(name);
-   const partner=simulatedCommitted.find(other=>other!==name&&selectedCrew.has(other)&&selectedCrew.has(name));
+   const committed=simulatedCommitted.includes(name),onIncident=simulatedOnIncident.includes(name);
+   const partner=[...simulatedCommitted,...simulatedOnIncident].find(other=>other!==name&&selectedCrew.has(other)&&selectedCrew.has(name));
    const state=document.createElement('p');
-   state.textContent=committed?'● Assigned elsewhere':partner?'● Crew committed by '+partner:recommended.has(roster.find(u=>u.call_sign===name)?.id)?'✓ Recommended':'○ Not selected';
+   state.textContent=onIncident?'✓ Already on incident':committed?'● Assigned elsewhere':partner?'● Crew committed by '+partner:recommended.has(roster.find(u=>u.call_sign===name)?.id)?'✓ Recommended':'○ Not selected';
    state.style.fontWeight='600';card.append(state);
    const reason=document.createElement('small');reason.textContent=partner?'Shared apparatus uses the same crew':exclusions.get(name)||'';card.append(reason);
    cards.append(card);
