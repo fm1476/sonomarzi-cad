@@ -69,4 +69,18 @@ test('mutual aid cannot be inferred from external agency units',()=>{
  assert.equal(r.status,'shortage');
  assert.ok(r.rows[0].excluded.some(x=>x.reason.includes('mutual aid')));
 });
+test('alarm escalation subtracts resources already assigned',()=>{
+ const p={...plan,alarmLevels:[{id:'first',name:'First Alarm',rank:1,mode:'TOTAL',resources:[{type:'ENGINE',count:1,preferredUnits:['E1','E2','E3']}]},{id:'second',name:'Second Alarm',rank:2,mode:'TOTAL',resources:[{type:'ENGINE',count:2,preferredUnits:['E1','E2','E3']}]}]};
+ const r=engine.escalate({plan:p,incident:{...incident,alarm_level:'First Alarm'},level:'second',roster,assignments:[{incident_id:'i1',unit_id:'u1'}]});
+ assert.equal(r.status,'ready');assert.equal(r.rows[0].alreadyAssigned,1);assert.deepEqual(r.unitIds,['u3']);
+});
+test('alarm levels do not permit repeated same-level escalation',()=>{
+ const p={...plan,alarmLevels:[{id:'first',name:'First Alarm',rank:1,resources:[{type:'ENGINE',count:1}]}]};
+ assert.equal(engine.escalate({plan:p,incident:{...incident,alarm_level:'First Alarm'},level:'first',roster}).status,'blocked');
+});
+test('additive escalation includes crossed tiers, without duplicate assigned units',()=>{
+ const p={...plan,alarmLevels:[{id:'first',name:'First Alarm',rank:1,mode:'ADDITIVE',resources:[{type:'ENGINE',count:1,preferredUnits:['E1','E2','E3']}]},{id:'second',name:'Second Alarm',rank:2,mode:'ADDITIVE',resources:[{type:'ENGINE',count:1,preferredUnits:['E1','E2','E3']}]}]};
+ const r=engine.escalate({plan:p,incident:{...incident,alarm_level:'First Alarm'},level:'second',roster,assignments:[{incident_id:'i1',unit_id:'u1'}]});
+ assert.deepEqual(r.unitIds,['u3']);
+});
 console.log('Response engine regression checks passed.');
