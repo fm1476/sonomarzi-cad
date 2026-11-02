@@ -74,7 +74,7 @@ begin
  end loop;
  return jsonb_build_object('id',v_id,'ok',true);
 end $$;
-revoke all on function public.cad_save_cfs_type(uuid,jsonb) from public,anon;
+revoke all on function public.cad_save_cfs_type(uuid,jsonb) from public,anon,authenticated;
 grant execute on function public.cad_save_cfs_type(uuid,jsonb) to authenticated;
 -- Combined creation is one transaction: any failed child creation rolls back all calls.
 -- This RPC delegates numbering and event audit to the existing cad_create_incident_auto RPC.
