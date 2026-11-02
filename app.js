@@ -28,6 +28,7 @@ let state=window.CadPersistence.read(KEY)||(cadLegacyCleaned()?{seq:4525,selecte
 let cadLocalWorkspace=null;
 let cadSharedWorkspaceMode=false;
 window.cadSharedApplySnapshot=function(snapshot){
+ const previousCfs=JSON.stringify(window.cadSharedLastSnapshot?.cfsTypes);
  window.cadSharedLastSnapshot=snapshot;
  if(!cadSharedWorkspaceMode){cadLocalWorkspace=state;cadSharedWorkspaceMode=true;}
  const previous=state.selected;
@@ -57,6 +58,7 @@ window.cadSharedApplySnapshot=function(snapshot){
   agency:(cloudUnitBySign&&cloudAgencyById?.get(cloudUnitBySign.get(String(u.call_sign).trim().toUpperCase())?.agencyId))||u.home_agency_name||'Unconfigured shared unit',discipline:u.discipline,
   resourceType:u.resource_type,status:u.status,location:'Shared CAD',x:50,y:50}));
  state={...cadLocalWorkspace,incidents,units,selected:incidents.some(i=>i.id===previous&&i.status!=='CLOSED')?previous:(incidents.find(i=>i.status==='ACTIVE')||incidents.find(i=>i.status==='PENDING'))?.id||null};
+ if(previousCfs!==JSON.stringify(snapshot.cfsTypes))updateTypes();
  render();
  const detail=document.getElementById('detail');
  if(detail&&state.selected===previous)detail.scrollTop=detailScroll;
@@ -64,7 +66,7 @@ window.cadSharedApplySnapshot=function(snapshot){
 };
 window.cadSharedRestoreLocal=function(){
  if(!cadSharedWorkspaceMode)return;
- state=cadLocalWorkspace;cadLocalWorkspace=null;cadSharedWorkspaceMode=false;render();
+ state=cadLocalWorkspace;cadLocalWorkspace=null;cadSharedWorkspaceMode=false;updateTypes();render();
 };
 window.cadSharedIsActive=()=>cadSharedWorkspaceMode;
 window.addEventListener('cad-cloud-master-available',()=>{if(cadSharedWorkspaceMode&&window.cadSharedLastSnapshot)window.cadSharedApplySnapshot(window.cadSharedLastSnapshot)});
@@ -354,7 +356,11 @@ window.cadSaveCaller=(id,first,last,address,same,verified)=>{
  if(i.caller!==name)event(i,'CALLER_NAME_CHANGED FROM '+(i.caller||'')+' TO '+name);
  i.callerFirstName=first.trim();i.callerLastName=last.trim();i.caller=name;i.callerLocation=next;i.callerSameAsEvent=!!same;save();return {ok:true};
 };
-window.cadConfiguredTypes=discipline=>[...new Set([...(defaultConfig.types?.[discipline]||[]),...(config.types?.[discipline]||[])])];
+window.cadConfiguredTypes=discipline=>{
+ const shared=cadSharedWorkspaceMode?window.cadSharedLastSnapshot?.cfsTypes:null;
+ if(shared?.length)return [...new Set(shared.filter(t=>t.publication==='ACTIVE'&&t.discipline===discipline).map(t=>t.name))];
+ return [...new Set([...(defaultConfig.types?.[discipline]||[]),...(config.types?.[discipline]||[])])];
+};
 window.cadFindEventsByLocation=query=>{
  const q=String(query||'').trim().toLowerCase();if(!q)return [];
  return state.incidents.filter(i=>cadLocationHistory(i).some(l=>l.address.toLowerCase().includes(q))).map(i=>({id:i.id,type:i.type,status:i.status,currentLocation:i.location,locations:i.locations.filter(l=>l.address.toLowerCase().includes(q))}));
@@ -554,7 +560,7 @@ function populate(){
  updateTypes();
  $('#cfgAgencies').value=(config.agencies||[]).join('\n');$('#cfgLaw').value=(config.types?.LAW||[]).join('\n');$('#cfgFire').value=(config.types?.FIRE||[]).join('\n');$('#cfgEms').value=(config.types?.EMS||[]).join('\n');
 }
-function updateTypes(){const d=$('#discipline').value;const types=[...new Set([...(defaultConfig.types[d]||[]),...(config.types?.[d]||[])])];$('#type').innerHTML=types.map(t=>`<option value="${escapeCad(t)}">${escapeCad(t)}</option>`).join('')}
+function updateTypes(){const previous=$('#type').value;const types=window.cadConfiguredTypes($('#discipline').value);$('#type').innerHTML=types.map(t=>`<option value="${escapeCad(t)}">${escapeCad(t)}</option>`).join('');if(types.includes(previous))$('#type').value=previous}
 
 /* Live CAD address suggestions, independent of response-area polygon datasets. */
 window.cadAddressPicker=(input,disciplineFor,onVerified)=>{
