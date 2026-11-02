@@ -49,7 +49,7 @@ begin
  if jsonb_array_length(v_conflicts)=0 then
   raise exception 'No shared crew conflict; use ordinary dispatch';
  end if;
- -- Only the shared-crew exclusion is waived. All normal unit/incident guards remain.
+ -- Only shared-crew exclusion is intended to be waived. Guard parity with all live assignment RPCs requires branch verification.
  insert into public.cad_assignments(agency_id,incident_id,unit_id) values(p_agency,p_incident,p_unit);
  update public.cad_units set status='DISPATCHED',version=version+1 where id=p_unit and agency_id=p_agency;
  update public.cad_incidents set status='ACTIVE',version=version+1,updated_at=now() where id=p_incident and agency_id=p_agency;
@@ -61,5 +61,5 @@ begin
 end;
 $$;
 revoke all on function public.cad_assign_unit_with_crew_override(uuid,uuid,uuid,bigint,bigint,text) from public,anon,authenticated;
--- DO NOT GRANT EXECUTE until branch testing validates authorization and all guard parity.
+-- DO NOT GRANT EXECUTE until branch testing validates authorization, hold/on-duty policy, and all guard parity.
 commit;
