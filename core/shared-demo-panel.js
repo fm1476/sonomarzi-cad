@@ -353,7 +353,7 @@
    try{
     result=await client.setUnitDuty({agency:session.agencyId,unit:unit.id,unitVersion:unit.version,onDuty});
     await refresh({quiet:true});
-    if(action==='create'&&result?.combined){const primary=snapshot.incidents.find(x=>x.id===result.primary_id);return {...result,incident_number:primary?.incident_number||result.primary_id}}
+    if(action==='create'&&result?.combined){const primary=snapshot.incidents.find(x=>x.id===result.primary_id);return {...result,incident_number:primary?.incident_number||result.incident_number||result.primary_id}}
     return result;
    }catch(error){
     await refresh({quiet:true});
@@ -386,7 +386,7 @@
      if(matches.length>1)throw Error('Ambiguous agency CFS type. Resolve duplicate configuration.');
      if(matches.length===1){
       const created=await client.createCombinedIncident({agency,cfsTypeId:matches[0].id,priority:args.priority,location:args.location});
-      result={...created,combined:true,primary_id:created.incidents?.[0]?.id};
+      result={...created,combined:true,primary_id:created.incidents?.[0]?.id,incident_number:created.incidents?.[0]?.incident_number};
      }else{
       result=await client.createIncidentAuto({agency,discipline:args.discipline,type:args.type,priority:args.priority,location:args.location});
      }
