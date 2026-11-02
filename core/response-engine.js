@@ -64,14 +64,17 @@ function recommend({plans=[],plan:explicitPlan,incident,roster=[],assignments=[]
   if(crew&&usedCrews.has(crew))return 'Shared crew already committed';
   if((u.staffing?.personIds||[]).some(p=>usedPeople.has(p)))return 'Personnel already committed';
   if(req.stationId){
+   const station=stations.find(s=>norm(s.id)===norm(req.stationId));
+   if(!station||station.active===false)return 'Required station is not configured or inactive';
    const home=norm(u.station_id||u.home_station_id||'');
    if(!home)return 'Station assignment not verified';
    if(home!==norm(req.stationId))return 'Not assigned to required station';
   }
   if(req.area&&norm(req.area)!==norm(u.response_area))return 'Outside configured response area';
   if(req.requiredStaffing!=null){
-   if(!u.staffing?.active)return 'Staffing not verified';
-   if((u.staffing.personIds||[]).length<Number(req.requiredStaffing))return 'Insufficient staffing';
+   if(!Number.isInteger(Number(req.requiredStaffing))||Number(req.requiredStaffing)<1)return 'Invalid staffing requirement';
+   if(!u.staffing?.active||!Array.isArray(u.staffing.personIds))return 'Staffing not verified';
+   if(new Set(u.staffing.personIds).size<Number(req.requiredStaffing))return 'Insufficient staffing';
   }
   const required=req.qualifications||[];
   const actual=qualificationsByUnit.get(u.id);
