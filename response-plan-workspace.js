@@ -8,7 +8,7 @@ const shell=document.createElement('section');shell.id='cadResponseWorkspace';sh
 old.before(shell);
 old.hidden=true;
 let plans=[],types=[],selected=null,version=null,sessionId=null,working=null;
-const escape=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&amp;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const escape=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const parse=s=>{try{const p=JSON.parse(s||'[]');return Array.isArray(p)?p:[]}catch{return []}};
 const status=msg=>{const e=document.getElementById('rpWorkspaceMessage');if(e)e.textContent=msg};
 const normalize=p=>({...p,status:p.status==='Published'?'ACTIVE':p.status==='Draft'?'DRAFT':String(p.status||'DRAFT').toUpperCase(),area:p.area||p.zone||'',agencyId:p.agencyId||null,cfsTypeId:p.cfsTypeId||null,resources:(p.resources||[]).map(r=>({...r,preferredUnits:r.preferredUnits||((p.runOrders||{})[r.type]||[]).filter(x=>x.kind==='UNIT').map(x=>x.value)}))});
