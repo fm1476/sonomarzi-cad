@@ -39,6 +39,7 @@ create table if not exists public.cad_combined_incident_links(
  primary key(agency_id,incident_id),
  unique(agency_id,root_incident_id,discipline)
 );
+create unique index if not exists cad_combined_one_root_per_agency on public.cad_combined_incident_links(agency_id,root_incident_id,incident_id);
 create index if not exists cad_combined_root_idx on public.cad_combined_incident_links(agency_id,root_incident_id);
 alter table public.cad_cfs_types enable row level security;
 alter table public.cad_cfs_auto_links enable row level security;
@@ -92,7 +93,7 @@ begin
    where l.agency_id=p_agency and l.source_type_id=p_cfs_type and t.publication='ACTIVE'
   order by sort_order,discipline
  loop
-  v_created:=public.cad_create_incident_auto(p_agency,v_row.discipline,v_row.name,p_priority,p_location);
+  v_created:=public.cad_create_incident_auto(p_agency,v_row.discipline,v_row.name,coalesce(nullif(p_priority,''),v_primary.priority),p_location);
   v_incident:=v_created.id;
   if v_incident is null then raise exception 'CAD incident creation returned no incident ID';end if;
   if v_root is null then v_root:=v_incident;end if;
