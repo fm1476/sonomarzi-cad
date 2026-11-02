@@ -130,6 +130,7 @@ function editor(p){
  let simulatedCommitted=[];
  let simulatedOnIncident=[];
  let simulatedCrew=false;
+ let simulatedCrewMembers=[];
  let simulatedAlarm='';
  function preview(){
   v.innerHTML='<h4>Plan Preview</h4><p>These requirements are not yet dispatched.</p>'+working.resources.map(r=>'<div class="cad-rp-preview-line"><strong>'+escape(r.count)+' × '+escape(r.type)+'</strong><small>'+escape((r.preferredUnits||[]).join(' → ')||'No preferred unit order configured')+'</small></div>').join('')+'<h4>Escalation</h4>'+((working.alarmLevels||[]).map(l=>'<p>'+escape(l.name)+' · '+escape(l.mode||'TOTAL')+' · '+(l.resources||[]).map(r=>escape(r.count+' × '+r.type)).join(', ')+'</p>').join('')||'<p>No alarm escalation configured.</p>')+'<p>'+((working.resources||[]).some(r=>r.requiredStaffing!=null)?'Minimum crew rules require verified staffing. Fictional staffing is used for simulation only.':'No minimum crew requirement configured.')+'</p><hr><h4>Test Response · Fictional Simulation</h4><p>Safe preview only. No shared incidents or unit assignments are changed.</p><div id="rpSimControls"></div><div id="rpSimResults" role="status"></div>';
@@ -140,12 +141,14 @@ function editor(p){
   if(!names.length){output.textContent='Choose preferred apparatus in the requirements to test the response.';return}
   simulatedCommitted=simulatedCommitted.filter(x=>resourceUnits.has(x));
   simulatedOnIncident=simulatedOnIncident.filter(x=>resourceUnits.has(x));
+  simulatedCrewMembers=simulatedCrewMembers.filter(x=>resourceUnits.has(x));
   const select=document.createElement('select');select.setAttribute('aria-label','Fictional unit assigned to another call');
   for(const name of names){const option=document.createElement('option');option.value=name;option.textContent=name;select.append(option)}
   const busy=document.createElement('button');busy.type='button';busy.textContent='Simulate Unit Committed';busy.onclick=()=>{simulatedOnIncident=simulatedOnIncident.filter(x=>x!==select.value);if(!simulatedCommitted.includes(select.value))simulatedCommitted.push(select.value);preview()};
   const onCall=document.createElement('button');onCall.type='button';onCall.textContent='Assign to Fictional Incident';onCall.onclick=()=>{simulatedCommitted=simulatedCommitted.filter(x=>x!==select.value);if(!simulatedOnIncident.includes(select.value))simulatedOnIncident.push(select.value);preview()};
-  const reset=document.createElement('button');reset.type='button';reset.textContent='Reset Simulation';reset.onclick=()=>{simulatedCommitted=[];simulatedOnIncident=[];simulatedCrew=false;simulatedAlarm='';preview()};
-  const shared=document.createElement('label');const check=document.createElement('input');check.type='checkbox';check.checked=simulatedCrew;check.disabled=names.length<2;check.onchange=()=>{simulatedCrew=check.checked;preview()};shared.append(check,document.createTextNode(' First two listed units share one crew (simulation only)'));
+  const reset=document.createElement('button');reset.type='button';reset.textContent='Reset Simulation';reset.onclick=()=>{simulatedCommitted=[];simulatedOnIncident=[];simulatedCrew=false;simulatedCrewMembers=[];simulatedAlarm='';preview()};
+  const shared=document.createElement('fieldset');const legend=document.createElement('legend');legend.textContent='Fictional shared crew (choose any two or more apparatus)';shared.append(legend);
+  for(const name of names){const label=document.createElement('label');label.style.display='inline-flex';label.style.margin='4px';const check=document.createElement('input');check.type='checkbox';check.checked=simulatedCrewMembers.includes(name);check.onchange=()=>{simulatedCrewMembers=check.checked?[...simulatedCrewMembers,name]:simulatedCrewMembers.filter(x=>x!==name);simulatedCrew=simulatedCrewMembers.length>=2;preview()};label.append(check,document.createTextNode(' '+name));shared.append(label)}
   controls.append(select,busy,onCall,reset,shared);
   const levels=[...(working.alarmLevels||[])].sort((a,b)=>Number(a.rank)-Number(b.rank));
   const alarmSelect=document.createElement('select');alarmSelect.setAttribute('aria-label','Simulation alarm level');
@@ -156,7 +159,7 @@ function editor(p){
   const incident={id:'fictional-incident',agency_id:'fictional-agency',discipline:discipline.value,type:snapshot().type,priority:snapshot().priority,response_zone:snapshot().area||'DEFAULT'};
   const roster=names.map((name,i)=>({id:'fictional-'+i,call_sign:name,agency_id:'fictional-agency',discipline:discipline.value,resource_type:resourceUnits.get(name),status:'AVAILABLE',staffing:{active:true,personIds:Array.from({length:30},(_,j)=>'fictional-person-'+i+'-'+j)}}));
   const assignments=[...simulatedCommitted.map(name=>({incident_id:'fictional-other-call',unit_id:roster.find(u=>u.call_sign===name)?.id})),...simulatedOnIncident.map(name=>({incident_id:incident.id,unit_id:roster.find(u=>u.call_sign===name)?.id}))].filter(x=>x.unit_id);
-  const crews=simulatedCrew&&names.length>=2?[{id:'fictional-crew',units:names.slice(0,2)}]:[];
+  const crews=simulatedCrew?[{id:'fictional-crew',units:simulatedCrewMembers}]:[];
   const simulatedPlan={...snapshot(),status:'ACTIVE',agencyId:'fictional-agency',resources:working.resources};
   const currentLevel=levels.find(l=>l.id===simulatedAlarm);
   const result=currentLevel?window.CadResponseEngine.escalate({plan:simulatedPlan,incident,roster,assignments,crews,stations:[],level:currentLevel.id}):window.CadResponseEngine.recommend({plan:simulatedPlan,incident,roster,assignments,crews,stations:[]});
@@ -166,7 +169,7 @@ function editor(p){
   const recommended=new Set(result.unitIds||[]);
   const exclusions=new Map(result.rows.flatMap(row=>row.excluded.map(entry=>[entry.unit,entry.reason])));
   const cards=document.createElement('div');cards.className='cad-rp-simulation-cards';cards.style.display='grid';cards.style.gridTemplateColumns='repeat(auto-fit,minmax(130px,1fr))';cards.style.gap='8px';cards.style.margin='12px 0';
-  const selectedCrew=simulatedCrew?new Set(names.slice(0,2)) : new Set();
+  const selectedCrew=simulatedCrew?new Set(simulatedCrewMembers) : new Set();
   for(const name of names){
    const card=document.createElement('div');card.className='cad-rp-simulation-card';card.style.padding='10px';card.style.border='1px solid var(--border-color,#778)';card.style.borderRadius='12px';
    const title=document.createElement('strong');title.textContent=name;card.append(title);
@@ -186,14 +189,14 @@ function editor(p){
    const title=document.createElement('strong');title.textContent='Shared Crew Override Rehearsal';review.append(title);
    const info=document.createElement('p');info.textContent='Fictional training only. No live override authority or assignment is created.';review.append(info);
    const target=document.createElement('select');target.setAttribute('aria-label','Apparatus to rehearse override');
-   const blocked=simulatedCrew?names.slice(0,2).filter(name=>!simulatedCommitted.includes(name)&&!simulatedOnIncident.includes(name)):[];
+   const blocked=simulatedCrew?simulatedCrewMembers.filter(name=>!simulatedCommitted.includes(name)&&!simulatedOnIncident.includes(name)):[];
    for(const name of blocked){const option=document.createElement('option');option.value=name;option.textContent=name;target.append(option)}
    const reason=document.createElement('textarea');reason.placeholder='Why is the additional apparatus independently available?';reason.setAttribute('aria-label','Fictional override reason');
    const authorized=document.createElement('label');const box=document.createElement('input');box.type='checkbox';authorized.append(box,document.createTextNode(' Simulate authorized dispatcher role'));
    const check=document.createElement('button');check.type='button';check.textContent='Review Fictional Override';
    const feedback=document.createElement('p');feedback.setAttribute('role','status');
    check.onclick=()=>{
-    const group=[{id:'fictional-crew',name:'Fictional Shared Crew',unitIds:names.slice(0,2)}];
+    const group=[{id:'fictional-crew',name:'Fictional Shared Crew',unitIds:simulatedCrewMembers}];
     const assessment=window.CadSharedCrewConfig.overrideReview({unitId:target.value,groups:group,committedUnitIds:[...simulatedCommitted,...simulatedOnIncident],reason:reason.value,authorized:box.checked});
     feedback.textContent=assessment.message+(assessment.allowed?' A real dispatcher must still pass server checks and confirm the audit record.':'');
    };
