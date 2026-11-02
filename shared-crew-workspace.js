@@ -4,7 +4,7 @@ const root=document.getElementById('cadResponseWorkspace');
 if(!root||!window.CadSharedCrewConfig||!window.CadDemoLogin)return;
 const button=document.createElement('button');button.type='button';button.textContent='Shared Crews';
 const panel=document.createElement('section');panel.hidden=true;panel.className='cad-rp-editor';panel.style.marginTop='12px';
-root.prepend(button);button.after(panel);
+root.before(button);root.after(panel);
 button.onclick=()=>{panel.hidden=!panel.hidden;if(!panel.hidden)load()};
 const esc=s=>String(s??'').replace(/[&<>"']/g,x=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[x]));
 let groups=[],units=[],agency='';
