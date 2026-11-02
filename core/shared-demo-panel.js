@@ -353,7 +353,6 @@
    try{
     result=await client.setUnitDuty({agency:session.agencyId,unit:unit.id,unitVersion:unit.version,onDuty});
     await refresh({quiet:true});
-    if(action==='create'&&result?.combined){const primary=snapshot.incidents.find(x=>x.id===result.primary_id);return {...result,incident_number:primary?.incident_number||result.incident_number||result.primary_id}}
     return result;
    }catch(error){
     await refresh({quiet:true});
