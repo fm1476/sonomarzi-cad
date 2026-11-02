@@ -99,7 +99,7 @@ function editor(p){
  function drawAlarms(){
   const holder=document.getElementById('rpNewAlarms');
   const levels=working.alarmLevels||[];
-  holder.innerHTML=levels.map((level,i)=>'<div class="cad-rp-requirement"><label>Level name <input data-alarm-name="'+i+'" value="'+escape(level.name||'')+'"></label><label>Sequence <input type="number" min="1" data-alarm-rank="'+i+'" value="'+Number(level.rank||i+1)+'"></label><label>Calculation <select data-alarm-mode="'+i+'"><option value="TOTAL">Total resources needed</option><option value="ADDITIVE">Add these resources</option></select></label><label>Tier decision<select data-alarm-logic="'+i+'"><option value="STANDARD">Standard totals</option><option value="GROUP">All resources together</option><option value="OR">Alternative choices from plan</option></select></label><button type="button" data-alarm-remove="'+i+'">Remove level</button><div style="width:100%"><strong>Level resources</strong><div data-alarm-rows="'+i+'"></div><button type="button" data-alarm-add="'+i+'">+ Resource</button></div></div>').join('')||'<p>No additional alarm levels defined.</p>';
+  holder.innerHTML=levels.map((level,i)=>'<div class="cad-rp-requirement"><label>Level name <input data-alarm-name="'+i+'" value="'+escape(level.name||'')+'"></label><label>Sequence <input type="number" min="1" data-alarm-rank="'+i+'" value="'+Number(level.rank||i+1)+'"></label><label>Calculation <select data-alarm-mode="'+i+'"><option value="TOTAL">Total resources needed</option><option value="ADDITIVE">Add these resources</option></select></label><label>Tier decision<select data-alarm-logic="'+i+'"><option value="STANDARD">Standard totals</option><option value="GROUP">All resources together</option><option value="OR">Tier-specific alternatives</option></select></label><button type="button" data-alarm-remove="'+i+'">Remove level</button><div style="width:100%"><strong>Level resources</strong><div data-alarm-rows="'+i+'"></div><button type="button" data-alarm-add="'+i+'">+ Resource</button></div></div>').join('')||'<p>No additional alarm levels defined.</p>';
   levels.forEach((level,i)=>{
    const name=holder.querySelector('[data-alarm-name="'+i+'"]'),rank=holder.querySelector('[data-alarm-rank="'+i+'"]'),mode=holder.querySelector('[data-alarm-mode="'+i+'"]');
    name.onchange=()=>{level.name=name.value.trim();preview()};rank.onchange=()=>{level.rank=Number(rank.value);preview()};mode.value=level.mode||'TOTAL';mode.onchange=()=>{level.mode=mode.value;preview()};
@@ -108,10 +108,32 @@ function editor(p){
    tierDecision.onchange=()=>{
     if(tierDecision.value==='STANDARD')level.resourceLogic=null;
     else if(tierDecision.value==='GROUP')level.resourceLogic={mode:'GROUP',resources:structuredClone(level.resources||[])};
-    else level.resourceLogic={mode:'OR',options:(working.resourceLogic?.mode==='OR'?structuredClone(working.resourceLogic.options):[structuredClone(level.resources||[])])};
+    else level.resourceLogic={mode:'OR',options:[structuredClone(level.resources||[])]};
     preview();
    };
    holder.querySelector('[data-alarm-remove="'+i+'"]').onclick=()=>{levels.splice(i,1);drawAlarms();preview()};
+   if(level.resourceLogic?.mode==='OR'){
+    const options=level.resourceLogic.options;
+    const editor=document.createElement('div');editor.className='cad-rp-tier-alternatives';
+    const heading=document.createElement('strong');heading.textContent='Tier-specific response alternatives';editor.append(heading);
+    options.forEach((block,k)=>{
+     const card=document.createElement('section');card.className='cad-rp-requirement';
+     const title=document.createElement('strong');title.textContent='Option '+(k+1);card.append(title);
+     for(let j=0;j<block.length;j++){
+      const req=block[j],row=document.createElement('div');row.className='cad-rp-requirement';
+      const type=document.createElement('input');type.value=req.type||'';type.setAttribute('aria-label','Tier option resource type');type.onchange=()=>{req.type=type.value.trim().toUpperCase();preview()};
+      const count=document.createElement('input');count.type='number';count.min='1';count.max='99';count.value=req.count||1;count.setAttribute('aria-label','Tier option quantity');count.onchange=()=>{req.count=Number(count.value);preview()};
+      const preferred=document.createElement('input');preferred.value=(req.preferredUnits||[]).join(', ');preferred.placeholder='Preferred units';preferred.setAttribute('aria-label','Tier option unit order');preferred.onchange=()=>{req.preferredUnits=preferred.value.split(',').map(x=>x.trim()).filter(Boolean);preview()};
+      const del=document.createElement('button');del.type='button';del.textContent='Remove resource';del.onclick=()=>{block.splice(j,1);drawAlarms();preview()};
+      row.append(type,count,preferred,del);card.append(row);
+     }
+     const addResource=document.createElement('button');addResource.type='button';addResource.textContent='+ Resource';addResource.onclick=()=>{block.push({type:'',count:1,preferredUnits:[]});drawAlarms();preview()};card.append(addResource);
+     if(options.length>1){const remove=document.createElement('button');remove.type='button';remove.textContent='Remove option';remove.onclick=()=>{options.splice(k,1);drawAlarms();preview()};card.append(remove)}
+     editor.append(card);
+    });
+    const add=document.createElement('button');add.type='button';add.textContent='+ Alternative';add.onclick=()=>{options.push([]);drawAlarms();preview()};editor.append(add);
+    holder.querySelector('[data-alarm-rows="'+i+'"]').parentElement.append(editor);
+   }
    const rows=holder.querySelector('[data-alarm-rows="'+i+'"]');
    function redrawRows(){
     rows.innerHTML=(level.resources||[]).map((r,j)=>'<div class="cad-rp-requirement"><label>Resource <input data-level-type="'+j+'" value="'+escape(r.type||'')+'"></label><label>Quantity <input type="number" min="1" max="99" data-level-count="'+j+'" value="'+Number(r.count||1)+'"></label><label>Preferred units <input data-level-units="'+j+'" value="'+escape((r.preferredUnits||[]).join(', '))+'"></label><button data-level-remove="'+j+'" type="button">Remove</button></div>').join('');
