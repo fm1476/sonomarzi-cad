@@ -125,6 +125,7 @@ function editor(p){
  resourceOptions();
  add.onclick=()=>{const resource=picker.value;if(!resource)return status('Configure resource types under Agencies & Units first.');working.resources.push({type:resource,count:1,preferredUnits:[]});drawRequirements()};
  const snapshot=()=>{const chosen=types.find(t=>t.id===type.value);return {...working,discipline:discipline.value,cfsTypeId:chosen?.id||null,type:chosen?.name||'',priority:document.getElementById('rpNewPriority').value===''?null:Number(document.getElementById('rpNewPriority').value),area:document.getElementById('rpNewArea').value.trim()}};
+ for(const input of [type,document.getElementById('rpNewPriority'),document.getElementById('rpNewArea')])input.onchange=()=>preview();
  for(const [id,state] of [['rpNewSave','DRAFT'],['rpNewActivate','ACTIVE'],['rpNewDeactivate','INACTIVE']])document.getElementById(id).onclick=()=>savePlan({...snapshot(),status:state});
  let simulatedCommitted=[];
  let simulatedOnIncident=[];
