@@ -16,6 +16,7 @@ create table if not exists public.cad_cfs_types(
  created_at timestamptz not null default now(),
  updated_at timestamptz not null default now(),
  unique(agency_id,discipline,code),
+ unique(agency_id,id),
  unique(agency_id,id,discipline)
 );
 create table if not exists public.cad_cfs_auto_links(
@@ -79,7 +80,7 @@ grant execute on function public.cad_save_cfs_type(uuid,jsonb) to authenticated;
 -- This RPC delegates numbering and event audit to the existing cad_create_incident_auto RPC.
 create or replace function public.cad_create_combined_incident(p_agency uuid,p_cfs_type uuid,p_priority text,p_location text)
 returns jsonb language plpgsql security definer set search_path='' as $$
-declare v_primary public.cad_cfs_types;v_child public.cad_cfs_types;v_created public.cad_incidents;v_root uuid;v_incident uuid;v_ids jsonb:='[]'::jsonb;v_row record;
+declare v_primary public.cad_cfs_types;v_created public.cad_incidents;v_root uuid;v_incident uuid;v_ids jsonb:='[]'::jsonb;v_row record;
 begin
  if auth.uid() is null or not public.cad_has_access(p_agency,true) then raise exception 'CAD access denied' using errcode='42501';end if;
  select * into v_primary from public.cad_cfs_types where id=p_cfs_type and agency_id=p_agency and publication='ACTIVE';
