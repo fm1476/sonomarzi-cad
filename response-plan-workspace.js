@@ -126,7 +126,40 @@ function editor(p){
  add.onclick=()=>{const resource=picker.value;if(!resource)return status('Configure resource types under Agencies & Units first.');working.resources.push({type:resource,count:1,preferredUnits:[]});drawRequirements()};
  const snapshot=()=>{const chosen=types.find(t=>t.id===type.value);return {...working,discipline:discipline.value,cfsTypeId:chosen?.id||null,type:chosen?.name||'',priority:document.getElementById('rpNewPriority').value===''?null:Number(document.getElementById('rpNewPriority').value),area:document.getElementById('rpNewArea').value.trim()}};
  for(const [id,state] of [['rpNewSave','DRAFT'],['rpNewActivate','ACTIVE'],['rpNewDeactivate','INACTIVE']])document.getElementById(id).onclick=()=>savePlan({...snapshot(),status:state});
- function preview(){v.innerHTML='<h4>Plan Preview</h4><p>Requirements are reviewed here. Actual unit recommendations need a current shared incident and roster.</p>'+working.resources.map(r=>'<div class="cad-rp-preview-line"><strong>'+escape(r.count)+' × '+escape(r.type)+'</strong><small>'+escape((r.preferredUnits||[]).join(' → ')||'No preferred unit order configured')+'</small></div>').join('')+'<h4>Escalation</h4>'+((working.alarmLevels||[]).map(l=>'<p>'+escape(l.name)+' · '+escape(l.mode||'TOTAL')+' · '+(l.resources||[]).map(r=>escape(r.count+' × '+r.type)).join(', ')+'</p>').join('')||'<p>No alarm escalation configured.</p>')+'<p>'+((working.resources||[]).some(r=>r.requiredStaffing!=null)?'Staffing verification required: shared CAD currently has no authoritative personnel-to-unit assignments for these minimum crew rules. Such units will be excluded until verified data is available.':'No minimum crew requirement configured.')+'</p><p>No units dispatched. Availability and staffing must be verified against the shared CAD before assignment.</p>'}
+ let simulatedCommitted=[];
+ let simulatedCrew=false;
+ function preview(){
+  v.innerHTML='<h4>Plan Preview</h4><p>These requirements are not yet dispatched.</p>'+working.resources.map(r=>'<div class="cad-rp-preview-line"><strong>'+escape(r.count)+' × '+escape(r.type)+'</strong><small>'+escape((r.preferredUnits||[]).join(' → ')||'No preferred unit order configured')+'</small></div>').join('')+'<h4>Escalation</h4>'+((working.alarmLevels||[]).map(l=>'<p>'+escape(l.name)+' · '+escape(l.mode||'TOTAL')+' · '+(l.resources||[]).map(r=>escape(r.count+' × '+r.type)).join(', ')+'</p>').join('')||'<p>No alarm escalation configured.</p>')+'<p>'+((working.resources||[]).some(r=>r.requiredStaffing!=null)?'Minimum crew rules require verified staffing. Fictional staffing is used for simulation only.':'No minimum crew requirement configured.')+'</p><hr><h4>Test Response · Fictional Simulation</h4><p>Safe preview only. No shared incidents or unit assignments are changed.</p><div id="rpSimControls"></div><div id="rpSimResults" role="status"></div>';
+  const controls=v.querySelector('#rpSimControls'),output=v.querySelector('#rpSimResults');
+  const resourceUnits=new Map();
+  for(const req of working.resources)for(const callSign of req.preferredUnits||[])if(!resourceUnits.has(callSign))resourceUnits.set(callSign,req.type);
+  const names=[...resourceUnits.keys()];
+  if(!names.length){output.textContent='Choose preferred apparatus in the requirements to test the response.';return}
+  simulatedCommitted=simulatedCommitted.filter(x=>resourceUnits.has(x));
+  const select=document.createElement('select');select.setAttribute('aria-label','Fictional unit assigned to another call');
+  for(const name of names){const option=document.createElement('option');option.value=name;option.textContent=name;select.append(option)}
+  const busy=document.createElement('button');busy.type='button';busy.textContent='Simulate Unit Committed';busy.onclick=()=>{if(!simulatedCommitted.includes(select.value))simulatedCommitted.push(select.value);preview()};
+  const reset=document.createElement('button');reset.type='button';reset.textContent='Reset Simulation';reset.onclick=()=>{simulatedCommitted=[];simulatedCrew=false;preview()};
+  const shared=document.createElement('label');const check=document.createElement('input');check.type='checkbox';check.checked=simulatedCrew;check.disabled=names.length<2;check.onchange=()=>{simulatedCrew=check.checked;preview()};shared.append(check,document.createTextNode(' First two listed units share one crew (simulation only)'));
+  controls.append(select,busy,reset,shared);
+  const incident={id:'fictional-incident',agency_id:'fictional-agency',discipline:discipline.value,type:snapshot().type,priority:snapshot().priority,response_zone:snapshot().area||'DEFAULT'};
+  const roster=names.map((name,i)=>({id:'fictional-'+i,call_sign:name,agency_id:'fictional-agency',discipline:discipline.value,resource_type:resourceUnits.get(name),status:'AVAILABLE',staffing:{active:true,personIds:Array.from({length:30},(_,j)=>'fictional-person-'+i+'-'+j)}}));
+  const assignments=simulatedCommitted.map(name=>({incident_id:'fictional-other-call',unit_id:roster.find(u=>u.call_sign===name)?.id})).filter(x=>x.unit_id);
+  const crews=simulatedCrew&&names.length>=2?[{id:'fictional-crew',units:names.slice(0,2)}]:[];
+  const simulatedPlan={...snapshot(),status:'ACTIVE',agencyId:'fictional-agency',resources:working.resources};
+  const result=window.CadResponseEngine.recommend({plan:simulatedPlan,incident,roster,assignments,crews,stations:[]});
+  const heading=document.createElement('strong');heading.textContent='Simulation: '+result.status.toUpperCase();output.append(heading);
+  const message=document.createElement('p');message.textContent=result.message;output.append(message);
+  for(const row of result.rows){
+   const line=document.createElement('div');line.className='cad-rp-preview-line';
+   const title=document.createElement('strong');title.textContent=row.type+' · '+row.recommended.length+' recommended / '+row.requested+' requested';line.append(title);
+   for(const unit of row.recommended){const p=document.createElement('p');p.textContent='✓ '+unit.callSign+' · '+unit.reason;line.append(p)}
+   for(const excluded of row.excluded){const p=document.createElement('small');p.style.display='block';p.textContent='Excluded '+excluded.unit+': '+excluded.reason;line.append(p)}
+   if(row.shortage){const p=document.createElement('p');p.textContent='Unfilled: '+row.shortage;line.append(p)}
+   output.append(line);
+  }
+ }
+
  drawRequirements();
 }
 async function savePlan(p){
