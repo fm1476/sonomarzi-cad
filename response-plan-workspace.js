@@ -128,26 +128,34 @@ function editor(p){
  for(const [id,state] of [['rpNewSave','DRAFT'],['rpNewActivate','ACTIVE'],['rpNewDeactivate','INACTIVE']])document.getElementById(id).onclick=()=>savePlan({...snapshot(),status:state});
  let simulatedCommitted=[];
  let simulatedCrew=false;
+ let simulatedAlarm='';
  function preview(){
   v.innerHTML='<h4>Plan Preview</h4><p>These requirements are not yet dispatched.</p>'+working.resources.map(r=>'<div class="cad-rp-preview-line"><strong>'+escape(r.count)+' × '+escape(r.type)+'</strong><small>'+escape((r.preferredUnits||[]).join(' → ')||'No preferred unit order configured')+'</small></div>').join('')+'<h4>Escalation</h4>'+((working.alarmLevels||[]).map(l=>'<p>'+escape(l.name)+' · '+escape(l.mode||'TOTAL')+' · '+(l.resources||[]).map(r=>escape(r.count+' × '+r.type)).join(', ')+'</p>').join('')||'<p>No alarm escalation configured.</p>')+'<p>'+((working.resources||[]).some(r=>r.requiredStaffing!=null)?'Minimum crew rules require verified staffing. Fictional staffing is used for simulation only.':'No minimum crew requirement configured.')+'</p><hr><h4>Test Response · Fictional Simulation</h4><p>Safe preview only. No shared incidents or unit assignments are changed.</p><div id="rpSimControls"></div><div id="rpSimResults" role="status"></div>';
   const controls=v.querySelector('#rpSimControls'),output=v.querySelector('#rpSimResults');
   const resourceUnits=new Map();
-  for(const req of working.resources)for(const callSign of req.preferredUnits||[])if(!resourceUnits.has(callSign))resourceUnits.set(callSign,req.type);
+  for(const req of [...working.resources,...(working.alarmLevels||[]).flatMap(l=>l.resources||[])])for(const callSign of req.preferredUnits||[])if(!resourceUnits.has(callSign))resourceUnits.set(callSign,req.type);
   const names=[...resourceUnits.keys()];
   if(!names.length){output.textContent='Choose preferred apparatus in the requirements to test the response.';return}
   simulatedCommitted=simulatedCommitted.filter(x=>resourceUnits.has(x));
   const select=document.createElement('select');select.setAttribute('aria-label','Fictional unit assigned to another call');
   for(const name of names){const option=document.createElement('option');option.value=name;option.textContent=name;select.append(option)}
   const busy=document.createElement('button');busy.type='button';busy.textContent='Simulate Unit Committed';busy.onclick=()=>{if(!simulatedCommitted.includes(select.value))simulatedCommitted.push(select.value);preview()};
-  const reset=document.createElement('button');reset.type='button';reset.textContent='Reset Simulation';reset.onclick=()=>{simulatedCommitted=[];simulatedCrew=false;preview()};
+  const reset=document.createElement('button');reset.type='button';reset.textContent='Reset Simulation';reset.onclick=()=>{simulatedCommitted=[];simulatedCrew=false;simulatedAlarm='';preview()};
   const shared=document.createElement('label');const check=document.createElement('input');check.type='checkbox';check.checked=simulatedCrew;check.disabled=names.length<2;check.onchange=()=>{simulatedCrew=check.checked;preview()};shared.append(check,document.createTextNode(' First two listed units share one crew (simulation only)'));
   controls.append(select,busy,reset,shared);
+  const levels=[...(working.alarmLevels||[])].sort((a,b)=>Number(a.rank)-Number(b.rank));
+  const alarmSelect=document.createElement('select');alarmSelect.setAttribute('aria-label','Simulation alarm level');
+  alarmSelect.append(new Option('Initial response',''));
+  for(const l of levels)alarmSelect.append(new Option(l.name||'Unnamed level',l.id));
+  alarmSelect.value=simulatedAlarm;alarmSelect.onchange=()=>{simulatedAlarm=alarmSelect.value;preview()};
+  controls.append(alarmSelect);
   const incident={id:'fictional-incident',agency_id:'fictional-agency',discipline:discipline.value,type:snapshot().type,priority:snapshot().priority,response_zone:snapshot().area||'DEFAULT'};
   const roster=names.map((name,i)=>({id:'fictional-'+i,call_sign:name,agency_id:'fictional-agency',discipline:discipline.value,resource_type:resourceUnits.get(name),status:'AVAILABLE',staffing:{active:true,personIds:Array.from({length:30},(_,j)=>'fictional-person-'+i+'-'+j)}}));
   const assignments=simulatedCommitted.map(name=>({incident_id:'fictional-other-call',unit_id:roster.find(u=>u.call_sign===name)?.id})).filter(x=>x.unit_id);
   const crews=simulatedCrew&&names.length>=2?[{id:'fictional-crew',units:names.slice(0,2)}]:[];
   const simulatedPlan={...snapshot(),status:'ACTIVE',agencyId:'fictional-agency',resources:working.resources};
-  const result=window.CadResponseEngine.recommend({plan:simulatedPlan,incident,roster,assignments,crews,stations:[]});
+  const currentLevel=levels.find(l=>l.id===simulatedAlarm);
+  const result=currentLevel?window.CadResponseEngine.escalate({plan:simulatedPlan,incident,roster,assignments,crews,stations:[],level:currentLevel.id}):window.CadResponseEngine.recommend({plan:simulatedPlan,incident,roster,assignments,crews,stations:[]});
   const heading=document.createElement('strong');heading.textContent='Simulation: '+result.status.toUpperCase();output.append(heading);
   const message=document.createElement('p');message.textContent=result.message;output.append(message);
   const recommended=new Set(result.unitIds||[]);
