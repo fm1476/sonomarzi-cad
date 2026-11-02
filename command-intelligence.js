@@ -70,7 +70,7 @@ async function executeShared(raw){
     let command=chunk;
     const prefix=command.match(/^#([\w-]+)\s*:\s*(.*)$/);
     if(prefix){contextRef='#'+prefix[1];command=prefix[2];if(!command){messages.push(ok('Context set to '+contextRef));continue;}}
-    if(/^HELP$/i.test(command)){messages.push(ok(help));continue;}
+    if(/^HELP$/i.test(command)){messages.push(ok('Shared CAD commands: D unit #event = Dispatch; DE unit #event = Dispatch then Enroute; DA unit #event = Dispatch then On Scene; E unit #event = Enroute; OS unit #event = On Scene; C4 unit #event = Code 4; AOS unit #event = Available on Scene; T unit #event = Transporting; AH unit #event = At Hospital (EMS); C or A unit #event = Clear assignment; RT #event text = Add radio narrative; HELP = This list. CL unit @location@ = Change unit location (local CAD only; shared transaction not yet available). DE and DA are two database operations in shared CAD, so check unit state if the second step fails.'));continue;}
     if(/^CL\b/i.test(command))throw Error('CL is not available through shared CAD until an authenticated unit-location transaction is verified. No location changed.');
     const m=command.match(/^(DE|DA|AOS|C4|OS|AH|RT|D|E|C|A|T)\b\s*(.*)$/i);
     if(!m)throw Error('Unsupported shared command: '+command+'. Use HELP to list available commands.');
