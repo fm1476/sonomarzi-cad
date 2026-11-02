@@ -169,6 +169,7 @@
        results.append(line);
        for(const excluded of row.excluded){const reason=document.createElement('small');reason.style.display='block';reason.textContent=excluded.unit+': '+excluded.reason;results.append(reason)}
       }
+      if(chosenLevel.value){const notice=document.createElement('p');notice.textContent='Escalation preview only. Alarm-level state is not yet stored in shared CAD, so dispatch from this preview is disabled.';results.append(notice);return}
       if(planResult.status==='blocked'||!planResult.unitIds.length)return;
       const dispatch=document.createElement('button');dispatch.type='button';dispatch.className='cad-shared-btn';
       dispatch.textContent=(planResult.status==='shortage'?'Dispatch Partial Response: ':'Dispatch ')+planResult.unitIds.length+' Reviewed Unit(s)';
