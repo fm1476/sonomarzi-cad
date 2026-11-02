@@ -189,7 +189,8 @@ function editor(p){
   v.innerHTML='<h4>Plan Preview</h4><p>These requirements are not yet dispatched.</p>'+working.resources.map(r=>'<div class="cad-rp-preview-line"><strong>'+escape(r.count)+' × '+escape(r.type)+'</strong><small>'+escape((r.preferredUnits||[]).join(' → ')||'No preferred unit order configured')+'</small></div>').join('')+'<h4>Escalation</h4>'+((working.alarmLevels||[]).map(l=>'<p>'+escape(l.name)+' · '+escape(l.mode||'TOTAL')+' · '+(l.resources||[]).map(r=>escape(r.count+' × '+r.type)).join(', ')+'</p>').join('')||'<p>No alarm escalation configured.</p>')+'<p>'+((working.resources||[]).some(r=>r.requiredStaffing!=null)?'Minimum crew rules require verified staffing. Fictional staffing is used for simulation only.':'No minimum crew requirement configured.')+'</p><hr><h4>Test Response · Fictional Simulation</h4><p>Safe preview only. No shared incidents or unit assignments are changed.</p><div id="rpSimControls"></div><div id="rpSimResults" role="status"></div>';
   const controls=v.querySelector('#rpSimControls'),output=v.querySelector('#rpSimResults');
   const resourceUnits=new Map();
-  for(const req of [...working.resources,...(working.alarmLevels||[]).flatMap(l=>l.resources||[])])for(const callSign of req.preferredUnits||[])if(!resourceUnits.has(callSign))resourceUnits.set(callSign,req.type);
+  const logicRequirements=working.resourceLogic?.mode==='GROUP'?(working.resourceLogic.resources||[]):working.resourceLogic?.mode==='OR'?(working.resourceLogic.options||[]).flat():[];
+  for(const req of [...working.resources,...logicRequirements,...(working.alarmLevels||[]).flatMap(l=>l.resources||[])])for(const callSign of req.preferredUnits||[])if(!resourceUnits.has(callSign))resourceUnits.set(callSign,req.type);
   const names=[...resourceUnits.keys()];
   if(!names.length){output.textContent='Choose preferred apparatus in the requirements to test the response.';return}
   simulatedCommitted=simulatedCommitted.filter(x=>resourceUnits.has(x));
@@ -216,11 +217,12 @@ function editor(p){
   const simulatedPlan={...snapshot(),status:'ACTIVE',agencyId:'fictional-agency',resources:working.resources};
   const currentLevel=levels.find(l=>l.id===simulatedAlarm);
   const result=currentLevel?window.CadResponseEngine.escalate({plan:simulatedPlan,incident,roster,assignments,crews,stations:[],level:currentLevel.id}):window.CadResponseEngine.recommend({plan:simulatedPlan,incident,roster,assignments,crews,stations:[]});
-  const heading=document.createElement('strong');heading.textContent='Simulation: '+result.status.toUpperCase();output.append(heading);
+  const heading=document.createElement('strong');heading.textContent='Simulation: '+result.status.toUpperCase()+(result.logicMode?' · '+result.logicMode:'');output.append(heading);
+  if(result.logicMode==='OR'&&result.selectedAlternative){const choice=document.createElement('p');choice.textContent='Selected complete alternative '+result.selectedAlternative;output.append(choice)}
   const message=document.createElement('p');message.textContent=result.message;output.append(message);
   const totals=document.createElement('p');totals.textContent='Already on incident: '+simulatedOnIncident.length+' · Additional recommended: '+(result.unitIds||[]).length+' · Unfilled requirements: '+(result.missing||[]).reduce((sum,r)=>sum+r.count,0);output.append(totals);
   const recommended=new Set(result.unitIds||[]);
-  const exclusions=new Map(result.rows.flatMap(row=>row.excluded.map(entry=>[entry.unit,entry.reason])));
+  const exclusions=new Map((result.rows||[]).flatMap(row=>(row.excluded||[]).map(entry=>[entry.unit,entry.reason])));
   const cards=document.createElement('div');cards.className='cad-rp-simulation-cards';cards.style.display='grid';cards.style.gridTemplateColumns='repeat(auto-fit,minmax(130px,1fr))';cards.style.gap='8px';cards.style.margin='12px 0';
   const selectedCrew=simulatedCrew?new Set(simulatedCrewMembers) : new Set();
   for(const name of names){
@@ -255,7 +257,7 @@ function editor(p){
    };
    review.append(target,reason,authorized,check,feedback);output.append(review);
   }
-  for(const row of result.rows){
+  for(const row of result.rows||[]){
    const line=document.createElement('div');line.className='cad-rp-preview-line';
    const title=document.createElement('strong');title.textContent=row.type+' · '+row.recommended.length+' recommended / '+row.requested+' requested';line.append(title);
    for(const unit of row.recommended){const p=document.createElement('p');p.textContent='✓ '+unit.callSign+' · '+unit.reason;line.append(p)}
