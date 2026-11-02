@@ -11,7 +11,7 @@ Closest-unit/ETA selection is deliberately **out of scope** for this CAD environ
 - Additional automated tests cover schedules, hierarchy, grouped requirements and alternatives.
 
 ## Still incomplete (do not mistake for operational readiness)
-- Visual editor controls for creating OR/GROUP response blocks and notes.
+- Visual editor controls for creating OR/GROUP response blocks. The designer now exposes optional response notes.
 - Date/time simulation controls in acceptance lab and browser acceptance of the new fields.
 - Agency-configured hierarchy labels and authoritative incident geographic subdivision source.
 - CSV template import/export, mapping, conflict preview and validation.
