@@ -43,6 +43,10 @@
    listMyPreferences:agency=>read('cad_user_preferences',agency,'select=preference_key,payload,version,updated_at&order=preference_key'),
    saveCloudSetting:({agency,scope,key,payload,expectedVersion})=>rpc('cad_save_cloud_setting',{p_agency:id(agency),p_scope:scope,p_key:key,p_payload:payload,p_expected_version:expectedVersion}),
 
+   listCfsTypes:agency=>read('cad_cfs_types',agency,'select=*&order=discipline,name'),
+   saveCfsType:({agency,cfsType})=>rpc('cad_save_cfs_type',{p_agency:id(agency),p_type:cfsType}),
+   createCombinedIncident:({agency,cfsTypeId,priority,location})=>rpc('cad_create_combined_incident',{p_agency:id(agency),p_cfs_type:id(cfsTypeId),p_priority:priority,p_location:location}),
+   listCombinedLinks:agency=>read('cad_combined_incident_links',agency,'select=*&order=created_at.desc'),
    listIncidents:agency=>read('cad_incidents',agency,'select=*&order=created_at.desc&limit=250'),
    listUnits:agency=>read('cad_units',agency,'select=*&order=call_sign&limit=500'),
    listAssignments:agency=>read('cad_assignments',agency,'select=*&cleared_at=is.null&limit=500'),
