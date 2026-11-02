@@ -32,6 +32,28 @@ function recommend({plans=[],plan:explicitPlan,incident,roster=[],assignments=[]
  const selection=explicitPlan?(match(explicitPlan,incident)?{plan:explicitPlan,reason:null}:{plan:null,reason:'Explicit plan does not match this incident or is not active.'}):selectPlan(plans,incident);
  const plan=selection.plan;
  if(!plan)return {status:'blocked',message:selection.reason,rows:[]};
+ const logic=plan.resourceLogic;
+ if(logic){
+  const mode=norm(logic.mode);
+  const stripped={...plan,resourceLogic:null};
+  if(mode==='GROUP'){
+   if(!Array.isArray(logic.resources)||!logic.resources.length)return {status:'blocked',message:'Grouped response contains no requirements.',rows:[],unitIds:[]};
+   const result=recommend({plan:{...stripped,resources:logic.resources},incident,roster,assignments,crews,stations,qualifications});
+   return result.status==='ready'?{...result,logicMode:'GROUP'}:{...result,status:'blocked',unitIds:[],message:'Grouped response incomplete. No group recommended. '+result.message,logicMode:'GROUP'};
+  }
+  if(mode==='OR'){
+   if(!Array.isArray(logic.options)||!logic.options.length)return {status:'blocked',message:'Alternative response contains no choices.',rows:[],unitIds:[]};
+   const attempted=[];
+   for(const resources of logic.options){
+    if(!Array.isArray(resources)||!resources.length)continue;
+    const result=recommend({plan:{...stripped,resources},incident,roster,assignments,crews,stations,qualifications});
+    attempted.push(result);
+    if(result.status==='ready')return {...result,logicMode:'OR',selectedAlternative:attempted.length};
+   }
+   return {status:'blocked',message:'No complete alternative response is available. Dispatcher review required.',rows:attempted.flatMap(r=>r.rows||[]),missing:attempted.flatMap(r=>r.missing||[]),warnings:attempted.flatMap(r=>r.warnings||[]),unitIds:[],logicMode:'OR'};
+  }
+  return {status:'blocked',message:'Unsupported response logic mode.',rows:[],unitIds:[]};
+ }
  const active=assignments.filter(a=>!a.cleared_at&&a.active!==false);
  const warnings=[];
  if(!Array.isArray(plan.resources)||!plan.resources.length)return {status:'blocked',message:'Plan has no resource requirements.',rows:[],unitIds:[]};
