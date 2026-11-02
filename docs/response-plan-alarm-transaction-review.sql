@@ -31,7 +31,7 @@ create or replace function public.cad_set_incident_alarm_level(
  p_level_rank integer
 ) returns jsonb language plpgsql security definer set search_path = ''
 as $fn$
-declare v public.cad_incidents; previous_rank integer;
+declare v public.cad_incidents; previous_rank integer; v_raw text; v_plan jsonb; v_level jsonb; v_settings jsonb;
 begin
  if auth.uid() is null or not public.cad_has_access(p_agency,true)
  then raise exception 'CAD access denied' using errcode='42501';end if;
@@ -48,9 +48,30 @@ begin
  where agency_id=p_agency and incident_id=p_incident for update;
  if previous_rank is not null and p_level_rank<=previous_rank
  then raise exception 'Alarm level must advance';end if;
- -- NOTE: before enabling this RPC, validate plan ID, level ID, rank and name
- -- against the ACTIVE plan stored in agency configuration inside the transaction.
- -- Until that validation is implemented, this function MUST NOT be granted to clients.
+ -- Validate the requested alarm level against the active plan in the SAME transaction.
+ select payload into v_settings from public.cad_agency_config_documents
+ where agency_id=p_agency and document_key='smcad-response-plans-v1';
+ v_raw:=v_settings->>'raw';
+ if v_raw is null or not pg_catalog.jsonb_typeof(v_raw::jsonb)='array'
+ then raise exception 'Response plans are not configured';end if;
+ select p.value into v_plan from pg_catalog.jsonb_array_elements(v_raw::jsonb) p(value)
+ where p.value->>'id'=p_plan_id
+   and upper(coalesce(p.value->>'status','')) in ('ACTIVE','PUBLISHED')
+   and upper(coalesce(p.value->>'discipline',''))=upper(v.discipline)
+   and upper(coalesce(p.value->>'type',''))=upper(v.type)
+   and (nullif(p.value->>'priority','') is null or p.value->>'priority'=v.priority)
+ limit 1;
+ if v_plan is null then raise exception 'Active response plan does not match incident';end if;
+ select l.value into v_level from pg_catalog.jsonb_array_elements(coalesce(v_plan->'alarmLevels','[]'::jsonb)) l(value)
+ where l.value->>'name'=p_level_name and l.value->>'rank'=p_level_rank::text
+ limit 1;
+ if v_level is null then raise exception 'Requested alarm level is not configured in the active plan';end if;
+ -- Note: geographic plan restrictions require a trusted, persisted response area
+ -- on the incident. Until authoritative area matching is available, restricted
+ -- plans MUST NOT be accepted for alarm transitions.
+ if nullif(btrim(coalesce(v_plan->>'area',v_plan->>'zone','')),'') is not null
+    and upper(btrim(coalesce(v_plan->>'area',v_plan->>'zone',''))) not in ('DEFAULT','*')
+ then raise exception 'Geographic alarm plan requires verified incident response area';end if;
  insert into public.cad_incident_alarm_state(agency_id,incident_id,alarm_name,alarm_rank,plan_id,recorded_by)
  values(p_agency,p_incident,btrim(p_level_name),p_level_rank,btrim(p_plan_id),auth.uid())
  on conflict(incident_id) do update
@@ -68,5 +89,6 @@ end $fn$;
 
 revoke all on function public.cad_set_incident_alarm_level(uuid,uuid,bigint,text,text,integer)
  from public,anon,authenticated;
+-- GRANT remains intentionally absent until migration review and authenticated acceptance.
 -- Do not GRANT EXECUTE until the server verifies the configured active plan's alarm level.
 commit;
