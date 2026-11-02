@@ -1,0 +1,17 @@
+const assert=require('node:assert/strict');
+const rules=require('../core/response-pattern-rules');
+const engine=require('../core/response-engine');
+const plan={id:'a',status:'ACTIVE',agencyId:'agency',discipline:'FIRE',type:'Structure Fire',resources:[{type:'ENGINE',count:1}],pattern:{geography:{dispatchArea:'NORTH',subdivisions:['BATTALION 2']},schedule:{days:['MON'],startTime:'18:00',endTime:'06:00',timeZone:'America/Los_Angeles',activeFrom:'2026-01-01T00:00:00Z',expiresAt:'2027-01-01T00:00:00Z'}}};
+const incident=t=>({agency_id:'agency',discipline:'FIRE',type:'Structure Fire',dispatch_area:'north',subdivisions:['battalion 2'],occurred_at:t});
+assert.equal(engine.match(plan,incident('2026-11-03T06:30:00Z')),true,'Monday late evening');
+assert.equal(engine.match(plan,incident('2026-11-03T13:30:00Z')),true,'Tuesday pre-dawn belongs to Monday overnight pattern');
+assert.equal(engine.match(plan,incident('2026-11-03T15:00:00Z')),false,'Tuesday after overnight cutoff');
+assert.equal(engine.match(plan,incident('2026-11-04T06:30:00Z')),false,'Tuesday night does not match Monday schedule');
+assert.equal(engine.match(plan,{...incident('2026-11-03T06:30:00Z'),dispatch_area:'SOUTH'}),false);
+assert.equal(engine.match(plan,{...incident('2026-11-03T06:30:00Z'),subdivisions:['OTHER']}),false);
+assert.equal(engine.match(plan,{...incident('2026-11-03T06:30:00Z'),occurred_at:null}),false);
+assert.equal(rules.matches({schedule:{days:['MON'],startTime:'17:00',endTime:'19:00',timeZone:'Invalid/Zone'}},incident('2026-11-03T01:30:00Z')),false);
+const generic={...plan,id:'generic',pattern:null};
+const selected=engine.selectPlan([generic,plan],incident('2026-11-03T06:30:00Z'));
+assert.equal(selected.plan?.id,'a','specific response plan selected over generic');
+console.log('Response schedule and dispatch geography checks passed.');
