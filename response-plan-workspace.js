@@ -307,6 +307,17 @@ async function savePlan(p){
   if(!p.cfsTypeId)return status('Select a saved discipline-specific call type.');
  const logic=p.resourceLogic;
  if(p.status==='ACTIVE'&&(logic||(p.alarmLevels||[]).some(l=>l.resourceLogic))&&(p.alarmLevels||[]).some(l=>l.mode==='ADDITIVE'||!l.resourceLogic))return status('Activation blocked: complex alarm plans require explicit TOTAL tier decisions at every alarm level.');
+ if(p.status==='ACTIVE'){
+  for(const tier of p.alarmLevels||[]){
+   const decision=tier.resourceLogic;
+   if(!decision)continue;
+   const choices=decision.mode==='OR'?decision.options:decision.mode==='GROUP'?[decision.resources]:null;
+   if(!choices?.length||choices.some(block=>!Array.isArray(block)||!block.length))return status('Alarm '+(tier.name||'level')+' has an empty alternative or grouped response.');
+   if(choices.some(block=>block.some(req=>!req.type||!Number.isInteger(Number(req.count))||Number(req.count)<1||Number(req.count)>99)))return status('Alarm '+(tier.name||'level')+' has invalid resource types or quantities.');
+   if(choices.some(block=>new Set(block.map(req=>String(req.type).toUpperCase())).size!==block.length))return status('Alarm '+(tier.name||'level')+' has duplicate resource types in a response choice.');
+   if(choices.some(block=>block.some(req=>!(req.preferredUnits||[]).length&&!req.specificUnit&&!req.allowUnrankedFallback)))return status('Configure a preferred unit order for every alarm decision resource.');
+  }
+ }
  if(p.status==='ACTIVE'&&logic){
   const blocks=logic.mode==='GROUP'?[logic.resources]:logic.mode==='OR'?logic.options:null;
   if(!blocks||!blocks.length||blocks.some(b=>!Array.isArray(b)||!b.length))return status('Every grouped or alternative response must contain at least one resource.');
