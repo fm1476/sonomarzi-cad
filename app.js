@@ -39,8 +39,12 @@ window.cadSharedApplySnapshot=function(snapshot){
   const u=(snapshot.roster||[]).find(u=>u.id===a.unit_id);
   if(u)assigned.get(a.incident_id).push(u.call_sign);
  }
+ const incidentNumbers=new Map((snapshot.incidents||[]).map(i=>[i.id,i.incident_number]));
+ const combinedRoots=new Map((snapshot.combinedLinks||[]).map(link=>[link.incident_id,link.root_incident_id]));
  const incidents=(snapshot.incidents||[]).map(i=>({
   id:i.incident_number,sharedUuid:i.id,sharedVersion:i.version,sharedHold:(snapshot.holds||[]).find(h=>h.incident_id===i.id&&h.active)||null,caseNumber:i.case_number||'',agency:'SonoMarzi CAD Demo Agency',
+  linkedRoot:incidentNumbers.get(combinedRoots.get(i.id))||null,
+  linkedFrom:combinedRoots.has(i.id)&&combinedRoots.get(i.id)!==i.id?(incidentNumbers.get(combinedRoots.get(i.id))||null):null,
   discipline:i.discipline,priority:i.priority,type:i.type,location:i.current_location,
   status:i.status,units:assigned.get(i.id)||[],narrative:(snapshot.incidentEvents||[]).filter(e=>e.incident_id===i.id&&e.event_type==='NARRATIVE_ADDED').slice().reverse().map(e=>e.payload?.text||''),
   events:(snapshot.incidentEvents||[]).filter(e=>e.incident_id===i.id).slice().reverse().map(e=>new Date(e.occurred_at).toLocaleTimeString()+' · '+e.event_type+' '+JSON.stringify(e.payload||{})),
