@@ -40,11 +40,11 @@ function recommend({plans=[],plan:explicitPlan,incident,roster=[],assignments=[]
  const crewMembers=new Map(),crewForUnit=new Map();
  for(const crew of crews){
   const ids=unique(crew.unitIds||crew.units||[]).map(norm);
-  for(const id of ids)crewForUnit.set(id,crew.id);
+  for(const id of ids){crewForUnit.set(id,crew.id);const rosterUnit=roster.find(u=>norm(u.id)===id||norm(u.call_sign)===id);if(rosterUnit){crewForUnit.set(norm(rosterUnit.id),crew.id);crewForUnit.set(norm(rosterUnit.call_sign),crew.id)}}
   crewMembers.set(crew.id,ids);
  }
  const occupiedCrews=new Set();
- for(const u of roster)if(assignedHere.has(u.id)||assignedElsewhere.has(u.id)){const c=crewForUnit.get(norm(u.call_sign||u.id));if(c)occupiedCrews.add(c)}
+ for(const u of roster)if(assignedHere.has(u.id)||assignedElsewhere.has(u.id)){const c=crewForUnit.get(norm(u.call_sign))||crewForUnit.get(norm(u.id));if(c)occupiedCrews.add(c)}
  const selected=new Set(),usedCrews=new Set(occupiedCrews),usedPeople=new Set();
  for(const u of roster)if(assignedHere.has(u.id)||assignedElsewhere.has(u.id))for(const person of u.staffing?.personIds||[])usedPeople.add(person);
  const stationById=new Map(stations.map(s=>[s.id,s]));
@@ -60,7 +60,7 @@ function recommend({plans=[],plan:explicitPlan,incident,roster=[],assignments=[]
   if(selected.has(u.id))return 'Already recommended';
   if(norm(u.status)!=='AVAILABLE')return 'Not available: '+(u.status||'unknown');
   if(u.on_duty===false)return 'Off duty';
-  const crew=crewForUnit.get(norm(u.call_sign||u.id));
+  const crew=crewForUnit.get(norm(u.call_sign))||crewForUnit.get(norm(u.id));
   if(crew&&usedCrews.has(crew))return 'Shared crew already committed';
   if((u.staffing?.personIds||[]).some(p=>usedPeople.has(p)))return 'Personnel already committed';
   if(req.stationId){
@@ -97,7 +97,7 @@ function recommend({plans=[],plan:explicitPlan,incident,roster=[],assignments=[]
    if(!order.length&&!req.allowUnrankedFallback&&!req.specificUnit){excluded.push({unit:u.call_sign,reason:'No response order configured'});continue}
    qualified.push({id:u.id,callSign:u.call_sign,reason:order.includes(norm(u.call_sign))?'Configured response order':req.specificUnit?'Specified resource':'Explicit roster fallback'});
    selected.add(u.id);
-   const crew=crewForUnit.get(norm(u.call_sign));if(crew)usedCrews.add(crew);
+   const crew=crewForUnit.get(norm(u.call_sign))||crewForUnit.get(norm(u.id));if(crew)usedCrews.add(crew);
    for(const person of u.staffing?.personIds||[])usedPeople.add(person);
   }
   const shortage=Math.max(0,remaining-qualified.length);
