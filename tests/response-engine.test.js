@@ -84,4 +84,17 @@ test('additive escalation includes crossed tiers, without duplicate assigned uni
  assert.deepEqual(r.unitIds,['u3']);
 });
 test('canonical plan works with legacy incident lacking CFS ID only when name matches',()=>{const p={...plan,cfsTypeId:'type-123'};assert.equal(engine.match(p,incident),true);assert.equal(engine.match(p,{...incident,type:'Medical Aid'}),false);assert.equal(engine.match(p,{...incident,cfs_type_id:'different'}),false);});
+test('explicit draft or mismatched response plan cannot recommend units',()=>{
+ assert.equal(engine.recommend({plan:{...plan,status:'DRAFT'},incident,roster}).status,'blocked');
+ assert.equal(engine.recommend({plan:{...plan,discipline:'EMS'},incident,roster}).status,'blocked');
+});
+test('duplicate resource requirement rows fail closed rather than double counting',()=>{
+ const p={...plan,resources:[{type:'ENGINE',count:1,preferredUnits:['E1']},{type:'ENGINE',count:2,preferredUnits:['E2','E3']}]};
+ const result=engine.recommend({plan:p,incident,roster,assignments:[{incident_id:incident.id,unit_id:'u1'}]});
+ assert.equal(result.status,'blocked');assert.deepEqual(result.unitIds,[]);
+});
+test('resource quantities over 99 fail closed',()=>{
+ const result=engine.recommend({plan:{...plan,resources:[{type:'ENGINE',count:100,preferredUnits:['E1']}]},incident,roster});
+ assert.equal(result.status,'blocked');assert.deepEqual(result.unitIds,[]);
+});
 console.log('Response engine regression checks passed.');
