@@ -35,5 +35,13 @@ function blockedUnits(groups,committedUnitIds){
  }
  return blocked;
 }
-return Object.freeze({validate,blockedUnits});
+function overrideReview({unitId,groups=[],committedUnitIds=[],reason='',authorized=false}={}){
+ const blocked=blockedUnits(groups,committedUnitIds).get(id(unitId));
+ if(!blocked)return {allowed:false,code:'NO_SHARED_CREW_CONFLICT',message:'No shared-crew conflict to override.'};
+ if(!authorized)return {allowed:false,code:'NOT_AUTHORIZED',message:'Role lacks shared-crew override permission.',conflict:blocked};
+ const explanation=id(reason);
+ if(explanation.length<10||explanation.length>500)return {allowed:false,code:'REASON_REQUIRED',message:'Provide an override reason between 10 and 500 characters.',conflict:blocked};
+ return {allowed:true,code:'REQUIRES_SERVER_CONFIRMATION',message:'Eligible for server authorization, version checks and audit. No assignment performed.',conflict:blocked,reason:explanation};
+}
+return Object.freeze({validate,blockedUnits,overrideReview});
 });
