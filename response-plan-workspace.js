@@ -179,6 +179,25 @@ function editor(p){
    cards.append(card);
   }
   output.append(cards);
+  const conflicts=[...cards.querySelectorAll('.cad-rp-simulation-card')].filter(card=>card.textContent.includes('Crew committed'));
+  if(conflicts.length&&window.CadSharedCrewConfig?.overrideReview){
+   const review=document.createElement('section');review.className='cad-rp-requirement';
+   const title=document.createElement('strong');title.textContent='Shared Crew Override Rehearsal';review.append(title);
+   const info=document.createElement('p');info.textContent='Fictional training only. No live override authority or assignment is created.';review.append(info);
+   const target=document.createElement('select');target.setAttribute('aria-label','Apparatus to rehearse override');
+   const blocked=simulatedCrew?names.slice(0,2).filter(name=>!simulatedCommitted.includes(name)&&!simulatedOnIncident.includes(name)):[];
+   for(const name of blocked){const option=document.createElement('option');option.value=name;option.textContent=name;target.append(option)}
+   const reason=document.createElement('textarea');reason.placeholder='Why is the additional apparatus independently available?';reason.setAttribute('aria-label','Fictional override reason');
+   const authorized=document.createElement('label');const box=document.createElement('input');box.type='checkbox';authorized.append(box,document.createTextNode(' Simulate authorized dispatcher role'));
+   const check=document.createElement('button');check.type='button';check.textContent='Review Fictional Override';
+   const feedback=document.createElement('p');feedback.setAttribute('role','status');
+   check.onclick=()=>{
+    const group=[{id:'fictional-crew',name:'Fictional Shared Crew',unitIds:names.slice(0,2)}];
+    const assessment=window.CadSharedCrewConfig.overrideReview({unitId:target.value,groups:group,committedUnitIds:[...simulatedCommitted,...simulatedOnIncident],reason:reason.value,authorized:box.checked});
+    feedback.textContent=assessment.message+(assessment.allowed?' A real dispatcher must still pass server checks and confirm the audit record.':'');
+   };
+   review.append(target,reason,authorized,check,feedback);output.append(review);
+  }
   for(const row of result.rows){
    const line=document.createElement('div');line.className='cad-rp-preview-line';
    const title=document.createElement('strong');title.textContent=row.type+' · '+row.recommended.length+' recommended / '+row.requested+' requested';line.append(title);
