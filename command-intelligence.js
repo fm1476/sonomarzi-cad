@@ -3,7 +3,7 @@
 'use strict';
 const input=document.getElementById('command'), sugg=document.getElementById('cadSuggestions'), results=document.getElementById('cadCommandResults');
 const ask=document.getElementById('cadAsk'), answer=document.getElementById('cadAnswer');
-const help='CE #4525 ,report taken | CL / TS can appear anywhere: TS 3A12 @address@ .plate. ,remarks OR @address@ ,remarks, TS .plate. 3A12. Natural typed traffic-stop and change-location phrases also supported. | D Dispatch | DE Dispatch & enroute | E Enroute | OS On scene | C4 Code 4 | AOS Available on scene | A Available | C Clear | T Transport | AH At hospital | RT Radio traffic/narrative | PRE Preempt. Separate independent commands with ; . Use #4525 to reference an incident. Example: OS E1; C M2; D 3A12 #4518; RT #4518 Additional unit requested. Event context: #4525: OS E1; C E2; RT Fire under control.';
+const help='CE #4525 ,report taken | CL / TS can appear anywhere: TS 3A12 @address@ .plate. ,remarks OR @address@ ,remarks, TS .plate. 3A12. Natural typed traffic-stop and change-location phrases also supported. | D Dispatch | DE Dispatch & enroute | DA Dispatch & arrive on scene | E Enroute | OS On scene | C4 Code 4 | AOS Available on scene | A Available | C Clear | T Transport | AH At hospital | RT Radio traffic/narrative | PRE Preempt. Separate independent commands with ; . Use #4525 to reference an incident. Example: OS E1; C M2; D 3A12 #4518; RT #4518 Additional unit requested. Event context: #4525: OS E1; C E2; RT Fire under control.';
 const statusCodes={E:'ENROUTE',OS:'ONSCENE',C4:'CODE4',AOS:'AVAILABLE_ON_SCENE',A:'AVAILABLE',T:'TRANSPORTING',AH:'AT_HOSPITAL'};
 const units=()=>state.units, incidents=()=>state.incidents;
 const unit=id=>units().find(u=>u.id===String(id||'').toUpperCase());
@@ -47,13 +47,13 @@ function execOne(part, context){let text=part.trim();if(!text)return null; /* Ke
   return ok(`Created ${id} Traffic Stop; ${u.id} ${u.status.replace('ONSCENE','ON SCENE')} at ${address}${plate?' | '+plate:''}.`);
  }
  if(/\b(CL|TS)\b/i.test(text))return fail('Syntax: TS 3A12 @1562 Henry Way@ .SAM123. ,red Toyota truck OR @1562 Henry Way@ ,red Toyota truck, TS .SAM123. 3A12');
- const m=text.match(/^(DE|PRE|AOS|C4|OS|AH|RT|D|E|C|A|T)\b\s*(.*)$/i);if(!m)return fail(`Unknown command: ${text}. Type HELP.`);
+ const m=text.match(/^(DE|DA|PRE|AOS|C4|OS|AH|RT|D|E|C|A|T)\b\s*(.*)$/i);if(!m)return fail(`Unknown command: ${text}. Type HELP.`);
  const code=m[1].toUpperCase();let rest=m[2].trim();
  if(code==='RT') {const refMatch=rest.match(/#([\w-]+)/);let target;if(refMatch){const res=resolve(refMatch[1]);if(res.error)return fail(res.error);target=res.incident;rest=rest.replace(refMatch[0],'').trim();}else{const x=rest.match(/^([\dA-Z]+)\b/i),u=x&&unit(x[1]);if(u){const ass=owner(u);if(ass.length!==1)return fail(`Cannot uniquely resolve assigned event for ${u.id}.`);target=ass[0];rest=rest.slice(x[0].length).trim();}else if(context.incident){target=context.incident;}else return fail('RT requires a CFS reference (#4525) or an assigned unit (RT E1 ...).');}if(!rest)return fail('RT requires narrative text.');target.narrative.push(rest);event(target,`COMMAND_RADIO_TRAFFIC ${rest.slice(0,160)}`);return ok(`RT added to ${target.id}: ${rest}`)}
  const idMatch=rest.match(/#([\w-]+)/),ref=idMatch?'#'+idMatch[1]:context.ref;const utext=(idMatch?rest.replace(idMatch[0],''):rest).trim();const unitIds=utext.split(/[\s,]+/).filter(Boolean);if(!unitIds.length)return fail(`${code}: enter a unit ID.`);if(unitIds.length>20)return fail('Too many units in one command.');const seen=[...new Set(unitIds.map(x=>x.toUpperCase()))];const invalid=seen.filter(x=>!unit(x));if(invalid.length)return fail(`Unknown unit(s): ${invalid.join(', ')}.`);
- if((code==='D'||code==='DE'||code==='PRE')&&!ref)return fail(`${code}: specify the destination CFS (#4525).`);
+ if((code==='D'||code==='DE'||code==='DA'||code==='PRE')&&!ref)return fail(`${code}: specify the destination CFS (#4525).`);
  let target=null;if((code==='D'||code==='DE'||code==='PRE')&&ref){const r=resolve(ref);if(r.error)return fail(r.error);target=r.incident;}
- const messages=[];for(const id of seen){const u=unit(id);if(['D','DE','PRE'].includes(code)){const r=code==='PRE'?preempt(u,target):dispatchUnit(u,target,code);messages.push(r);continue;}
+ const messages=[];for(const id of seen){const u=unit(id);if(['D','DE','DA','PRE'].includes(code)){const r=code==='PRE'?preempt(u,target):dispatchUnit(u,target,code==='DA'?'DE':code);if(r.ok&&code==='DA'){const changed=window.cadSetUnitStatus?.(u.id,'ONSCENE',target.id,'COMMAND');messages.push(changed?.ok?ok('DA '+u.id+' dispatched and on scene at '+target.id):fail('DA '+u.id+' assigned, but on-scene transition failed: '+(changed?.message||'unknown')))}else messages.push(r);continue;}
  if(code==='A'){const active=owner(u);if(active.length>1){messages.push(fail(`${id}: multiple assignments.`));continue}if(active.length){const x=active[0];x.units=x.units.filter(t=>t!==u.id);event(x,`COMMAND_AVAILABLE ${u.id}`);if(!x.units.length){x.status='PENDING';event(x,'INCIDENT_RETURNED_PENDING NO_DISPOSITION')}}u.status='AVAILABLE';u.location='Available';messages.push(ok(`${id} AVAILABLE`));continue;}
  const r=contextFor(u,ref);if(r.error){messages.push(fail(r.error));continue}const i=r.incident;if(code==='C'){const cleared=clearCadUnit(i,u,'','COMMAND');messages.push(cleared.ok?ok(cleared.message):fail(cleared.message));continue}if(code==='AH'&&u.discipline!=='EMS'){messages.push(fail(`${id}: AH requires an EMS unit.`));continue}const before=u.status;u.status=statusCodes[code];u.location=code==='AH'?'Hospital':i.location;recordAction(i,u,before,u.status,code);messages.push(ok(`${id}: ${before} → ${u.status} on ${i.id}.`));}
  return messages;
@@ -70,8 +70,10 @@ async function executeShared(raw){
     let command=chunk;
     const prefix=command.match(/^#([\w-]+)\s*:\s*(.*)$/);
     if(prefix){contextRef='#'+prefix[1];command=prefix[2];if(!command){messages.push(ok('Context set to '+contextRef));continue;}}
-    const m=command.match(/^(DE|AOS|C4|OS|AH|RT|D|E|C|A|T)\b\s*(.*)$/i);
-    if(!m)throw Error('Unsupported shared command: '+command+'. Use D, DE, E, OS, T, AH, A or C; RT for notes.');
+    if(/^HELP$/i.test(command)){messages.push(ok(help));continue;}
+    if(/^CL\b/i.test(command))throw Error('CL is not available through shared CAD until an authenticated unit-location transaction is verified. No location changed.');
+    const m=command.match(/^(DE|DA|AOS|C4|OS|AH|RT|D|E|C|A|T)\b\s*(.*)$/i);
+    if(!m)throw Error('Unsupported shared command: '+command+'. Use HELP to list available commands.');
     const code=m[1].toUpperCase(),rest=m[2];
     const refMatch=rest.match(/#([\w-]+)/);
     const ref=refMatch?'#'+refMatch[1]:contextRef;
@@ -92,9 +94,9 @@ async function executeShared(raw){
      if(ref){const found=resolve(ref);if(found.error){messages.push(fail(found.error));continue;}incident=found.incident;}
      else if(active.length===1)incident=active[0];
      if(!incident){messages.push(fail('Specify an assigned incident for '+u.id+' using #event.'));continue;}
-     if(code==='D'||code==='DE'){
+     if(code==='D'||code==='DE'||code==='DA'){
       await window.cadSharedCommand('assign',{incidentId:incident.id,unitId:u.id});
-      if(code==='DE')await window.cadSharedCommand('status',{incidentId:incident.id,unitId:u.id,status:'ENROUTE'});
+      if(code==='DE'||code==='DA')await window.cadSharedCommand('status',{incidentId:incident.id,unitId:u.id,status:code==='DA'?'ONSCENE':'ENROUTE'});
      }else if(code==='A'||code==='C'){
       await window.cadSharedCommand('clear',{incidentId:incident.id,unitId:u.id,disposition:'CLEARED'});
      }else{
