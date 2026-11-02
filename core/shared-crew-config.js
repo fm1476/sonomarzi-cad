@@ -4,10 +4,16 @@
 const id=x=>String(x??'').trim();
 function validate(groups,units){
  const errors=[],occupied=new Map(),known=new Map(units.map(u=>[id(u.id),u]));
+ const names=new Set();
  for(const group of groups){
   const members=group.unitIds||[];
   if(!id(group.name))errors.push('Each crew group needs a name.');
-  if(!Array.isArray(members)||members.length<2)errors.push('Group '+(group.name||group.id)+' requires at least two apparatus.');
+  const label=id(group.name).toUpperCase();
+  if(label&&names.has(label))errors.push('Duplicate shared-crew group name: '+group.name);
+  names.add(label);
+  if(!Array.isArray(members)){errors.push('Crew members must be an array.');continue}
+  if(new Set(members.map(id)).size!==members.length)errors.push('Duplicate apparatus within group '+group.name);
+  if(members.length<2)errors.push('Group '+(group.name||group.id)+' requires at least two apparatus.');
   for(const unitId of members){
    const key=id(unitId);
    if(!known.has(key)){errors.push('Unknown apparatus: '+key);continue}
