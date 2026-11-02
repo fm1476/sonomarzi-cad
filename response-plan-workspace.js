@@ -100,7 +100,7 @@ async function savePlan(p){
  if(p.status==='ACTIVE'&&p.resources.some(r=>!(r.preferredUnits||[]).length&&!r.specificUnit&&!r.allowUnrankedFallback))return status('Configure the response order for every requirement before activation. No automatic nearest-unit selection is available.');
  const next=[...plans.filter(x=>x.id!==p.id),p];
  try{
- const result=await window.CadDemoLogin.client().saveCloudSetting({agency:session().agencyId,scope:'AGENCY',key:KEY,payload:{raw:JSON.stringify(next)},expectedVersion:version});
+ const result=await window.CadDemoLogin.client().saveCloudSetting({agency:session().agencyId,scope:'AGENCY',key:KEY,payload:{raw:JSON.stringify(next)},expectedVersion:version??0});
  status('Saved. Reloading plans to confirm the shared version.');
  selected=p.id;await reload();
  }catch(e){status('Save blocked: '+e.message+'. Refresh before retrying. No local plans were deleted.')}
@@ -113,7 +113,7 @@ async function importLocal(){
  const additions=local.filter(x=>!existing.has(x.id)).map(x=>({...x,status:'DRAFT',cfsTypeId:cfs(x)?.id||null}));
  if(!additions.length)return status('All local plan identifiers are already present in shared configuration.');
  if(!confirm('Import '+additions.length+' local plans as drafts for review? Existing shared plans will remain unchanged.'))return;
- try{await window.CadDemoLogin.client().saveCloudSetting({agency:session().agencyId,scope:'AGENCY',key:KEY,payload:{raw:JSON.stringify([...plans,...additions])},expectedVersion:version});await reload();status('Imported '+additions.length+' plans as drafts. Review call-type links and requirements before activation.');}
+ try{await window.CadDemoLogin.client().saveCloudSetting({agency:session().agencyId,scope:'AGENCY',key:KEY,payload:{raw:JSON.stringify([...plans,...additions])},expectedVersion:version??0});await reload();status('Imported '+additions.length+' plans as drafts. Review call-type links and requirements before activation.');}
  catch(e){status('Import blocked: '+e.message)}
 }
 document.getElementById('cadConfigSection')?.addEventListener('change',e=>{if(e.target.value==='response')reload()});
