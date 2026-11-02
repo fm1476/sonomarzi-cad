@@ -78,5 +78,26 @@ function importLegacyTypes(legacy,existing,makeId){
  }
  return {catalog,added,skipped};
 }
-return Object.freeze({toCloud,fromCloud,saveCatalog,importLegacyTypes});
+function changeDiscipline(catalog,id,discipline){
+ if(!['LAW','FIRE','EMS'].includes(discipline))throw Error('Choose Law, Fire or EMS.');
+ const next=structuredClone(catalog),item=next.find(t=>t.id===id);
+ if(!item)throw Error('Call type not found.');
+ const incoming=[];
+ for(const source of next)for(const key of ['fire','ems'])if(source[key+'Enabled']&&source[key]===id){
+  const destination=discipline.toLowerCase();
+  if(source.discipline===discipline||discipline==='LAW'||(source[destination+'Enabled']&&source[destination]!==id))throw Error('Update the linked response on '+source.name+' before moving this call type to '+discipline+'.');
+  incoming.push({source,key,destination});
+ }
+ item.discipline=discipline;
+ const own=discipline.toLowerCase();
+ if(['fire','ems'].includes(own)){item[own]='';item[own+'Enabled']=false}
+ for(const {source,key,destination} of incoming){source[key]='';source[key+'Enabled']=false;source[destination]=id;source[destination+'Enabled']=true}
+ return next;
+}
+function listTypes(catalog,{query='',discipline='ALL'}={}){
+ const q=String(query).trim().toLocaleLowerCase();
+ return catalog.filter(item=>(discipline==='ALL'||item.discipline===discipline)&&(!q||[item.name,item.code,item.discipline,item.publication].join(' ').toLocaleLowerCase().includes(q)))
+  .slice().sort((a,b)=>String(a.name).localeCompare(String(b.name),undefined,{sensitivity:'base',numeric:true})||a.discipline.localeCompare(b.discipline)||String(a.code).localeCompare(String(b.code))||a.id.localeCompare(b.id));
+}
+return Object.freeze({toCloud,fromCloud,saveCatalog,importLegacyTypes,changeDiscipline,listTypes});
 });

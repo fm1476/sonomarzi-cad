@@ -51,7 +51,7 @@ grant select on public.cad_cfs_types,public.cad_cfs_auto_links,public.cad_combin
 -- Catalog writes require an authenticated, authorized RPC; direct table writes are intentionally disabled.
 create or replace function public.cad_save_cfs_type(p_agency uuid,p_type jsonb)
 returns jsonb language plpgsql security definer set search_path='' as $$
-declare v_id uuid;v_d text;v_name text;v_code text;v_pub text;v_target jsonb;v_target_id uuid;v_target_d text;
+declare v_id uuid;v_d text;v_name text;v_code text;v_pub text;v_target jsonb;v_target_id uuid;v_target_d text;v_old_d text;v_owner uuid;v_incoming jsonb;v_link jsonb;
 begin
  if auth.uid() is null or not public.cad_has_access(p_agency,true) then raise exception 'CAD configuration access denied' using errcode='42501';end if;
  v_id:=coalesce(nullif(p_type->>'id','')::uuid,gen_random_uuid());
@@ -61,11 +61,28 @@ begin
  v_pub:=upper(coalesce(p_type->>'publication','DRAFT'));
  if p_type->'autoCreate' is not null and jsonb_typeof(p_type->'autoCreate')<>'array' then raise exception 'CFS autoCreate must be an array';end if;
  if v_d not in ('LAW','FIRE','EMS') or length(v_name) not between 1 and 160 or length(v_code) not between 1 and 32 or v_pub not in ('DRAFT','ACTIVE','INACTIVE') then raise exception 'Invalid CFS type';end if;
+ -- Serialize agency configuration saves while moving discipline-qualified links.
+ perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended('cad_cfs_catalog:'||p_agency::text,0));
+ select agency_id,discipline into v_owner,v_old_d from public.cad_cfs_types where id=v_id for update;
+ if v_owner is not null and v_owner<>p_agency then raise exception 'Cannot change agency for existing CFS type' using errcode='42501';end if;
+ if v_old_d is not null and v_old_d<>v_d then
+  if exists(
+   select 1 from public.cad_cfs_auto_links l join public.cad_cfs_types source on source.id=l.source_type_id
+   where l.agency_id=p_agency and l.target_type_id=v_id and
+    (source.discipline=v_d or exists(select 1 from public.cad_cfs_auto_links other where other.agency_id=p_agency and other.source_type_id=l.source_type_id and other.target_discipline=v_d and other.target_type_id<>v_id))
+  ) then raise exception 'This discipline would conflict with an existing combined response. Remove or change that linked response first.';end if;
+  select coalesce(jsonb_agg(to_jsonb(l)),'[]'::jsonb) into v_incoming from public.cad_cfs_auto_links l where l.agency_id=p_agency and l.target_type_id=v_id;
+  delete from public.cad_cfs_auto_links where agency_id=p_agency and target_type_id=v_id;
+ end if;
  insert into public.cad_cfs_types(id,agency_id,discipline,name,code,category,priority,description,icon,color,publication)
  values(v_id,p_agency,v_d,v_name,v_code,left(coalesce(p_type->>'category',''),100),left(coalesce(p_type->>'priority','P2'),16),left(coalesce(p_type->>'description',''),2000),left(coalesce(p_type->>'icon',''),100),left(coalesce(p_type->>'color',''),32),v_pub)
- on conflict(id) do update set name=excluded.name,code=excluded.code,category=excluded.category,priority=excluded.priority,description=excluded.description,icon=excluded.icon,color=excluded.color,publication=excluded.publication,updated_at=now()
- where public.cad_cfs_types.agency_id=p_agency and public.cad_cfs_types.discipline=excluded.discipline;
- if not found then raise exception 'Cannot change agency or discipline for existing CFS type';end if;
+ on conflict(id) do update set discipline=excluded.discipline,name=excluded.name,code=excluded.code,category=excluded.category,priority=excluded.priority,description=excluded.description,icon=excluded.icon,color=excluded.color,publication=excluded.publication,updated_at=now()
+ where public.cad_cfs_types.agency_id=p_agency;
+ if not found then raise exception 'Cannot change agency for existing CFS type';end if;
+ for v_link in select value from jsonb_array_elements(coalesce(v_incoming,'[]'::jsonb)) loop
+  insert into public.cad_cfs_auto_links(agency_id,source_type_id,target_discipline,target_type_id)
+  values(p_agency,(v_link->>'source_type_id')::uuid,v_d,v_id);
+ end loop;
  delete from public.cad_cfs_auto_links where agency_id=p_agency and source_type_id=v_id;
  for v_target in select value from jsonb_array_elements(coalesce(p_type->'autoCreate','[]'::jsonb)) loop
   v_target_id:=(v_target#>>'{}')::uuid;

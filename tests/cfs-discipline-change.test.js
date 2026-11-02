@@ -1,0 +1,15 @@
+const assert=require('node:assert/strict');
+const bridge=require('../core/cfs-catalog-bridge');
+const types=[{id:'law',name:'Accident',discipline:'LAW',ems:'medical',emsEnabled:true,fire:'',fireEnabled:false},{id:'medical',name:'Medical Aid',discipline:'EMS',emsEnabled:false,fireEnabled:false}];
+const moved=bridge.changeDiscipline(types,'medical','FIRE');
+assert.equal(moved[1].id,'medical');assert.equal(moved[1].discipline,'FIRE');
+assert.equal(moved[0].fire,'medical');assert.equal(moved[0].fireEnabled,true);
+assert.equal(moved[0].emsEnabled,false);assert.equal(moved[0].ems,'');
+assert.equal(types[1].discipline,'EMS','Draft change must not mutate the prior state');
+assert.throws(()=>bridge.changeDiscipline([{...types[0],fire:'engine',fireEnabled:true},types[1]],'medical','FIRE'),/Update the linked response/);
+assert.throws(()=>bridge.changeDiscipline([{...types[0],discipline:'FIRE'},types[1]],'medical','FIRE'),/Update the linked response/);
+const standalone=bridge.changeDiscipline([types[1]],'medical','LAW');assert.equal(standalone[0].discipline,'LAW');
+const primary=bridge.changeDiscipline([{id:'primary',discipline:'LAW',fire:'other',fireEnabled:true,ems:'medic',emsEnabled:true}],'primary','FIRE');
+assert.equal(primary[0].fireEnabled,false,'A Fire primary cannot retain a second Fire auto-create slot');
+assert.equal(primary[0].ems,'medic');
+console.log('PASS: discipline changes retain CFS identity, move compatible links and reject ambiguous combined responses');

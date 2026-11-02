@@ -1,0 +1,11 @@
+const assert=require('node:assert/strict');const {listTypes}=require('../core/cfs-catalog-bridge');
+const types=Array.from({length:150},(_,i)=>({id:String(i),name:'Type '+(150-i),code:'C'+i,discipline:i%2?'LAW':'FIRE',publication:'Active'}));
+const before=JSON.stringify(types);const all=listTypes(types);
+assert.equal(all.length,150);assert.equal(all[0].name,'Type 1');assert.equal(all[149].name,'Type 150');
+assert.equal(listTypes(types,{discipline:'LAW'}).length,75);
+assert.equal(listTypes(types,{query:'C149'})[0].id,'149');
+assert.equal(listTypes(types,{query:'no match'}).length,0);
+const sameName=[{id:'ems',name:'Medical Aid',discipline:'EMS',code:'MED',publication:'Draft'},{id:'fire',name:'medical aid',discipline:'FIRE',code:'MA',publication:'Active'}];
+assert.deepEqual(listTypes(sameName).map(x=>x.id),['ems','fire']);
+assert.equal(JSON.stringify(types),before,'Filtering/sorting must not reorder or modify saved records');
+console.log('PASS: compact CFS selector supports 150 types, alphabetical/numeric order, filters and code search');
