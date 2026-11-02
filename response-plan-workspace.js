@@ -51,7 +51,7 @@ function editor(p){
  if(!p){e.innerHTML='<h4>Select or create a response plan</h4><p>Existing plans are shown on the left.</p>';v.innerHTML='<h4>Plan Preview</h4><p>Select a plan to review its response requirements.</p>';return}
  working=structuredClone(p);
  const options=types.filter(t=>t.discipline===p.discipline);
- e.innerHTML='<h4>'+escape(p.type||'New Response Plan')+'</h4><div class="cad-rp-fields"><label>Discipline<select id="rpNewDiscipline"><option>LAW</option><option>FIRE</option><option>EMS</option></select></label><label>Call type<select id="rpNewCfs"></select></label><label>Priority<input id="rpNewPriority" type="number" min="1" max="9" placeholder="Any priority"></label><label>Response area<input id="rpNewArea" placeholder="All configured areas"></label></div><h4>When and Where</h4><p>Optional dispatch hierarchy and agency-local schedule. Blank fields apply to all times and areas.</p><div class="cad-rp-fields"><label>Dispatch area<input id="rpDispatchArea" placeholder="Any dispatch area"></label><label>Subdivisions 1–5<input id="rpSubdivisions" placeholder="Separate hierarchy levels with commas"></label><label>Days (SUN, MON, TUE... )<input id="rpScheduleDays" placeholder="All days"></label><label>Start (HH:mm)<input id="rpStartTime" type="time"></label><label>End (HH:mm)<input id="rpEndTime" type="time"></label><label>Agency time zone<input id="rpTimeZone" value="America/Los_Angeles"></label><label>Effective UTC date/time<input id="rpActiveFrom" type="datetime-local"></label><label>Expiration UTC date/time<input id="rpExpiresAt" type="datetime-local"></label></div><p>Time windows spanning midnight belong to the day on which they start. Effective date/time fields are entered in UTC.</p><label>Dispatcher response notes<textarea id="rpResponseNotes" rows="3" placeholder="Optional operational instructions for this response plan"></textarea></label><h4>Response Requirements</h4><p>Use configured resource types. Reorder requirements using the arrow controls.</p><div id="rpNewRequirements"></div><button type="button" id="rpNewAdd">+ Add Requirement</button><h4>Alarm Levels</h4><p>Each level defines a total target or additional resources. Escalation never dispatches automatically.</p><div id="rpNewAlarms"></div><button type="button" id="rpNewAlarmAdd">+ Add Alarm Level</button><div class="cad-rp-actions"><button id="rpNewSave" type="button">Save Draft</button><button id="rpNewActivate" type="button">Activate Plan</button><button id="rpNewDeactivate" type="button">Deactivate</button></div>';
+ e.innerHTML='<h4>'+escape(p.type||'New Response Plan')+'</h4><div class="cad-rp-fields"><label>Discipline<select id="rpNewDiscipline"><option>LAW</option><option>FIRE</option><option>EMS</option></select></label><label>Call type<select id="rpNewCfs"></select></label><label>Priority<input id="rpNewPriority" type="number" min="1" max="9" placeholder="Any priority"></label><label>Response area<input id="rpNewArea" placeholder="All configured areas"></label></div><h4>When and Where</h4><p>Optional dispatch hierarchy and agency-local schedule. Blank fields apply to all times and areas.</p><div class="cad-rp-fields"><label>Dispatch area<input id="rpDispatchArea" placeholder="Any dispatch area"></label><label>Subdivisions 1–5<input id="rpSubdivisions" placeholder="Separate hierarchy levels with commas"></label><label>Days (SUN, MON, TUE... )<input id="rpScheduleDays" placeholder="All days"></label><label>Start (HH:mm)<input id="rpStartTime" type="time"></label><label>End (HH:mm)<input id="rpEndTime" type="time"></label><label>Agency time zone<input id="rpTimeZone" value="America/Los_Angeles"></label><label>Effective UTC date/time<input id="rpActiveFrom" type="datetime-local"></label><label>Expiration UTC date/time<input id="rpExpiresAt" type="datetime-local"></label></div><p>Time windows spanning midnight belong to the day on which they start. Effective date/time fields are entered in UTC.</p><label>Dispatcher response notes<textarea id="rpResponseNotes" rows="3" placeholder="Optional operational instructions for this response plan"></textarea></label><h4>Response Requirements</h4><p>Use configured resource types. Reorder requirements using the arrow controls.</p><div id="rpNewRequirements"></div><button type="button" id="rpNewAdd">+ Add Requirement</button><h4>Resource Decision Logic</h4><p>Standard requirements (AND), all-or-nothing group, or first complete alternative (OR). This is a recommendation preview, not an atomic live dispatch action.</p><div class="cad-rp-fields"><label>Response strategy<select id="rpLogicMode"><option value="AND">AND · Standard requirements</option><option value="GROUP">GROUP · All required together</option><option value="OR">OR · First complete alternative</option></select></label></div><div id="rpLogicEditor"></div><h4>Alarm Levels</h4><p>Each level defines a total target or additional resources. Escalation never dispatches automatically.</p><div id="rpNewAlarms"></div><button type="button" id="rpNewAlarmAdd">+ Add Alarm Level</button><div class="cad-rp-actions"><button id="rpNewSave" type="button">Save Draft</button><button id="rpNewActivate" type="button">Activate Plan</button><button id="rpNewDeactivate" type="button">Deactivate</button></div>';
  const discipline=document.getElementById('rpNewDiscipline'),type=document.getElementById('rpNewCfs');
  discipline.value=p.discipline;
  const typesFor=()=>{type.innerHTML=types.filter(t=>t.discipline===discipline.value).map(t=>'<option value="'+escape(t.id)+'">'+escape(t.name)+' ('+escape(t.publication)+')</option>').join('');if(working.cfsTypeId)type.value=working.cfsTypeId;};
@@ -120,6 +120,45 @@ function editor(p){
  }
  document.getElementById('rpNewAlarmAdd').onclick=()=>{working.alarmLevels??=[];working.alarmLevels.push({id:crypto.randomUUID(),name:'New Alarm Level',rank:working.alarmLevels.length+1,mode:'TOTAL',resources:[]});drawAlarms();preview()};
  drawAlarms();
+ const logicSelect=document.getElementById('rpLogicMode');
+ logicSelect.value=working.resourceLogic?.mode||'AND';
+ function renderLogic(){
+  const holder=document.getElementById('rpLogicEditor');holder.replaceChildren();
+  const mode=logicSelect.value;
+  if(mode==='AND'){working.resourceLogic=null;holder.textContent='Each resource requirement above is independently evaluated.';preview();return}
+  if(!working.resourceLogic||working.resourceLogic.mode!==mode){
+   working.resourceLogic=mode==='GROUP'?{mode,resources:structuredClone(working.resources)}:{mode,options:[structuredClone(working.resources)]};
+  }
+  const blocks=mode==='GROUP'?[working.resourceLogic.resources]:working.resourceLogic.options;
+  const label=document.createElement('p');label.textContent=mode==='GROUP'?'All resources in this group must be available.':'The first fully available choice wins. Reorder choices by removing and adding them.';holder.append(label);
+  blocks.forEach((block,i)=>{
+   const card=document.createElement('section');card.className='cad-rp-requirement';
+   const name=document.createElement('strong');name.textContent=mode==='OR'?'Alternative '+(i+1):'Required group';card.append(name);
+   if(mode==='OR'&&blocks.length>1){const remove=document.createElement('button');remove.type='button';remove.textContent='Remove alternative';remove.onclick=()=>{blocks.splice(i,1);renderLogic()};card.append(remove)}
+   const rows=document.createElement('div');card.append(rows);
+   function renderRows(){
+    rows.replaceChildren();
+    block.forEach((req,j)=>{
+     const row=document.createElement('div');row.className='cad-rp-requirement';
+     const quantity=document.createElement('input');quantity.type='number';quantity.min='1';quantity.max='99';quantity.value=req.count||1;quantity.setAttribute('aria-label','Quantity for requirement '+(j+1));quantity.onchange=()=>{req.count=Number(quantity.value);preview()};
+     const type=document.createElement('select');type.setAttribute('aria-label','Resource type for requirement '+(j+1));
+     const agency=activeAgencyName||window.CadAgencyMaster?.read(localStorage)?.agencies?.[0]?.name||'';
+     const known=window.CadResourceTypes?.forAgency(agency,discipline.value)||[];
+     for(const entry of known){const opt=document.createElement('option');opt.value=entry.name;opt.textContent=entry.name;type.append(opt)}
+     if(req.type&&!known.some(x=>x.name===req.type)){const opt=document.createElement('option');opt.value=req.type;opt.textContent=req.type;type.append(opt)}
+     type.value=req.type||'';type.onchange=()=>{req.type=type.value;preview()};
+     const preferred=document.createElement('input');preferred.value=(req.preferredUnits||[]).join(', ');preferred.placeholder='Unit order, comma separated';preferred.setAttribute('aria-label','Preferred apparatus order');preferred.onchange=()=>{req.preferredUnits=preferred.value.split(',').map(x=>x.trim()).filter(Boolean);preview()};
+     const remove=document.createElement('button');remove.type='button';remove.textContent='Remove resource';remove.onclick=()=>{block.splice(j,1);renderLogic()};
+     row.append(type,quantity,preferred,remove);rows.append(row)
+    });
+    preview();
+   }
+   const addRow=document.createElement('button');addRow.type='button';addRow.textContent='+ Resource';addRow.onclick=()=>{const agency=activeAgencyName||window.CadAgencyMaster?.read(localStorage)?.agencies?.[0]?.name||'';const t=window.CadResourceTypes?.forAgency(agency,discipline.value)?.[0]?.name||'';block.push({type:t,count:1,preferredUnits:[]});renderLogic()};
+   card.append(addRow);holder.append(card);renderRows();
+  });
+  if(mode==='OR'){const addAlternative=document.createElement('button');addAlternative.type='button';addAlternative.textContent='+ Alternative Choice';addAlternative.onclick=()=>{blocks.push([]);renderLogic()};holder.append(addAlternative)}
+ }
+ logicSelect.onchange=renderLogic;renderLogic();
  const add=document.getElementById('rpNewAdd');
  const picker=document.createElement('select');picker.id='rpResourcePicker';picker.setAttribute('aria-label','Choose configured resource type');
  add.before(picker);
